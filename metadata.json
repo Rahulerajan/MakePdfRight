@@ -1,0 +1,5 @@
+{
+  "name": "MakePDFRight",
+  "description": "A powerful and intuitive PDF conversion tool to create professional documents from images and text.",
+  "requestFramePermissions": ["microphone"]
+}
