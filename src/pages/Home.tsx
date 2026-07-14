@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useLanguage } from '../components/LanguageContext';
 import { 
   FileStack, 
   Scissors, 
@@ -20,7 +21,7 @@ const tools = [
   {
     id: 'merge',
     name: 'Merge PDF',
-    description: 'Combine PDFs in the order you want with the easiest PDF merger available.',
+    description: 'Combine multiple PDF files into a single document while preserving the original quality.',
     icon: <FileStack className="w-10 h-10" />,
     path: '/merge',
     color: 'bg-red-50 text-red-500 dark:bg-red-500/10'
@@ -28,7 +29,7 @@ const tools = [
   {
     id: 'split',
     name: 'Split PDF',
-    description: 'Separate one page or a whole set for easy conversion into independent PDF files.',
+    description: 'Split a PDF into individual pages or custom page ranges with ease.',
     icon: <Scissors className="w-10 h-10" />,
     path: '/split',
     color: 'bg-orange-50 text-orange-500 dark:bg-orange-500/10'
@@ -36,7 +37,7 @@ const tools = [
   {
     id: 'compress',
     name: 'Compress PDF',
-    description: 'Reduce file size while optimizing for maximal PDF quality.',
+    description: 'Reduce PDF file size while maintaining the best possible document quality.',
     icon: <Zap className="w-10 h-10" />,
     path: '/compress',
     color: 'bg-blue-50 text-blue-500 dark:bg-blue-500/10'
@@ -44,7 +45,7 @@ const tools = [
   {
     id: 'pdf-to-word',
     name: 'PDF to Word',
-    description: 'Easily convert your PDF files into easy to edit DOC and DOCX documents.',
+    description: 'Convert PDF files into fully editable Microsoft Word (.docx) documents with accurate formatting.',
     icon: <FileText className="w-10 h-10" />,
     path: '/pdf-to-word',
     color: 'bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10'
@@ -52,7 +53,7 @@ const tools = [
   {
     id: 'pdf-to-excel',
     name: 'PDF to Excel',
-    description: 'Pull data straight from PDFs into Excel spreadsheets in a few short seconds.',
+    description: 'Extract tables and convert PDF data into editable Microsoft Excel (.xlsx) spreadsheets.',
     icon: <Table className="w-10 h-10" />,
     path: '/pdf-to-excel',
     color: 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10'
@@ -60,7 +61,7 @@ const tools = [
   {
     id: 'pdf-to-jpg',
     name: 'PDF to JPG',
-    description: 'Extract all images from a PDF or convert each page to a JPG image.',
+    description: 'Convert every page of your PDF into high-quality JPG images.',
     icon: <ImageIcon className="w-10 h-10" />,
     path: '/pdf-to-jpg',
     color: 'bg-amber-50 text-amber-500 dark:bg-amber-500/10'
@@ -68,7 +69,7 @@ const tools = [
   {
     id: 'image-to-pdf',
     name: 'Image to PDF',
-    description: 'Convert JPG, PNG and other images to PDF in seconds.',
+    description: 'Convert JPG, PNG, WEBP, BMP, and other supported image formats into a professional PDF document.',
     icon: <ImageIcon className="w-10 h-10" />,
     path: '/image-to-pdf',
     color: 'bg-teal-50 text-teal-500 dark:bg-teal-500/10'
@@ -76,7 +77,7 @@ const tools = [
   {
     id: 'edit',
     name: 'Edit PDF',
-    description: 'Add text, images, shapes or freehand annotations to a PDF document.',
+    description: 'Edit PDF files by adding text, images, signatures, annotations, shapes, and more.',
     icon: <Type className="w-10 h-10" />,
     path: '/edit',
     color: 'bg-violet-50 text-violet-500 dark:bg-violet-500/10'
@@ -84,15 +85,15 @@ const tools = [
   {
     id: 'rotate',
     name: 'Rotate PDF',
-    description: 'Rotate your PDFs the way you need them. You can even rotate multiple PDFs at once!',
+    description: 'Rotate one or multiple PDF pages to the correct orientation in seconds.',
     icon: <RotateCw className="w-10 h-10" />,
     path: '/rotate',
     color: 'bg-pink-50 text-pink-500 dark:bg-pink-500/10'
   },
   {
     id: 'organise',
-    name: 'Organise PDF',
-    description: 'Sort, add and delete PDF pages. Rotate and reorder them as you need.',
+    name: 'Organize PDF',
+    description: 'Reorder, rotate, add, delete, extract, and manage PDF pages with an intuitive interface.',
     icon: <LayoutGrid className="w-10 h-10" />,
     path: '/organise',
     color: 'bg-slate-50 text-slate-500 dark:bg-slate-500/10'
@@ -119,6 +120,26 @@ const aiTools = [
 ];
 
 export const Home = () => {
+  const { t } = useLanguage();
+
+  const localizedTools = tools.map(tool => {
+    const keyId = tool.id.replace(/-/g, '_');
+    return {
+      ...tool,
+      name: t(`tools.${keyId}.name`),
+      description: t(`tools.${keyId}.description`)
+    };
+  });
+
+  const localizedAiTools = aiTools.map(tool => {
+    const keyId = tool.id === 'generate-image' ? 'image_gen' : tool.id;
+    return {
+      ...tool,
+      name: t(`tools.${keyId}.name`),
+      description: t(`tools.${keyId}.description`)
+    };
+  });
+
   return (
     <div className="flex flex-col space-y-24 pb-24">
       {/* Hero */}
@@ -129,7 +150,7 @@ export const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-white tracking-tight leading-[1.1]"
           >
-            Make Your <span className="text-primary">PDFs</span> Right.
+            {t('hero_title_1')}<span className="text-primary">{t('hero_title_2')}</span>{t('hero_title_3')}
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -137,7 +158,7 @@ export const Home = () => {
             transition={{ delay: 0.1 }}
             className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed font-medium"
           >
-            Every tool you need to work with PDFs in one place. 100% free, secure, and powered by AI.
+            {t('hero_desc')}
           </motion.p>
         </div>
       </section>
@@ -148,17 +169,17 @@ export const Home = () => {
           <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
             <Bot className="text-primary w-6 h-6" />
           </div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">AI Powered Tools</h2>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('ai_powered_tools_heading')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {aiTools.map((tool, index) => (
+          {localizedAiTools.map((tool, index) => (
             <Link key={tool.id} to={tool.path}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="group relative bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden"
+                className="group relative bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800/80 shadow-md hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)] hover:border-primary/40 dark:hover:border-primary/40 hover:-translate-y-1.5 transition-all duration-300 overflow-hidden"
               >
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 ${tool.color}`}>
                   {tool.icon}
@@ -181,10 +202,10 @@ export const Home = () => {
             <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
               <LayoutGrid className="text-slate-600 dark:text-slate-300 w-6 h-6" />
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Standard PDF Tools</h2>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('standard_pdf_tools_heading')}</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {tools.map((tool, idx) => (
+            {localizedTools.map((tool, idx) => (
               <motion.div
                 key={tool.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -194,9 +215,9 @@ export const Home = () => {
               >
                 <Link 
                   to={tool.path}
-                  className="group block h-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 transition-all duration-300 hover:border-primary dark:hover:border-primary hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1"
+                  className="group block h-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-8 transition-all duration-300 hover:border-primary/40 dark:hover:border-primary/40 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.4)] hover:-translate-y-1.5"
                 >
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:scale-110 ${tool.color}`}>
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-550 group-hover:scale-110 ${tool.color}`}>
                     {tool.icon}
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors">{tool.name}</h3>

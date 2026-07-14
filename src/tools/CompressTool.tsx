@@ -22,8 +22,10 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file }) => {
   const [customValue, setCustomValue] = useState(50);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<{ url: string; size: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const compressPDF = async () => {
+    setError(null);
     setIsProcessing(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -53,10 +55,13 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file }) => {
       // Artificial delay for UX
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      setResult({ url, size: simulatedSize });
-    } catch (error) {
-      console.error('Compression failed:', error);
-    } finally {
+      setIsProcessing(false);
+      setTimeout(() => {
+        setResult({ url, size: simulatedSize });
+      }, 1500);
+    } catch (err: any) {
+      console.error('Compression failed:', err);
+      setError(err.message || 'An error occurred while compressing the PDF. Please try again.');
       setIsProcessing(false);
     }
   };
@@ -111,7 +116,12 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file }) => {
 
   return (
     <div className="max-w-[800px] mx-auto space-y-12">
-      <LoadingOverlay isVisible={isProcessing} message="Optimizing your PDF..." />
+      <LoadingOverlay 
+        isVisible={isProcessing} 
+        message="Optimizing your PDF..." 
+        error={error}
+        onCloseError={() => setError(null)}
+      />
 
       <div className="text-center space-y-4">
         <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Choose Compression Level</h3>
@@ -192,7 +202,8 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file }) => {
       <div className="flex justify-center pt-8">
         <button 
           onClick={compressPDF}
-          className="btn-primary px-12 py-5 text-xl flex items-center gap-3"
+          disabled={isProcessing}
+          className="btn-primary px-12 py-5 text-xl flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Compress PDF
           <ArrowRight className="w-6 h-6" />

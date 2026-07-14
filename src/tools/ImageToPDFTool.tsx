@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { 
@@ -29,6 +29,9 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
   const [images, setImages] = useState<ImageWithPreview[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const initialFilesLoadedRef = useRef(false);
 
   const generatePreview = (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -49,12 +52,21 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
         preview: await generatePreview(f)
       }))
     );
-    setImages(prev => [...prev, ...newImagesWithPreviews]);
+    
+    setImages(prev => {
+      // Deduplicate images based on name and size at commit-time
+      const currentKeys = new Set(prev.map(item => `${item.file.name}-${item.file.size}`));
+      const filteredNew = newImagesWithPreviews.filter(
+        item => !currentKeys.has(`${item.file.name}-${item.file.size}`)
+      );
+      return [...prev, ...filteredNew];
+    });
     setIsProcessing(false);
   };
 
   useEffect(() => {
-    if (initialFiles.length > 0 && images.length === 0) {
+    if (initialFiles.length > 0 && !initialFilesLoadedRef.current) {
+      initialFilesLoadedRef.current = true;
       handleAddFiles(initialFiles);
     }
   }, [initialFiles]);
@@ -64,6 +76,7 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
   };
 
   const convertToPDF = async () => {
+    setError(null);
     setIsProcessing(true);
     try {
       const pdfDoc = await PDFDocument.create();
@@ -97,10 +110,13 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
       // Artificial delay for UX
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      setResultUrl(url);
-    } catch (error) {
-      console.error('Conversion failed:', error);
-    } finally {
+      setIsProcessing(false);
+      setTimeout(() => {
+        setResultUrl(url);
+      }, 1500);
+    } catch (err: any) {
+      console.error('Conversion failed:', err);
+      setError(err.message || 'An error occurred while converting the images to PDF. Please try again.');
       setIsProcessing(false);
     }
   };
@@ -141,7 +157,12 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
 
   return (
     <div className="flex flex-col lg:flex-row gap-12">
-      <LoadingOverlay isVisible={isProcessing} message="Converting images to PDF..." />
+      <LoadingOverlay 
+        isVisible={isProcessing} 
+        message="Converting images to PDF..." 
+        error={error}
+        onCloseError={() => setError(null)}
+      />
 
       {/* Main Area: Image Grid */}
       <div className="flex-1 space-y-8">
@@ -154,7 +175,7 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
           axis="y" 
           values={images} 
           onReorder={setImages}
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-8"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8"
         >
           <AnimatePresence>
             {images.map((item) => (
@@ -166,24 +187,24 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="relative group cursor-grab active:cursor-grabbing"
               >
-                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-2 shadow-lg transition-all duration-300 hover:shadow-xl group-hover:border-primary">
-                  <div className="aspect-[1/1.4] overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center relative">
-                    <img src={item.preview} alt={item.file.name} className="w-full h-full object-contain" />
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-3 shadow-md hover:shadow-xl transition-all duration-300 hover:border-primary/50">
+                  <div className="aspect-[1/1.414] overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-950/40 flex items-center justify-center relative">
+                    <img src={item.preview} alt={item.file.name} className="w-full h-full object-contain p-2" />
                     
                     {/* Drag Handle */}
-                    <div className="absolute top-2 left-2 p-1.5 bg-white/90 dark:bg-slate-800/90 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 left-2 p-1.5 bg-white/95 dark:bg-slate-800/95 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity border border-slate-200/50 dark:border-slate-700">
                       <GripVertical className="w-4 h-4 text-slate-400" />
                     </div>
 
                     {/* Delete Button */}
                     <button 
                       onClick={() => removeImage(item.id)}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 border border-red-400"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-center mt-3 text-xs font-bold text-slate-400 uppercase tracking-wider truncate px-2">{item.file.name}</p>
+                  <p className="text-center mt-3 text-xs font-bold text-slate-500 dark:text-slate-400 truncate px-2" title={item.file.name}>{item.file.name}</p>
                 </div>
               </Reorder.Item>
             ))}
@@ -224,7 +245,7 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles }) 
 
           <button 
             onClick={convertToPDF}
-            disabled={images.length === 0}
+            disabled={images.length === 0 || isProcessing}
             className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Convert to PDF

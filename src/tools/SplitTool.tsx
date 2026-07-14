@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface SplitToolProps {
   file: File;
@@ -28,6 +28,14 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [splitMode, setSplitMode] = useState<'range' | 'all'>('range');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log('[SplitTool] Component mounted');
+    return () => {
+      console.log('[SplitTool] Component unmounted');
+    };
+  }, []);
 
   useEffect(() => {
     const loadThumbnails = async () => {
@@ -39,7 +47,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 0.4 });
+          const viewport = page.getViewport({ scale: 0.8 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -89,6 +97,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
     const pagesToExtract = splitMode === 'all' ? pages.map((_, i) => i) : selectedPages;
     if (pagesToExtract.length === 0) return;
 
+    setError(null);
     setIsExporting(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -101,10 +110,14 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
       const pdfBytes = await newPdf.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      setResultUrl(url);
-    } catch (error) {
-      console.error('Splitting failed:', error);
-    } finally {
+      
+      setIsExporting(false);
+      setTimeout(() => {
+        setResultUrl(url);
+      }, 1500);
+    } catch (err: any) {
+      console.error('Splitting failed:', err);
+      setError(err.message || 'An error occurred while splitting the PDF. Please try again.');
       setIsExporting(false);
     }
   };
@@ -143,7 +156,12 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
   return (
     <div className="flex flex-col lg:flex-row gap-12">
       <LoadingOverlay isVisible={isProcessing} message="Loading document pages..." />
-      <LoadingOverlay isVisible={isExporting} message="Extracting pages..." />
+      <LoadingOverlay 
+        isVisible={isExporting} 
+        message="Extracting pages..." 
+        error={error}
+        onCloseError={() => setError(null)}
+      />
 
       {/* Main Area: Page Previews */}
       <div className="flex-1 space-y-8">
@@ -165,30 +183,34 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
           {pages.map((url, index) => (
             <motion.div 
               key={index}
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.02, y: -2 }}
               onClick={() => togglePage(index)}
-              className={`relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                selectedPages.includes(index) ? 'border-primary shadow-xl shadow-primary/10' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+              className={`relative group cursor-pointer rounded-2xl overflow-hidden border transition-all duration-300 p-2.5 bg-white dark:bg-slate-900 ${
+                selectedPages.includes(index) 
+                  ? 'border-primary shadow-[0_12px_24px_rgba(229,50,45,0.15)] dark:shadow-[0_12px_24px_rgba(229,50,45,0.3)]' 
+                  : 'border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-md hover:shadow-xl'
               }`}
             >
-              <img src={url} alt={`Page ${index + 1}`} className="w-full h-auto" />
-              <div className="absolute top-3 right-3">
+              <div className="aspect-[1/1.414] w-full bg-slate-50 dark:bg-slate-950/40 rounded-xl overflow-hidden flex items-center justify-center">
+                <img src={url} alt={`Page ${index + 1}`} className="w-full h-full object-contain" />
+              </div>
+              <div className="absolute top-4 right-4">
                 {selectedPages.includes(index) ? (
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg">
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg border border-white/20">
                     <CheckSquare className="w-5 h-5 text-white" />
                   </div>
                 ) : (
-                  <div className="w-8 h-8 bg-white/80 dark:bg-slate-800/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                  <div className="w-8 h-8 bg-white/90 dark:bg-slate-800/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md border border-slate-200/50 dark:border-slate-700/50">
                     <Square className="w-5 h-5 text-slate-400" />
                   </div>
                 )}
               </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-slate-900/5 dark:bg-white/5 py-2 text-center backdrop-blur-sm">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{index + 1}</span>
+              <div className="mt-3 text-center">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Page {index + 1}</span>
               </div>
             </motion.div>
           ))}
@@ -227,8 +249,9 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
 
             {splitMode === 'range' && (
               <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
                 className="space-y-3"
               >
                 <label className="text-sm font-bold text-slate-500 dark:text-slate-400">Enter page ranges</label>
@@ -236,8 +259,11 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
                   type="text" 
                   placeholder="e.g. 1-3, 5"
                   value={rangeInput}
-                  onChange={(e) => handleRangeChange(e.target.value)}
-                  className="w-full px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-primary outline-none transition-all text-sm font-medium"
+                  onChange={(e) => {
+                    console.log(`[SplitTool] Input changed: "${e.target.value}"`);
+                    handleRangeChange(e.target.value);
+                  }}
+                  className="w-full px-5 py-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-primary focus:ring-4 focus:ring-primary/15 outline-none transition-all text-sm font-medium shadow-sm"
                 />
                 <div className="flex items-start gap-2 text-slate-400">
                   <Info className="w-4 h-4 mt-0.5" />
@@ -254,7 +280,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file }) => {
             </div>
             <button 
               onClick={splitPDF}
-              disabled={splitMode === 'range' && selectedPages.length === 0}
+              disabled={(splitMode === 'range' && selectedPages.length === 0) || isExporting || isProcessing}
               className="btn-primary w-full py-5 text-lg flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Split PDF

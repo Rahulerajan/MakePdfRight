@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDFToWordToolProps {
   file: File;
@@ -20,8 +20,10 @@ interface PDFToWordToolProps {
 export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const convertToWord = async () => {
+    setError(null);
     setIsProcessing(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -77,10 +79,13 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
       // Artificial delay for UX
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      setResultUrl(url);
-    } catch (error) {
-      console.error('Conversion failed:', error);
-    } finally {
+      setIsProcessing(false);
+      setTimeout(() => {
+        setResultUrl(url);
+      }, 1500);
+    } catch (err: any) {
+      console.error('Conversion failed:', err);
+      setError(err.message || 'An error occurred while converting the PDF to Word. Please try again.');
       setIsProcessing(false);
     }
   };
@@ -118,7 +123,12 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
 
   return (
     <div className="max-w-[800px] mx-auto space-y-12">
-      <LoadingOverlay isVisible={isProcessing} message="Converting to Word..." />
+      <LoadingOverlay 
+        isVisible={isProcessing} 
+        message="Converting to Word..." 
+        error={error}
+        onCloseError={() => setError(null)}
+      />
 
       <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-12 shadow-xl flex flex-col items-center text-center gap-10">
         <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-500/10 rounded-3xl flex items-center justify-center text-indigo-500">
@@ -145,7 +155,8 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
 
         <button 
           onClick={convertToWord}
-          className="btn-primary w-full max-w-md py-5 text-xl flex items-center justify-center gap-3"
+          disabled={isProcessing}
+          className="btn-primary w-full max-w-md py-5 text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Convert to Word
           <ArrowRight className="w-6 h-6" />

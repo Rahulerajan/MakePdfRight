@@ -1,10 +1,65 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* Enable class-based manual dark mode variant in Tailwind CSS v4 */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #e5322d;
   --color-primary-hover: #c42b27;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Dynamically remapped tailwind colors for premium, zero-duplication light/dark theme switching */
+  --color-slate-50: var(--slate-50);
+  --color-slate-100: var(--slate-100);
+  --color-slate-200: var(--slate-200);
+  --color-slate-300: var(--slate-300);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  --color-slate-700: var(--slate-700);
+  --color-slate-750: var(--slate-750);
+  --color-slate-800: var(--slate-800);
+  --color-slate-850: var(--slate-850);
+  --color-slate-900: var(--slate-900);
+  --color-slate-950: var(--slate-950);
+}
+
+:root {
+  /* Light mode palette variables */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-750: #2b3544;
+  --slate-800: #1e293b;
+  --slate-850: #161e2e;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+}
+
+.dark, [data-theme="dark"] {
+  /* Premium SaaS dark mode palette variables (ChatGPT, Linear, Vercel design) */
+  --slate-950: #0f1115; /* Background */
+  --slate-900: #171a21; /* Cards / Upload areas / Hover overlays */
+  --slate-850: #1e222b; /* Secondary Panels / Popovers */
+  --slate-800: #1e222b; /* Sidebar / Toolbar backings */
+  --slate-750: #2b3240; /* Input/Form borders */
+  --slate-700: #2b3240; /* General divider borders */
+  
+  --slate-600: #8a93a5; /* Muted texts */
+  --slate-500: #8a93a5;
+  --slate-400: #8a93a5;
+  
+  --slate-300: #b0b7c3; /* Secondary text */
+  --slate-200: #b0b7c3;
+  
+  --slate-100: #f3f4f6; /* Primary text */
+  --slate-50: #f3f4f6;
 }
 
 @layer base {
@@ -12,32 +67,85 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
   }
 
   body {
-    @apply bg-white text-slate-900 transition-colors duration-300;
+    @apply bg-[#f8fafc] text-slate-900 transition-colors duration-300;
   }
 
-  [data-theme="dark"] body {
-    @apply bg-[#0f172a] text-slate-100;
+  .dark body, [data-theme="dark"] body {
+    @apply bg-slate-950 text-slate-100;
   }
 }
 
 @layer components {
   .container-custom {
-    @apply max-w-[1200px] mx-auto px-6;
+    @apply max-w-[1240px] mx-auto px-6;
   }
 
   .card-tool {
-    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-8 transition-all duration-300 hover:border-primary hover:shadow-xl hover:shadow-primary/5;
+    @apply bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-8 transition-all duration-300 hover:border-primary/60 dark:hover:border-primary/50 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] hover:-translate-y-1;
   }
 
   .btn-primary {
-    @apply bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-hover transition-all active:scale-95 shadow-lg shadow-primary/20;
+    @apply bg-primary text-white px-8 py-3.5 rounded-xl font-bold tracking-wide shadow-md hover:bg-primary-hover hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-primary/10 hover:shadow-lg hover:shadow-primary/25 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2;
   }
 
   .btn-secondary {
-    @apply bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white px-8 py-3 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95;
+    @apply bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 px-8 py-3.5 rounded-xl font-bold tracking-wide border border-slate-200/60 dark:border-slate-700/60 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+  }
+
+  /* Centralized Premium Light Mode Card/Container Theme System */
+  html:not(.dark) .bg-white[class*="rounded"],
+  html:not(.dark) [class*="rounded"][class*="bg-white"],
+  html:not(.dark) [class*="rounded"][class*="bg-slate-50"],
+  html:not(.dark) [class*="rounded"][class*="bg-slate-100"] {
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-color: #d1d5db !important; /* Always-visible premium light gray (#D1D5DB) */
+    box-shadow: 0 4px 16px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -1px rgba(15, 23, 42, 0.03), 0 1px 2px 0 rgba(15, 23, 42, 0.02) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  /* Ensure all Slate and Gray borders are clearly defined with #D1D5DB in Light Mode, excluding brand highlighted borders */
+  html:not(.dark) [class*="border-slate-"]:not([class*="border-primary"]):not([class*="border-emerald-"]):not([class*="border-red-"]):not([class*="border-blue-"]):not([class*="border-amber-"]),
+  html:not(.dark) [class*="border-gray-"]:not([class*="border-primary"]):not([class*="border-emerald-"]):not([class*="border-red-"]):not([class*="border-blue-"]):not([class*="border-amber-"]),
+  html:not(.dark) .border:not([class*="border-primary"]):not([class*="border-emerald-"]):not([class*="border-red-"]):not([class*="border-blue-"]):not([class*="border-amber-"]),
+  html:not(.dark) .border-t:not([class*="border-primary"]):not([class*="border-emerald-"]):not([class*="border-red-"]):not([class*="border-blue-"]):not([class*="border-amber-"]),
+  html:not(.dark) .border-b:not([class*="border-primary"]):not([class*="border-emerald-"]):not([class*="border-red-"]):not([class*="border-blue-"]):not([class*="border-amber-"]),
+  html:not(.dark) .border-l:not([class*="border-primary"]):not([class*="border-emerald-"]):not([class*="border-red-"]):not([class*="border-blue-"]):not([class*="border-amber-"]),
+  html:not(.dark) .border-r:not([class*="border-primary"]):not([class*="border-emerald-"]):not([class*="border-red-"]):not([class*="border-blue-"]):not([class*="border-amber-"]) {
+    border-color: #d1d5db !important;
+  }
+
+  /* Dashed card exceptions (like Upload boxes) */
+  html:not(.dark) .border-dashed {
+    border-width: 2px !important;
+    border-style: dashed !important;
+    border-color: #9ca3af !important; /* Slightly stronger gray-400 for dashed borders to be clearly visible */
+    box-shadow: 0 4px 12px 0 rgba(15, 23, 42, 0.03) !important;
+  }
+
+  /* Hover effects for interactive premium cards/containers in Light Mode */
+  html:not(.dark) .bg-white[class*="rounded"]:hover,
+  html:not(.dark) [class*="rounded"][class*="bg-white"]:hover,
+  html:not(.dark) .bg-white[class*="rounded"].card-tool:hover,
+  html:not(.dark) .bg-white[class*="rounded"].group:hover,
+  html:not(.dark) .bg-white[class*="rounded"].cursor-pointer:hover,
+  html:not(.dark) a.bg-white[class*="rounded"]:hover,
+  html:not(.dark) .group:hover .bg-white[class*="rounded"],
+  html:not(.dark) .group:hover [class*="rounded"][class*="bg-white"] {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 20px 40px -4px rgba(15, 23, 42, 0.08), 0 1px 3px 0 rgba(15, 23, 42, 0.04) !important;
+  }
+
+  /* Make sure active state in drag and drop (isDragActive) is still highlighted correctly */
+  html:not(.dark) .bg-white[class*="rounded"].border-primary,
+  html:not(.dark) .bg-white[class*="rounded"][class*="bg-primary/5"],
+  html:not(.dark) [class*="rounded"][class*="bg-white"].border-primary {
+    border-color: var(--color-primary) !important;
+    background-color: rgba(229, 50, 45, 0.05) !important;
   }
 }
 

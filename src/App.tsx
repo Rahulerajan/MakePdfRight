@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './components/ThemeContext';
+import { LanguageProvider } from './components/LanguageContext';
 import { Header, Footer } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { ToolPage } from './components/common/ToolPage';
@@ -23,9 +25,11 @@ import { AudioTranscribeTool } from './tools/AudioTranscribeTool';
 
 export default function App() {
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col bg-[#f8f9fa] dark:bg-[#0a0a0a] transition-colors duration-300">
-        <Header />
+    <ThemeProvider>
+      <LanguageProvider>
+        <Router>
+          <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300 text-slate-900 dark:text-slate-100">
+            <Header />
         
         <main className="flex-1">
           <Routes>
@@ -117,7 +121,7 @@ export default function App() {
 
             <Route path="/organise" element={
               <ToolPage 
-                title="Organise PDF" 
+                title="Organize PDF" 
                 description="Reorder, rotate, and delete pages from your PDF."
               >
                 {(files) => <OrganiseTool file={files[0]} />}
@@ -145,5 +149,7 @@ export default function App() {
         <Footer />
       </div>
     </Router>
+   </LanguageProvider>
+  </ThemeProvider>
   );
 }

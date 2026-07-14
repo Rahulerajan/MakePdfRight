@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface RotateToolProps {
   file: File;
@@ -31,6 +31,7 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file }) => {
   const [isRotating, setIsRotating] = useState(false);
   const [pages, setPages] = useState<PageRotation[]>([]);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPages = async () => {
@@ -42,7 +43,7 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file }) => {
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 0.4 });
+          const viewport = page.getViewport({ scale: 0.8 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -76,6 +77,7 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file }) => {
   };
 
   const saveRotatedPDF = async () => {
+    setError(null);
     setIsRotating(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -95,10 +97,13 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file }) => {
       // Artificial delay for UX
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      setResultUrl(url);
-    } catch (error) {
-      console.error('Rotation failed:', error);
-    } finally {
+      setIsRotating(false);
+      setTimeout(() => {
+        setResultUrl(url);
+      }, 1500);
+    } catch (err: any) {
+      console.error('Rotation failed:', err);
+      setError(err.message || 'An error occurred while rotating the PDF pages. Please try again.');
       setIsRotating(false);
     }
   };
@@ -137,7 +142,12 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file }) => {
   return (
     <div className="flex flex-col lg:flex-row gap-12">
       <LoadingOverlay isVisible={isProcessing} message="Loading document..." />
-      <LoadingOverlay isVisible={isRotating} message="Rotating pages..." />
+      <LoadingOverlay 
+        isVisible={isRotating} 
+        message="Rotating pages..." 
+        error={error}
+        onCloseError={() => setError(null)}
+      />
 
       {/* Main Area: Page Grid */}
       <div className="flex-1 space-y-8">
@@ -152,30 +162,30 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file }) => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
           {pages.map((page) => (
             <div key={page.index} className="group relative">
               <div 
-                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-2 shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer"
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-3 shadow-md hover:shadow-xl hover:border-primary/50 transition-all duration-300 cursor-pointer"
                 onClick={() => rotatePage(page.index)}
               >
-                <div className="aspect-[1/1.4] overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                <div className="aspect-[1/1.414] overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-950/40 flex items-center justify-center relative">
                   <motion.img 
                     animate={{ rotate: page.rotation }}
                     transition={{ type: 'spring', stiffness: 260, damping: 20 }}
                     src={page.url} 
                     alt={`Page ${page.index + 1}`} 
-                    className="w-full h-full object-contain" 
+                    className="w-full h-full object-contain p-2" 
                   />
-                </div>
-                <p className="text-center mt-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{page.index + 1}</p>
-                
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center pointer-events-none">
-                  <div className="bg-white dark:bg-slate-800 p-3 rounded-full shadow-xl">
-                    <RotateCw className="w-6 h-6 text-primary" />
+                  
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <div className="bg-white/95 dark:bg-slate-900/95 p-3 rounded-full shadow-lg border border-slate-200/50 dark:border-slate-850">
+                      <RotateCw className="w-6 h-6 text-primary animate-spin-slow" />
+                    </div>
                   </div>
                 </div>
+                <p className="text-center mt-3 text-xs font-bold text-slate-500 dark:text-slate-400">Page {page.index + 1}</p>
               </div>
             </div>
           ))}
@@ -206,7 +216,8 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file }) => {
 
           <button 
             onClick={saveRotatedPDF}
-            className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3"
+            disabled={isRotating || isProcessing}
+            className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Rotate PDF
             <ArrowRight className="w-6 h-6" />

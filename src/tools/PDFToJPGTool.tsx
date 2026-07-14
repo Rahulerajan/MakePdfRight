@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface PDFToJPGToolProps {
   file: File;
@@ -25,6 +25,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
   const [quality, setQuality] = useState(0.8);
   const [pages, setPages] = useState<string[]>([]);
   const [isLoadingPreviews, setIsLoadingPreviews] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPreviews = async () => {
@@ -38,7 +39,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
         const count = Math.min(pdf.numPages, 10);
         for (let i = 1; i <= count; i++) {
           const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 0.3 });
+          const viewport = page.getViewport({ scale: 0.8 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -57,6 +58,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
   }, [file]);
 
   const convertToJPG = async () => {
+    setError(null);
     setIsProcessing(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -84,10 +86,13 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
       // Artificial delay for UX
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      setResult({ url, count: pdf.numPages });
-    } catch (error) {
-      console.error('Conversion failed:', error);
-    } finally {
+      setIsProcessing(false);
+      setTimeout(() => {
+        setResult({ url, count: pdf.numPages });
+      }, 1500);
+    } catch (err: any) {
+      console.error('Conversion failed:', err);
+      setError(err.message || 'An error occurred while converting the PDF to JPG. Please try again.');
       setIsProcessing(false);
     }
   };
@@ -127,7 +132,12 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
 
   return (
     <div className="flex flex-col lg:flex-row gap-12">
-      <LoadingOverlay isVisible={isProcessing} message="Converting pages to JPG..." />
+      <LoadingOverlay 
+        isVisible={isProcessing} 
+        message="Converting pages to JPG..." 
+        error={error}
+        onCloseError={() => setError(null)}
+      />
       <LoadingOverlay isVisible={isLoadingPreviews} message="Loading document..." />
 
       {/* Main Area: Previews */}
@@ -137,13 +147,13 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{pages.length} pages loaded</p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
           {pages.map((url, index) => (
-            <div key={index} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-2 shadow-lg">
-              <div className="aspect-[1/1.4] overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-900">
-                <img src={url} alt={`Page ${index + 1}`} className="w-full h-full object-cover" />
+            <div key={index} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-3 shadow-md hover:shadow-xl transition-all duration-300">
+              <div className="aspect-[1/1.414] overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-950/40 flex items-center justify-center">
+                <img src={url} alt={`Page ${index + 1}`} className="w-full h-full object-contain p-2" />
               </div>
-              <p className="text-center mt-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{index + 1}</p>
+              <p className="text-center mt-3 text-xs font-bold text-slate-500 dark:text-slate-400">Page {index + 1}</p>
             </div>
           ))}
         </div>
@@ -187,7 +197,8 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
 
           <button 
             onClick={convertToJPG}
-            className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3"
+            disabled={isProcessing || isLoadingPreviews}
+            className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Convert to JPG
             <ArrowRight className="w-6 h-6" />

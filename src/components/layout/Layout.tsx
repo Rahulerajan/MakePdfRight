@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../ThemeContext';
+import { useLanguage, Language } from '../LanguageContext';
 import { 
   FileText, 
   ChevronDown,
-  Menu,
-  X,
-  Sun,
-  Moon,
   Globe,
   FileStack,
   Scissors,
@@ -18,7 +16,9 @@ import {
   LayoutGrid,
   RotateCw,
   Sparkles,
-  Mic
+  Mic,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -30,26 +30,13 @@ function cn(...inputs: ClassValue[]) {
 export const Header = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved) return saved === 'dark';
-      // Default to DARK as per requirement
-      return true;
-    }
-    return true;
-  });
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
+  const isDark = theme === 'dark';
   const location = useLocation();
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    const theme = isDark ? 'dark' : 'light';
-    
-    // Apply both class (for Tailwind) and data-theme (for consistency with snippet)
-    root.classList.toggle('dark', isDark);
-    root.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [isDark]);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
 
   const navItems = [
     { 
@@ -58,7 +45,7 @@ export const Header = () => {
       tools: [
         { name: 'Merge PDF', path: '/merge', icon: <FileStack className="w-4 h-4" /> },
         { name: 'Split PDF', path: '/split', icon: <Scissors className="w-4 h-4" /> },
-        { name: 'Organise PDF', path: '/organise', icon: <LayoutGrid className="w-4 h-4" /> },
+        { name: 'Organize PDF', path: '/organise', icon: <LayoutGrid className="w-4 h-4" /> },
         { name: 'Rotate PDF', path: '/rotate', icon: <RotateCw className="w-4 h-4" /> },
       ]
     },
@@ -96,6 +83,93 @@ export const Header = () => {
     },
   ];
 
+  const languagesList = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+  ];
+
+  const currentLang = languagesList.find(l => l.code === language) || languagesList[0];
+
+  const getLabelKey = (label: string) => {
+    const map: Record<string, string> = {
+      'All Tools': 'all_tools',
+      'AI Tools': 'ai_tools',
+      'Compress': 'compress',
+      'Convert': 'convert',
+      'Edit': 'edit'
+    };
+    return map[label] || label.toLowerCase();
+  };
+
+  const getToolKey = (name: string) => {
+    const map: Record<string, string> = {
+      'Merge PDF': 'tools.merge.name',
+      'Split PDF': 'tools.split.name',
+      'Organize PDF': 'tools.organise.name',
+      'Rotate PDF': 'tools.rotate.name',
+      'AI Image Gen': 'tools.image_gen.name',
+      'AI Image Generator': 'tools.image_gen.name',
+      'Transcribe': 'tools.transcribe.name',
+      'Compress PDF': 'tools.compress.name',
+      'PDF to Word': 'tools.pdf_to_word.name',
+      'PDF to Excel': 'tools.pdf_to_excel.name',
+      'PDF to JPG': 'tools.pdf_to_jpg.name',
+      'Image to PDF': 'tools.image_to_pdf.name',
+      'Edit PDF': 'tools.edit.name'
+    };
+    return map[name] || name;
+  };
+
+  // Prevent Page Scrolling when Mobile Menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
+  // Trap keyboard focus and listen for escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        setIsLangOpen(false);
+        triggerButtonRef.current?.focus();
+      }
+
+      if (e.key === 'Tab' && isMobileMenuOpen && mobileMenuRef.current) {
+        const focusableElements = mobileMenuRef.current.querySelectorAll(
+          'a[href], button:not([disabled]), input, select, textarea'
+        );
+        if (focusableElements.length === 0) return;
+        const firstElement = focusableElements[0] as HTMLElement;
+        const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileMenuOpen]);
+
   return (
     <header className="sticky top-0 z-[100] w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-[72px] flex items-center transition-colors duration-300">
       <div className="container-custom w-full flex items-center justify-between">
@@ -116,8 +190,8 @@ export const Header = () => {
               onMouseEnter={() => setActiveDropdown(item.id)}
               onMouseLeave={() => setActiveDropdown(null)}
             >
-              <button className="flex items-center gap-1 text-[15px] font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors">
-                {item.label}
+              <button className="flex items-center gap-1 text-[15px] font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors focus:outline-none">
+                {t(getLabelKey(item.label))}
                 <ChevronDown className={cn("w-4 h-4 transition-transform", activeDropdown === item.id && "rotate-180")} />
               </button>
 
@@ -137,7 +211,7 @@ export const Header = () => {
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary transition-all group"
                       >
                         <span className="text-slate-400 group-hover:text-primary transition-colors">{tool.icon}</span>
-                        <span className="text-sm font-medium">{tool.name}</span>
+                        <span className="text-sm font-medium">{t(getToolKey(tool.name))}</span>
                       </Link>
                     ))}
                   </motion.div>
@@ -149,58 +223,214 @@ export const Header = () => {
 
         {/* Right Controls */}
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            <Globe className="w-4 h-4 text-slate-500" />
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">EN</span>
+          
+          {/* Language Selector Dropdown */}
+          <div className="relative">
+            <button 
+              onClick={() => setIsLangOpen(!isLangOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full cursor-pointer transition-colors focus:outline-none"
+              title="Select Language"
+            >
+              <Globe className="w-4 h-4 text-slate-500" />
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase">{currentLang.code}</span>
+            </button>
+
+            <AnimatePresence>
+              {isLangOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsLangOpen(false)} 
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-1.5 z-50 overflow-hidden"
+                  >
+                    {languagesList.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          setLanguage(lang.code as Language);
+                          setIsLangOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left cursor-pointer focus:outline-none",
+                          language === lang.code 
+                            ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
+                            : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                        )}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <span className="text-base leading-none">{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </span>
+                        {language === lang.code && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
           </div>
 
           <button
             id="darkToggle"
-            onClick={() => setIsDark(!isDark)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300"
+            onClick={toggleTheme}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer"
+            title={isDark ? t('dark_mode_light') : t('dark_mode_dark')}
           >
-            <Moon className="w-5 h-5" />
+            {isDark ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
           </button>
 
+          {/* Hamburger Menu Button - Rotating & Morphing Custom Morph Design */}
           <button 
-            className="lg:hidden p-2 text-slate-600 dark:text-slate-300"
+            ref={triggerButtonRef}
+            className="lg:hidden p-2 text-slate-600 dark:text-slate-300 relative w-10 h-10 flex items-center justify-center cursor-pointer focus:outline-none z-[110]"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={t('toggle_menu')}
           >
-            {isMobileMenuOpen ? <X /> : <Menu />}
+            <motion.div
+              animate={{ rotate: isMobileMenuOpen ? 90 : 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-6 h-6 flex items-center justify-center"
+            >
+              <motion.span
+                animate={{ 
+                  rotate: isMobileMenuOpen ? 45 : 0, 
+                  y: isMobileMenuOpen ? 0 : -6 
+                }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute w-5 h-0.5 bg-current rounded-full"
+              />
+              <motion.span
+                animate={{ 
+                  opacity: isMobileMenuOpen ? 0 : 1,
+                  scale: isMobileMenuOpen ? 0 : 1
+                }}
+                transition={{ duration: 0.2 }}
+                className="absolute w-5 h-0.5 bg-current rounded-full"
+              />
+              <motion.span
+                animate={{ 
+                  rotate: isMobileMenuOpen ? -45 : 0, 
+                  y: isMobileMenuOpen ? 0 : 6 
+                }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute w-5 h-0.5 bg-current rounded-full"
+              />
+            </motion.div>
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu & Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, x: '100%' }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
-            className="fixed inset-0 top-[72px] bg-white dark:bg-slate-900 z-[90] lg:hidden overflow-y-auto"
-          >
-            <div className="p-6 flex flex-col gap-6">
-              {navItems.map((item) => (
-                <div key={item.id} className="space-y-3">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.label}</div>
-                  <div className="flex flex-col gap-2">
-                    {item.tools.map((tool) => (
-                      <Link
-                        key={tool.path}
-                        to={tool.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200"
-                      >
-                        {tool.icon}
-                        <span className="font-semibold">{tool.name}</span>
-                      </Link>
-                    ))}
-                  </div>
+          <>
+            {/* Backdrop Blur & Semi-transparent Dark/Light Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-slate-950/20 dark:bg-slate-950/50 backdrop-blur-sm z-[95] lg:hidden"
+            />
+
+            {/* Menu Panel - Elevated Floating Card Layout with Drag-To-Dismiss */}
+            <motion.div
+              ref={mobileMenuRef}
+              initial={{ opacity: 0, scale: 0.98, x: '100%' }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.98, x: '100%' }}
+              transition={{ 
+                type: 'spring', 
+                stiffness: 380, 
+                damping: 30, 
+                mass: 0.8,
+                staggerChildren: 0.02,
+                delayChildren: 0.1
+              }}
+              originX="95%"
+              originY="5%"
+              drag="x"
+              dragConstraints={{ left: 0, right: 300 }}
+              dragElastic={{ left: 0.05, right: 0.5 }}
+              onDragEnd={(event, info) => {
+                if (info.offset.x > 100 || info.velocity.x > 300) {
+                  setIsMobileMenuOpen(false);
+                }
+              }}
+              className="fixed top-20 right-4 bottom-4 w-[calc(100%-32px)] max-w-sm bg-white/95 dark:bg-slate-900/95 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-2xl p-6 overflow-y-auto z-[100] lg:hidden flex flex-col gap-8 select-none"
+            >
+              {/* Staggered Navigation Items */}
+              <div className="flex flex-col gap-6 flex-1">
+                {navItems.map((item) => (
+                  <motion.div 
+                    key={item.id} 
+                    variants={{
+                      hidden: { opacity: 0, y: 10 },
+                      visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                    }} 
+                    className="space-y-3"
+                  >
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
+                      {t(getLabelKey(item.label))}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {item.tools.map((tool) => (
+                        <Link
+                          key={tool.path}
+                          to={tool.path}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 transition-colors group"
+                        >
+                          <span className="text-slate-400 group-hover:text-primary transition-colors">{tool.icon}</span>
+                          <span className="font-semibold text-sm">{t(getToolKey(tool.name))}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Mobile Language Selector inside floating panel */}
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 350, damping: 25 } }
+                }}
+                className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3"
+              >
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Language</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {languagesList.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        setLanguage(lang.code as Language);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer",
+                        language === lang.code 
+                          ? "bg-primary text-white border-primary shadow-sm shadow-primary/25" 
+                          : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      )}
+                    >
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </motion.div>
+              </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </header>
@@ -208,6 +438,7 @@ export const Header = () => {
 };
 
 export const Footer = () => {
+  const { t } = useLanguage();
   const location = useLocation();
   const isHome = location.pathname === '/';
 
@@ -221,7 +452,7 @@ export const Footer = () => {
           <span className="text-lg font-bold text-slate-900 dark:text-white">MakePDFRight</span>
         </div>
         <p className="text-sm font-medium text-slate-400">
-          Made with ❤️ from Kerala
+          {t('made_with')}
         </p>
       </div>
     </footer>
