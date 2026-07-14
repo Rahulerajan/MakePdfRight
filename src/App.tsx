@@ -59,7 +59,7 @@ export default function App() {
                 title="Compress PDF" 
                 description="Reduce the size of your PDF while maintaining quality."
               >
-                {(files) => <CompressTool file={files[0]} />}
+                {(files, onReset) => <CompressTool file={files[0]} onReset={onReset} />}
               </ToolPage>
             } />
 

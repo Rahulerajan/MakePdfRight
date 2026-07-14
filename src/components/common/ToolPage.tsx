@@ -9,7 +9,7 @@ import { useLanguage } from '../LanguageContext';
 interface ToolPageProps {
   title: string;
   description: string;
-  children: (files: File[]) => React.ReactNode;
+  children: (files: File[], onReset?: () => void) => React.ReactNode;
   multiple?: boolean;
   accept?: Record<string, string[]>;
 }
@@ -109,7 +109,7 @@ export const ToolPage: React.FC<ToolPageProps> = ({
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                {children(files)}
+                {children(files, reset)}
               </motion.div>
             )}
           </AnimatePresence>
