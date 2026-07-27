@@ -3,12 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Make PDF Right</title>
+    <title>MakePDFRight - Fast, Private Online PDF &amp; AI Tools</title>
+    
+    <!-- SEO & Metadata -->
+    <meta name="description" content="MakePDFRight is a fast, free, and secure online PDF toolkit. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate AI images, and transcribe audio with automatic file deletion." />
+    <meta name="keywords" content="PDF tools, merge PDF, split PDF, compress PDF, PDF to Word, PDF to Excel, edit PDF, AI image generator, audio transcribe, free PDF editor" />
+    <meta name="author" content="MakePDFRight" />
+    <meta name="theme-color" content="#E5322D" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- Open Graph Social Preview Card -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MakePDFRight" />
+    <meta property="og:title" content="MakePDFRight - Fast, Private Online PDF &amp; AI Tools" />
+    <meta property="og:description" content="Merge, split, compress, convert, edit, and AI-enhance your PDFs securely in your browser. All files auto-deleted shortly after processing." />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MakePDFRight - Fast, Private Online PDF &amp; AI Tools" />
+    <meta name="twitter:description" content="Merge, split, compress, convert, edit, and AI-enhance your PDFs securely in your browser. All files auto-deleted shortly after processing." />
+    <meta name="twitter:image" content="/og-image.png" />
+
     <script>
       (function() {
         try {
           const saved = localStorage.getItem('theme');
-          const theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          const theme = saved || 'light';
           if (theme === 'dark') {
             document.documentElement.classList.add('dark');
             document.documentElement.setAttribute('data-theme', 'dark');

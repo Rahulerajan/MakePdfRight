@@ -81,13 +81,24 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
 
   console.log("[Client Service] Fetching image from Pollinations AI:", url);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for external API
+
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error(`Pollinations AI returned status ${response.status}: ${response.statusText}`);
+      if (response.status === 429) {
+        throw new Error("The image generation service is currently experiencing high demand (Rate Limit Exceeded). Please wait a moment and try again.");
+      }
+      throw new Error(`Image generation service returned status ${response.status}: ${response.statusText}`);
     }
 
     const blob = await response.blob();
+    if (!blob || blob.size === 0) {
+      throw new Error("Image generation service returned empty content. Please try a different prompt.");
+    }
     
     // Convert Blob to Base64 to seamlessly work with the existing UI/download functions
     return new Promise<string>((resolve, reject) => {
@@ -103,8 +114,12 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
       reader.readAsDataURL(blob);
     });
   } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error("Image generation timed out after 45 seconds. The external image service may be temporarily slow or unreachable. Please try again later.");
+    }
     console.error("[Client Service] Pollinations AI image fetch failed:", error);
-    throw new Error(error.message || "Failed to fetch image from Pollinations AI. Please check your network or try a different prompt.");
+    throw new Error(error.message || "Failed to fetch image from external generation service. Please check your network or try a different prompt.");
   }
 };
 

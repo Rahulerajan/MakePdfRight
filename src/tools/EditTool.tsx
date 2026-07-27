@@ -66,9 +66,12 @@ interface EditToolProps {
   file: File;
 }
 
+// Global, reusable editor page preview cache to avoid redundant renders on navigate
+const editorPageCache = new Map<string, string>();
+
 export const EditTool: React.FC<EditToolProps> = ({ file }) => {
   // --- Loading / Base States ---
-  const [pages, setPages] = useState<string[]>([]);
+  const [pages, setPages] = useState<(string | null)[]>([]);
   const [pageConfigs, setPageConfigs] = useState<PageConfig[]>([]);
   const [zoom, setZoom] = useState(1.0);
   const [elements, setElements] = useState<EditorElement[]>([]);
@@ -176,33 +179,35 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
 
   // --- Load PDF File ---
   useEffect(() => {
+    let isMounted = true;
     const loadPDF = async () => {
       setIsProcessing(true);
       setError(null);
       try {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-        const pageUrls: string[] = [];
-        const configs: PageConfig[] = [];
+        const totalPages = pdf.numPages;
 
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 1.5 });
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
-          pageUrls.push(canvas.toDataURL());
+        if (!isMounted) return;
+
+        // Initialize state arrays and check cache for immediate non-blocking rendering
+        const configs: PageConfig[] = [];
+        const initialPages: (string | null)[] = [];
+        const cacheBaseKey = `${file.name}-${file.size}`;
+
+        for (let i = 0; i < totalPages; i++) {
           configs.push({
-            index: i - 1,
+            index: i,
             rotation: 0,
             header: { showPageNumbers: true },
             footer: { showPageNumbers: true }
           });
+          const cachedUrl = editorPageCache.get(`${cacheBaseKey}-${i}`);
+          initialPages.push(cachedUrl || null);
         }
-        setPages(pageUrls);
+
         setPageConfigs(configs);
+        setPages(initialPages as string[]); // Cast to match type safely
 
         // Seed initial version history
         const initialElements: EditorElement[] = [];
@@ -222,14 +227,50 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
             strokes: []
           }
         ]);
+
+        // Unblock UI immediately after skeleton layout is established
+        setIsProcessing(false);
+
+        // Render each page asynchronously in the background
+        for (let i = 1; i <= totalPages; i++) {
+          if (!isMounted) return;
+          const pageIndex = i - 1;
+          const cacheKey = `${cacheBaseKey}-${pageIndex}`;
+
+          if (editorPageCache.has(cacheKey)) {
+            continue; // Already processed
+          }
+
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
+          const dataUrl = canvas.toDataURL();
+
+          if (isMounted) {
+            editorPageCache.set(cacheKey, dataUrl);
+            setPages(prev => {
+              const updated = [...prev];
+              updated[pageIndex] = dataUrl;
+              return updated;
+            });
+          }
+        }
       } catch (err: any) {
         console.error('Failed to load PDF:', err);
         setError('Error rendering document. Please verify the PDF format and try again.');
-      } finally {
         setIsProcessing(false);
       }
     };
     loadPDF();
+
+    return () => {
+      isMounted = false;
+    };
   }, [file]);
 
   // --- Keyboard Shortcuts ---
@@ -608,7 +649,6 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
     setError(null);
     setIsSaving(true);
     setSaveStatus('Extracting page...');
-    await new Promise(r => setTimeout(r, 600));
     try {
       const arrayBuffer = await file.arrayBuffer();
       const srcDoc = await PDFDocument.load(arrayBuffer);
@@ -728,17 +768,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
     setError(null);
     setIsSaving(true);
     
-    // Smooth tactile progress simulation sequence
-    setSaveStatus('Preparing document...');
-    await new Promise(r => setTimeout(r, 600));
-    setSaveStatus('Applying edits...');
-    await new Promise(r => setTimeout(r, 700));
-    setSaveStatus('Generating PDF...');
-    await new Promise(r => setTimeout(r, 750));
-    setSaveStatus('Finalizing...');
-    await new Promise(r => setTimeout(r, 550));
-    setSaveStatus('Saving complete...');
-    await new Promise(r => setTimeout(r, 400));
+    setSaveStatus('Saving document...');
 
     try {
       const arrayBuffer = await file.arrayBuffer();
@@ -1139,7 +1169,13 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
               }`}
             >
               <div className="aspect-[3/4] rounded-lg overflow-hidden border border-slate-200/50 bg-slate-50 relative">
-                <img src={url} alt={`Thumb ${idx + 1}`} className="w-full h-full object-contain" />
+                {url ? (
+                  <img src={url} alt={`Thumb ${idx + 1}`} className="w-full h-full object-contain animate-fadeIn" />
+                ) : (
+                  <div className="w-full h-full bg-slate-100/40 dark:bg-slate-900/40 animate-pulse flex items-center justify-center">
+                    <div className="w-6 h-8 bg-slate-200/50 dark:bg-slate-850/50 rounded animate-pulse" />
+                  </div>
+                )}
                 {/* Visual rotation display */}
                 {pageConfigs[idx]?.rotation ? (
                   <span className="absolute bottom-1 right-1 bg-slate-900/80 text-white font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
@@ -1464,7 +1500,19 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
                   }}
                 >
                   {/* Base PDF Render Previews */}
-                  <img src={url} alt={`PDF Page ${index + 1}`} className="w-full h-full object-fill pointer-events-none" />
+                  {url ? (
+                    <img src={url} alt={`PDF Page ${index + 1}`} className="w-full h-full object-fill pointer-events-none animate-fadeIn" />
+                  ) : (
+                    <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center space-y-4 bg-slate-50 dark:bg-slate-900/40">
+                      <div className="relative w-8 h-8">
+                        <svg className="w-full h-full animate-spin text-primary" viewBox="0 0 50 50">
+                          <circle className="opacity-15" cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="3.5" fill="none" />
+                          <path className="opacity-90" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" d="M25,5a20,20 0 0,1 20,20" />
+                        </svg>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rendering page layout...</span>
+                    </div>
+                  )}
 
                   {/* Freehand Vector Drawings Layer */}
                   <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">

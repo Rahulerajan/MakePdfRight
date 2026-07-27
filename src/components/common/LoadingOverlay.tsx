@@ -8,6 +8,7 @@ interface LoadingOverlayProps {
   progress?: number; // Optional manual progress
   error?: string | null; // Optional error message
   onCloseError?: () => void; // Callback to close error state
+  onCancel?: () => void; // Callback to cancel processing
 }
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
@@ -16,6 +17,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   progress: manualProgress,
   error = null,
   onCloseError,
+  onCancel,
 }) => {
   const [simulatedProgress, setSimulatedProgress] = useState(0);
   const [statusText, setStatusText] = useState('Preparing files...');
@@ -234,6 +236,17 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                   </motion.div>
                 </div>
               </div>
+
+              {onCancel && !showSuccess && (
+                <div className="pt-2">
+                  <button
+                    onClick={onCancel}
+                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer"
+                  >
+                    Cancel Compression
+                  </button>
+                </div>
+              )}
             </motion.div>
           )}
         </motion.div>

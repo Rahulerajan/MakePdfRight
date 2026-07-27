@@ -25,6 +25,14 @@
   --color-slate-950: var(--slate-950);
 }
 
+body[data-workspace="true"] {
+  overflow: hidden !important;
+}
+
+body[data-workspace="true"] footer {
+  display: none !important;
+}
+
 :root {
   /* Light mode palette variables */
   --slate-50: #f8fafc;
@@ -62,6 +70,20 @@
   --slate-50: #f3f4f6;
 }
 
+/* Keyframes for shimmer animation */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
+}
+
 @layer base {
   html {
     font-family: var(--font-sans);
@@ -81,11 +103,49 @@
 
 @layer components {
   .container-custom {
-    @apply max-w-[1240px] mx-auto px-6;
+    width: min(1440px, 96%);
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: clamp(16px, 2vw, 32px);
+  }
+
+  .tools-grid-responsive {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+
+  @media (min-width: 600px) {
+    .tools-grid-responsive {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+  }
+
+  @media (min-width: 912px) {
+    .tools-grid-responsive {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .tools-grid-responsive {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+  }
+
+  @media (min-width: 1600px) {
+    .tools-grid-responsive {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 20px;
+    }
   }
 
   .card-tool {
-    @apply bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-8 transition-all duration-300 hover:border-primary/60 dark:hover:border-primary/50 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] hover:-translate-y-1;
+    @apply bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 transition-all duration-300 hover:border-primary/60 dark:hover:border-primary/50 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)];
   }
 
   .btn-primary {

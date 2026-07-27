@@ -174,11 +174,11 @@ export const Header = () => {
     <header className="sticky top-0 z-[100] w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 h-[72px] flex items-center transition-colors duration-300">
       <div className="container-custom w-full flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
-            <FileText className="text-white w-6 h-6" />
+        <Link to="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0 group">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+            <FileText className="text-white w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">MakePDFRight</span>
+          <span className="text-base sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">MakePDFRight</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -222,16 +222,16 @@ export const Header = () => {
         </nav>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4 shrink-0">
           
           {/* Language Selector Dropdown */}
           <div className="relative">
             <button 
               onClick={() => setIsLangOpen(!isLangOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full cursor-pointer transition-colors focus:outline-none"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full cursor-pointer transition-colors focus:outline-none"
               title="Select Language"
             >
-              <Globe className="w-4 h-4 text-slate-500" />
+              <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500" />
               <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase">{currentLang.code}</span>
             </button>
 
@@ -281,16 +281,16 @@ export const Header = () => {
           <button
             id="darkToggle"
             onClick={toggleTheme}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer"
+            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300 focus:outline-none cursor-pointer"
             title={isDark ? t('dark_mode_light') : t('dark_mode_dark')}
           >
-            {isDark ? <Sun className="w-5 h-5 text-amber-500" /> : <Moon className="w-5 h-5" />}
+            {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
 
           {/* Hamburger Menu Button - Rotating & Morphing Custom Morph Design */}
           <button 
             ref={triggerButtonRef}
-            className="lg:hidden p-2 text-slate-600 dark:text-slate-300 relative w-10 h-10 flex items-center justify-center cursor-pointer focus:outline-none z-[110]"
+            className="lg:hidden p-1.5 sm:p-2 text-slate-600 dark:text-slate-300 relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center cursor-pointer focus:outline-none z-[110]"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label={t('toggle_menu')}
           >
@@ -356,8 +356,7 @@ export const Header = () => {
                 staggerChildren: 0.02,
                 delayChildren: 0.1
               }}
-              originX="95%"
-              originY="5%"
+              style={{ transformOrigin: '95% 5%' }}
               drag="x"
               dragConstraints={{ left: 0, right: 300 }}
               dragElastic={{ left: 0.05, right: 0.5 }}
@@ -439,21 +438,40 @@ export const Header = () => {
 
 export const Footer = () => {
   const { t } = useLanguage();
-  const location = useLocation();
-  const isHome = location.pathname === '/';
-
-  if (!isHome) return null;
 
   return (
-    <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12 mt-auto">
-      <div className="container-custom text-center space-y-4">
-        <div className="flex items-center justify-center gap-2">
-          <FileText className="text-primary w-6 h-6" />
-          <span className="text-lg font-bold text-slate-900 dark:text-white">MakePDFRight</span>
+    <footer className="bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 py-8 sm:py-10 mt-auto transition-colors">
+      <div className="container-custom flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+        {/* Brand & Security Assurance */}
+        <div className="space-y-2">
+          <Link to="/" className="inline-flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+              <FileText className="text-white w-4 h-4" />
+            </div>
+            <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white">MakePDFRight</span>
+          </Link>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-sm">
+            🔒 All uploaded documents are processed securely in temporary server storage & deleted automatically within minutes.
+          </p>
         </div>
-        <p className="text-sm font-medium text-slate-400">
-          {t('made_with')}
-        </p>
+
+        {/* Navigation Links */}
+        <div className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
+          <Link to="/" className="hover:text-primary transition-colors">
+            Home
+          </Link>
+          <Link to="/privacy" className="hover:text-primary transition-colors">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="hover:text-primary transition-colors">
+            Terms of Service
+          </Link>
+        </div>
+
+        {/* Copyright */}
+        <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+          © {new Date().getFullYear()} MakePDFRight. All rights reserved.
+        </div>
       </div>
     </footer>
   );

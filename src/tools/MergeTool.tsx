@@ -10,6 +10,7 @@ import {
   FileText,
   GripVertical,
   ArrowRight,
+  ArrowLeft,
   AlertCircle
 } from 'lucide-react';
 import { FileUpload } from '../components/common/FileUpload';
@@ -20,15 +21,20 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@$
 
 interface MergeToolProps {
   initialFiles: File[];
+  onReset?: () => void;
 }
 
 interface FileWithPreview {
   id: string;
   file: File;
-  preview: string;
+  preview?: string;
+  isGeneratingPreview?: boolean;
 }
 
-export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
+// Global, reusable document thumbnail cache to prevent unnecessary re-rendering
+const thumbnailCache = new Map<string, string>();
+
+export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) => {
   const { t } = useLanguage();
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,7 +44,12 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
 
   const initialFilesLoadedRef = useRef(false);
 
+  // Generates or retrieves PDF preview thumbnail asynchronously and stores in cache
   const generatePreview = async (file: File): Promise<string> => {
+    const cacheKey = `${file.name}-${file.size}`;
+    const cached = thumbnailCache.get(cacheKey);
+    if (cached) return cached;
+
     try {
       console.log(`[MergeTool] Attempting preview generation for: ${file.name}`);
       const arrayBuffer = await file.arrayBuffer();
@@ -57,18 +68,18 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
       
       await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
       console.log(`[MergeTool] Successfully generated preview for: ${file.name}`);
-      return canvas.toDataURL();
+      const dataUrl = canvas.toDataURL();
+      thumbnailCache.set(cacheKey, dataUrl);
+      return dataUrl;
     } catch (err: any) {
       console.warn(`[MergeTool] Could not generate preview for: ${file.name}. Falling back to default icon. Error:`, err);
+      thumbnailCache.set(cacheKey, 'placeholder');
       return 'placeholder';
     }
   };
 
   const handleAddFiles = async (newFiles: File[]) => {
     setErrorMsg(null);
-    setProcessingMessage("Generating document previews...");
-    setIsProcessing(true);
-    
     console.log(`[MergeTool] Raw files uploaded:`, newFiles.map(f => f.name));
 
     try {
@@ -106,32 +117,41 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
       }
 
       if (validFiles.length === 0) {
-        setIsProcessing(false);
         return;
       }
 
-      const newFilesWithPreviews = await Promise.all(
-        validFiles.map(async (f) => ({
+      // 3. Immediately insert files with isGeneratingPreview=true (instant visual feedback, no full-screen overlay!)
+      const itemsToAdd = validFiles.map((f) => {
+        const cacheKey = `${f.name}-${f.size}`;
+        const cachedUrl = thumbnailCache.get(cacheKey);
+        return {
           id: Math.random().toString(36).substr(2, 9),
           file: f,
-          preview: await generatePreview(f)
-        }))
-      );
-      
+          preview: cachedUrl,
+          isGeneratingPreview: !cachedUrl
+        };
+      });
+
       setFiles(prev => {
-        // Deduplicate at state update commit-time for absolute concurrency safety
         const currentKeys = new Set(prev.map(item => `${item.file.name}-${item.file.size}`));
-        const filteredNew = newFilesWithPreviews.filter(
+        const filteredNew = itemsToAdd.filter(
           item => !currentKeys.has(`${item.file.name}-${item.file.size}`)
         );
         return [...prev, ...filteredNew];
       });
-      console.log(`[MergeTool] Added ${newFilesWithPreviews.length} files successfully.`);
+
+      // 4. Trigger asynchronous background generation for the newly added files
+      itemsToAdd.forEach(async (item) => {
+        if (item.isGeneratingPreview) {
+          const previewUrl = await generatePreview(item.file);
+          setFiles(prev => prev.map(f => f.id === item.id ? { ...f, preview: previewUrl, isGeneratingPreview: false } : f));
+        }
+      });
+
+      console.log(`[MergeTool] Added ${itemsToAdd.length} files successfully.`);
     } catch (err: any) {
       console.error("[MergeTool] Error during file loading:", err);
       setErrorMsg("An unexpected error occurred while loading your PDFs. Please try again.");
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -172,9 +192,7 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
       const url = URL.createObjectURL(blob);
       
       setIsProcessing(false);
-      setTimeout(() => {
-        setResultUrl(url);
-      }, 1500);
+      setResultUrl(url);
       console.log(`[MergeTool] Merged file successfully created.`);
     } catch (error: any) {
       console.error('[MergeTool] Merging failed:', error);
@@ -185,30 +203,31 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
 
   if (resultUrl) {
     return (
-      <div className="max-w-[600px] mx-auto text-center space-y-12 py-12">
-        <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-emerald-500/20">
-          <CheckCircle2 className="w-12 h-12" />
+      <div className="h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center space-y-6">
+        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20">
+          <CheckCircle2 className="w-10 h-10" />
         </div>
-        <div className="space-y-4">
-          <h2 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">{t('merge.merged_title')}</h2>
-          <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">{t('merge.merged_desc')}</p>
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t('merge.merged_title')}</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t('merge.merged_desc')}</p>
         </div>
         
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
           <a 
             href={resultUrl} 
             download="merged_document.pdf"
-            className="btn-primary text-xl py-5 flex items-center justify-center gap-3"
+            className="btn-primary flex-1 py-4 flex items-center justify-center gap-2 text-base font-extrabold"
           >
-            <Download className="w-6 h-6" />
+            <Download className="w-5 h-5" />
             {t('merge.download_btn')}
           </a>
           <button 
             onClick={() => {
               setResultUrl(null);
               setFiles([]);
+              if (onReset) onReset();
             }}
-            className="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary font-bold transition-colors cursor-pointer"
+            className="px-6 py-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer"
           >
             {t('merge.more_btn')}
           </button>
@@ -218,7 +237,14 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
   }
 
   return (
-    <div className="space-y-8">
+    <motion.div 
+      key="workspace-view"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.25 }}
+      className="flex flex-col h-full w-full bg-[#f3f4f6] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
+    >
       <LoadingOverlay 
         isVisible={isProcessing} 
         message={processingMessage} 
@@ -226,105 +252,132 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles }) => {
         onCloseError={() => setErrorMsg(null)}
       />
 
-      <div className="flex flex-col items-center gap-12 w-full">
-        {/* Reorder and Upload Wrapper */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 w-full max-w-5xl mx-auto">
-          
-          {/* Reorder Group (Horizontal Layout for true Single-Axis scrollable drag and drop) */}
-          <div className="flex-1 max-w-full overflow-x-auto py-6 px-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 rounded-3xl bg-slate-100/40 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/50 min-h-[300px] flex items-center justify-center">
-            {files.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 dark:text-slate-500 font-medium">
-                {t('merge.no_files')}
-              </div>
-            ) : (
-              <Reorder.Group 
-                axis="x" 
-                values={files} 
-                onReorder={setFiles}
-                className="flex flex-row gap-6 select-none"
-              >
-                <AnimatePresence>
-                  {files.map((item) => (
-                    <Reorder.Item 
-                      key={item.id} 
-                      value={item}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="relative group cursor-grab active:cursor-grabbing flex-shrink-0"
-                    >
-                      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-4 shadow-md hover:shadow-xl transition-all duration-300 group-hover:border-primary/50">
-                        <div className="w-52 h-72 bg-slate-50 dark:bg-slate-950/40 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-850 flex items-center justify-center relative">
-                          {item.preview && item.preview !== 'placeholder' ? (
-                            <img src={item.preview} alt={item.file.name} className="w-full h-full object-contain p-2" />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-center space-y-3 p-4">
-                              <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500">
-                                <FileText className="w-6 h-6" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[160px]" title={item.file.name}>
-                                  {item.file.name}
-                                </p>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1">
-                                  {(item.file.size / (1024 * 1024)).toFixed(2)} MB
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Hover Overlay indicating can be dragged */}
-                          <div className="absolute inset-0 bg-slate-900/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                            <span className="bg-white/95 dark:bg-slate-900/95 text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm border border-slate-200/50 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-                              Drag to Reorder
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between gap-2.5 px-1">
-                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate max-w-[150px]" title={item.file.name}>
-                            {item.file.name}
-                          </p>
-                          <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors flex-shrink-0" />
-                        </div>
-                      </div>
-                      
-                      <button 
-                        onClick={() => removeFile(item.id)}
-                        className="absolute -top-3 -right-3 w-10 h-10 lg:w-8 lg:h-8 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-500 shadow-lg transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100 cursor-pointer z-10"
-                        title="Remove PDF"
-                      >
-                        <Trash2 className="w-5 h-5 lg:w-4 lg:h-4" />
-                      </button>
-                    </Reorder.Item>
-                  ))}
-                </AnimatePresence>
-              </Reorder.Group>
-            )}
+      {/* TOP NAVBAR */}
+      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between shrink-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
+            PDF
           </div>
-
-          {/* Compact File Upload trigger */}
-          <div className="flex-shrink-0 flex items-center justify-center py-4">
-            <FileUpload onFilesSelected={handleAddFiles} multiple compact />
-          </div>
+          <span className="font-bold text-xl text-slate-900 dark:text-white">Merge PDF Files</span>
         </div>
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600">
+            {files.length} {files.length === 1 ? 'File' : 'Files'}
+          </span>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+          )}
+        </div>
+      </header>
 
-        {/* Info Helper Note */}
-        {files.length >= 2 && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium max-w-md text-center leading-relaxed">
-            {t('merge.info_helper')}
+      {/* MAIN TWO-PANEL WORKSPACE */}
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
+        {/* LEFT CANVAS: PDF Files Reorder Grid */}
+        <main className="flex-1 min-h-0 bg-[#eef0f3] dark:bg-slate-900/80 p-3.5 sm:p-6 md:p-8 overflow-y-auto flex flex-col justify-between relative">
+          <Reorder.Group 
+            axis="x" 
+            values={files} 
+            onReorder={setFiles}
+            className="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap items-start gap-4 md:gap-6 select-none w-full md:w-auto"
+          >
+            <AnimatePresence>
+              {files.map((item) => (
+                <Reorder.Item 
+                  key={item.id} 
+                  value={item}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="relative group cursor-grab active:cursor-grabbing w-full md:w-48 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-3 shadow-sm hover:shadow-md transition-all flex flex-col items-center"
+                >
+                  {/* Drag Handle */}
+                  <div className="absolute top-2 left-2 p-1 bg-white/90 dark:bg-slate-800/90 rounded shadow-xs opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity border border-slate-200 dark:border-slate-700 z-10">
+                    <GripVertical className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+
+                  {/* Delete Button */}
+                  <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1 z-10">
+                    <button 
+                      onClick={() => removeFile(item.id)}
+                      className="p-1.5 bg-[#E5322D] hover:bg-red-700 text-white rounded-lg transition-colors cursor-pointer"
+                      title="Remove file"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="w-full h-40 sm:h-48 md:h-56 bg-slate-50 dark:bg-slate-900 rounded-lg mb-3 flex flex-col items-center justify-center relative overflow-hidden">
+                    {item.isGeneratingPreview ? (
+                      <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#E5322D] mb-2"></div>
+                        <span className="text-[10px]">Generating preview...</span>
+                      </div>
+                    ) : item.preview && item.preview !== 'placeholder' ? (
+                      <img src={item.preview} alt={item.file.name} className="max-w-full max-h-full object-contain p-1 rounded" />
+                    ) : (
+                      <FileText className="w-12 h-12 md:w-16 md:h-16 text-slate-300 dark:text-slate-600 mb-2" />
+                    )}
+
+                    <span className="absolute bottom-2 right-2 text-[10px] font-bold bg-slate-800/80 text-white px-1.5 py-0.5 rounded backdrop-blur-xs">
+                      PDF
+                    </span>
+                  </div>
+
+                  <p className="w-full text-xs font-bold text-slate-800 dark:text-slate-100 truncate text-center" title={item.file.name}>
+                    {item.file.name}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {(item.file.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                </Reorder.Item>
+              ))}
+            </AnimatePresence>
+
+            {/* Compact File Upload trigger button */}
+            <div className="w-full md:w-48 h-full min-h-[248px] flex items-center justify-center self-center justify-self-center">
+              <FileUpload onFilesSelected={handleAddFiles} multiple compact />
+            </div>
+          </Reorder.Group>
+
+          <p className="hidden md:block text-xs text-slate-400 text-center mt-8">
+            💡 Drag cards to reorder combining sequence. Add more files anytime.
           </p>
-        )}
+        </main>
 
-        {/* Merge Trigger Button */}
-        <button 
-          onClick={mergePDFs}
-          disabled={files.length < 2 || isProcessing}
-          className="btn-primary flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] py-4 px-8 text-lg font-black"
-        >
-          <span>{t('tools.merge.name')}</span>
-          <ArrowRight className="w-5 h-5" />
-        </button>
+        {/* RIGHT SIDEBAR: Options */}
+        <aside className="w-full md:w-80 bg-white dark:bg-slate-800 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 flex flex-col justify-between shrink-0 max-h-[45vh] md:max-h-none md:h-full min-h-0 z-20">
+          <div className="hidden md:block flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+              Merge Order
+            </h2>
+
+            <div className="p-3 md:p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between md:flex-col md:items-start md:space-y-1">
+              <div className="text-xs font-bold text-slate-700 dark:text-slate-200">Total Selected</div>
+              <div className="text-lg md:text-2xl font-black text-[#E5322D]">{files.length} {files.length === 1 ? 'file' : 'files'}</div>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 break-words w-full">
+              Files will be combined in top-to-bottom / left-to-right order as displayed on the canvas.
+            </p>
+          </div>
+
+          <div className="p-6 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+            <button 
+              onClick={mergePDFs}
+              disabled={files.length < 2 || isProcessing}
+              className="btn-primary w-full py-4 text-base font-extrabold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <span>{t('tools.merge.name')}</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </aside>
       </div>
-    </div>
+    </motion.div>
   );
 };

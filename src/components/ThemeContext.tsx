@@ -17,11 +17,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (saved === 'dark' || saved === 'light') {
         return saved;
       }
-      // Detect user's system preference on first visit
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      return systemPrefersDark ? 'dark' : 'light';
+      return 'light';
     }
-    return 'dark'; // Fallback default
+    return 'light';
   });
 
   useEffect(() => {

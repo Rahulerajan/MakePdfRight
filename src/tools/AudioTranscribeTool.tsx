@@ -22,6 +22,8 @@ import {
 import { transcribeAudio } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { FileUpload } from '../components/common/FileUpload';
+import { SEO } from '../components/common/SEO';
+import { SEO_DATA } from '../constants/seoData';
 import { jsPDF } from 'jspdf';
 import { useLanguage } from '../components/LanguageContext';
 
@@ -57,9 +59,21 @@ export const AudioTranscribeTool: React.FC = () => {
   
   // Visualizer Refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mobileCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const isPausedRef = useRef(isPaused);
+
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
+  useEffect(() => {
+    if (transcription) {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [transcription]);
 
   // Check Permission status on mount
   useEffect(() => {
@@ -135,33 +149,37 @@ export const AudioTranscribeTool: React.FC = () => {
       const dataArray = new Uint8Array(bufferLength);
 
       const draw = () => {
-        if (!canvasRef.current || !analyserRef.current) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const width = canvas.width;
-        const height = canvas.height;
-        analyserRef.current.getByteFrequencyData(dataArray);
-
-        ctx.clearRect(0, 0, width, height);
-
-        // draw audio frequency bars symmetrically from the center
-        const barWidth = (width / bufferLength) * 0.8;
-        let x = 0;
-
-        for (let i = 0; i < bufferLength; i++) {
-          // Normalize value
-          const value = dataArray[i];
-          const barHeight = (value / 255) * height * 0.8;
-          
-          // Primary colors for stylized gradient bar representation
-          ctx.fillStyle = '#6366f1'; // primary Tailwind Indigo
-          
-          const y = (height - barHeight) / 2;
-          ctx.fillRect(x, y, barWidth, barHeight);
-          x += barWidth + 4;
+        if (!analyserRef.current) return;
+        
+        const isPausedNow = isPausedRef.current;
+        if (!isPausedNow) {
+          analyserRef.current.getByteFrequencyData(dataArray);
         }
+
+        const drawToCanvas = (canvas: HTMLCanvasElement | null) => {
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          const width = canvas.width;
+          const height = canvas.height;
+          ctx.clearRect(0, 0, width, height);
+
+          const barWidth = (width / bufferLength) * 0.8;
+          let x = 0;
+
+          for (let i = 0; i < bufferLength; i++) {
+            const value = isPausedNow ? 0 : dataArray[i];
+            const barHeight = isPausedNow ? 2 : Math.max(2, (value / 255) * height * 0.8);
+            ctx.fillStyle = isPausedNow ? '#94a3b8' : '#E5322D';
+            const y = (height - barHeight) / 2;
+            ctx.fillRect(x, y, barWidth, barHeight);
+            x += barWidth + 4;
+          }
+        };
+
+        drawToCanvas(canvasRef.current);
+        drawToCanvas(mobileCanvasRef.current);
 
         animationRef.current = requestAnimationFrame(draw);
       };
@@ -450,7 +468,8 @@ export const AudioTranscribeTool: React.FC = () => {
 
   return (
     <div className="relative">
-      <div className="absolute -top-12 left-0">
+      <SEO title={SEO_DATA['/transcribe'].title} description={SEO_DATA['/transcribe'].description} />
+      <div className="mb-4 sm:mb-0 sm:absolute sm:-top-10 sm:left-0">
         <Link 
           to="/"
           className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group font-bold text-sm"
@@ -460,15 +479,300 @@ export const AudioTranscribeTool: React.FC = () => {
         </Link>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12">
-        <LoadingOverlay 
-          isVisible={isProcessing} 
-          message={t('ai.transcribing')} 
-          error={error}
-          onCloseError={() => setError(null)}
-        />
+      <LoadingOverlay 
+        isVisible={isProcessing} 
+        message={t('ai.transcribing')} 
+        error={error}
+        onCloseError={() => setError(null)}
+      />
 
-        {/* Main Area: Inputs & Result */}
+      {/* MOBILE LAYOUT (md:hidden) */}
+      <div className="block md:hidden space-y-4">
+        <div className="space-y-1 mb-2">
+          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">AI Voice Transcription</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Record voice or upload audio to generate accurate transcripts instantly.</p>
+        </div>
+
+        {!transcription ? (
+          /* Mobile Input & Recording State */
+          <div className="space-y-4">
+            {/* Single Consolidated Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm space-y-3.5">
+              {/* Tab Switcher */}
+              <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl w-full">
+                <button
+                  onClick={() => { setActiveTab('record'); setError(null); }}
+                  disabled={isRecording || isProcessing}
+                  className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all disabled:opacity-50 cursor-pointer ${
+                    activeTab === 'record'
+                      ? 'bg-white dark:bg-slate-800 text-[#E5322D] shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  Record
+                </button>
+                <button
+                  onClick={() => { setActiveTab('upload'); setError(null); }}
+                  disabled={isRecording || isProcessing}
+                  className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all disabled:opacity-50 cursor-pointer ${
+                    activeTab === 'upload'
+                      ? 'bg-white dark:bg-slate-800 text-[#E5322D] shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  Upload Audio
+                </button>
+              </div>
+
+              {/* Language Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+                  Audio Language
+                </label>
+                <select
+                  value={chosenLanguage}
+                  onChange={(e) => setChosenLanguage(e.target.value)}
+                  disabled={isRecording || isProcessing}
+                  className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 focus:border-[#E5322D] outline-none disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  <option value="auto">Auto Detect Language</option>
+                  <option value="English">English</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                  <option value="Spanish">Spanish</option>
+                </select>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-slate-100 dark:bg-slate-700/60 my-1" />
+
+              {/* Tab Contents */}
+              {activeTab === 'record' ? (
+                <div className="flex flex-col items-center justify-center py-3 space-y-3 text-center">
+                  {!isRecording ? (
+                    <>
+                      <button
+                        onClick={startRecording}
+                        disabled={isProcessing}
+                        className="w-16 h-16 rounded-full bg-[#E5322D] hover:bg-[#c92824] text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 disabled:opacity-50 cursor-pointer"
+                        title="Start Recording"
+                      >
+                        <Mic className="w-7 h-7" />
+                      </button>
+                      <div className="space-y-0.5">
+                        <div className="font-mono text-2xl font-black text-slate-900 dark:text-white">
+                          {formatTime(timer)}
+                        </div>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          Tap to start recording
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Active Recording State inside card */}
+                      <div className="w-full space-y-2">
+                        <canvas 
+                          ref={mobileCanvasRef} 
+                          className="w-full h-12 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-700" 
+                          width={280} 
+                          height={48}
+                        />
+                        {/* Animated waveform bars visual indicator */}
+                        {!isPaused ? (
+                          <div className="flex items-center justify-center gap-1.5 h-6">
+                            <span className="w-1 bg-[#E5322D] rounded-full animate-[bounce_0.8s_infinite_100ms] h-4" />
+                            <span className="w-1 bg-[#E5322D] rounded-full animate-[bounce_0.8s_infinite_300ms] h-6" />
+                            <span className="w-1 bg-[#E5322D] rounded-full animate-[bounce_0.8s_infinite_200ms] h-3" />
+                            <span className="w-1 bg-[#E5322D] rounded-full animate-[bounce_0.8s_infinite_400ms] h-5" />
+                            <span className="w-1 bg-[#E5322D] rounded-full animate-[bounce_0.8s_infinite_150ms] h-2" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1.5 h-6 text-xs font-bold text-amber-500">
+                            <span>Audio Capturing Paused</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="font-mono text-2xl font-black text-slate-900 dark:text-white">
+                          {formatTime(timer)}
+                        </div>
+                        {!isPaused ? (
+                          <div className="flex items-center justify-center gap-1.5 text-xs font-extrabold text-[#E5322D]">
+                            <span className="w-2 h-2 rounded-full bg-[#E5322D] animate-ping" />
+                            <span>● Recording in progress</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1.5 text-xs font-extrabold text-amber-500">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span>⏸ Recording paused</span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {permissionStatus === 'denied' && (
+                    <div className="flex items-center gap-2 p-2.5 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-xl text-xs text-red-500 dark:text-red-400 font-medium">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>Microphone blocked. Please grant access in address bar.</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Upload Tab */
+                <div className="space-y-3 pt-1">
+                  {!uploadedFile ? (
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
+                      <FileUpload 
+                        onFilesSelected={handleFileSelected} 
+                        accept={{ 'audio/*': ['.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.webm'], 'video/mp4': ['.mp4'] }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/80 rounded-xl space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#E5322D]/10 rounded-lg flex items-center justify-center text-[#E5322D] shrink-0">
+                          <FileAudio className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <h5 className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate">
+                            {uploadedFile.name}
+                          </h5>
+                          <div className="text-[11px] text-slate-400 font-medium">
+                            {formatFileSize(uploadedFile.size)} {fileDuration !== null ? `· ${formatDuration(fileDuration)}` : ''}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setUploadedFile(null)}
+                          className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {!isUploading && (
+                        <button
+                          onClick={transcribeUploadedFile}
+                          disabled={isProcessing}
+                          className="w-full py-2.5 px-4 bg-[#E5322D] hover:bg-[#c92824] disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Transcribing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              <span>Transcribe Audio File</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <div className="text-[10.5px] text-slate-400 font-medium text-center">
+                    MP3, WAV, M4A, AAC, FLAC, OGG, WEBM, MP4 (max 25MB)
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* If recording active, show Pause/Resume and Stop & Transcribe buttons below card */}
+            {isRecording && (
+              <div className="grid grid-cols-2 gap-2.5">
+                {!isPaused ? (
+                  <button
+                    onClick={pauseRecording}
+                    className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-extrabold py-3.5 px-3 rounded-xl shadow-xs transition-all text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                  >
+                    <Pause className="w-4 h-4" />
+                    <span>Pause</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={resumeRecording}
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3.5 px-3 rounded-xl shadow-md transition-all text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>Resume</span>
+                  </button>
+                )}
+                <button
+                  onClick={stopRecording}
+                  className="bg-[#E5322D] hover:bg-[#c92824] text-white font-extrabold py-3.5 px-3 rounded-xl shadow-md transition-all text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                >
+                  <Square className="w-4 h-4 fill-white" />
+                  <span>Stop & Transcribe</span>
+                </button>
+              </div>
+            )}
+
+            {/* Trust Note */}
+            <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
+              <span>🔒 Audio is not stored after transcription</span>
+            </div>
+          </div>
+        ) : (
+          /* Mobile Result State */
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm space-y-3.5">
+              {/* Meta Row */}
+              <div className="flex items-center justify-between text-xs font-extrabold text-slate-500 dark:text-slate-400 pb-2 border-b border-slate-100 dark:border-slate-700/60">
+                <span className="text-[#E5322D]">
+                  {detectedLanguage ? `${detectedLanguage} · Detected` : (chosenLanguage !== 'auto' ? chosenLanguage : 'Auto-detected')}
+                </span>
+                <span>
+                  {transcription.trim().split(/\s+/).filter(Boolean).length} words
+                  {timer > 0 ? ` · ${formatTime(timer)}` : (fileDuration ? ` · ${formatDuration(fileDuration)}` : '')}
+                </span>
+              </div>
+
+              {/* Transcript Text Box */}
+              <div className="max-h-[300px] overflow-y-auto bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 text-xs text-slate-800 dark:text-slate-100 leading-relaxed font-medium whitespace-pre-wrap">
+                {transcription}
+              </div>
+
+              {/* Side-by-side action buttons */}
+              <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+                <button
+                  onClick={copyToClipboard}
+                  className="bg-[#E5322D] hover:bg-[#c92824] text-white font-extrabold py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs shadow-sm transition-all cursor-pointer"
+                >
+                  {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+                  <span>{copied ? 'Copied!' : 'Copy Text'}</span>
+                </button>
+                <button
+                  onClick={downloadTXT}
+                  className="border border-slate-300 dark:border-slate-600 hover:border-slate-400 text-slate-700 dark:text-slate-200 font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs bg-white dark:bg-slate-800 transition-all cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Transcribe another recording button */}
+            <button
+              onClick={clearAll}
+              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3.5 px-4 rounded-xl text-xs hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer shadow-xs"
+            >
+              Transcribe another recording
+            </button>
+
+            {/* Trust Note */}
+            <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
+              <span>🔒 Audio is not stored after transcription</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP LAYOUT (hidden md:flex) */}
+      <div className="hidden md:flex flex-col lg:flex-row gap-12">
         <div className="flex-1 space-y-8">
           <div className="flex items-center justify-between">
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('ai.transcribe_title')}</h3>

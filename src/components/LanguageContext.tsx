@@ -29,7 +29,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Make Your ',
     'hero_title_2': 'PDFs',
     'hero_title_3': ' Right.',
-    'hero_desc': 'Every tool you need to work with PDFs in one place. 100% free, secure, and powered by AI.',
+    'hero_desc': 'Every tool you need to work with PDFs in one place. 100% free and secure',
     'ai_powered_tools_heading': 'AI Powered Tools',
     'standard_pdf_tools_heading': 'Standard PDF Tools',
 

@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { motion } from 'framer-motion';
 import { 
   Download, 
   CheckCircle2, 
   FileText,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
-  Zap
+  Zap,
+  FileSpreadsheet
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 
@@ -15,12 +18,42 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@$
 
 interface PDFToWordToolProps {
   file: File;
+  onReset?: () => void;
 }
 
-export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
+export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file, onReset }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pageCount, setPageCount] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadPdfInfo = async () => {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        if (!isMounted) return;
+        setPageCount(pdf.numPages);
+
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.8 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
+        if (isMounted) {
+          setPreviewUrl(canvas.toDataURL());
+        }
+      } catch (err) {
+        console.error('Failed to render PDF preview:', err);
+      }
+    };
+    loadPdfInfo();
+    return () => { isMounted = false; };
+  }, [file]);
 
   const convertToWord = async () => {
     setError(null);
@@ -76,13 +109,8 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
       const blob = await Packer.toBlob(doc);
       const url = URL.createObjectURL(blob);
       
-      // Artificial delay for UX
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
       setIsProcessing(false);
-      setTimeout(() => {
-        setResultUrl(url);
-      }, 1500);
+      setResultUrl(url);
     } catch (err: any) {
       console.error('Conversion failed:', err);
       setError(err.message || 'An error occurred while converting the PDF to Word. Please try again.');
@@ -92,29 +120,32 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
 
   if (resultUrl) {
     return (
-      <div className="max-w-[600px] mx-auto text-center space-y-12 py-12">
-        <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-emerald-500/20">
-          <CheckCircle2 className="w-12 h-12" />
+      <div className="h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center space-y-6">
+        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20">
+          <CheckCircle2 className="w-10 h-10" />
         </div>
-        <div className="space-y-4">
-          <h2 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">PDF converted to Word!</h2>
-          <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">Your editable document is ready for download.</p>
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">PDF converted to Word!</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Your editable DOCX document is ready for download.</p>
         </div>
         
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
           <a 
             href={resultUrl} 
             download={`${file.name.replace('.pdf', '')}.docx`}
-            className="btn-primary text-xl py-5 flex items-center justify-center gap-3"
+            className="btn-primary flex-1 py-4 flex items-center justify-center gap-2 text-base font-extrabold"
           >
-            <Download className="w-6 h-6" />
-            Download Word file
+            <Download className="w-5 h-5" />
+            Download Word
           </a>
           <button 
-            onClick={() => setResultUrl(null)}
-            className="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary font-bold transition-colors"
+            onClick={() => {
+              setResultUrl(null);
+              if (onReset) onReset();
+            }}
+            className="px-6 py-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer"
           >
-            Convert another PDF
+            Convert Another PDF
           </button>
         </div>
       </div>
@@ -122,7 +153,14 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
   }
 
   return (
-    <div className="max-w-[800px] mx-auto space-y-12">
+    <motion.div 
+      key="workspace-view"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.25 }}
+      className="flex flex-col h-full w-full bg-[#f3f4f6] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
+    >
       <LoadingOverlay 
         isVisible={isProcessing} 
         message="Converting to Word..." 
@@ -130,38 +168,74 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file }) => {
         onCloseError={() => setError(null)}
       />
 
-      <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-12 shadow-xl flex flex-col items-center text-center gap-10">
-        <div className="w-24 h-24 bg-indigo-50 dark:bg-indigo-500/10 rounded-3xl flex items-center justify-center text-indigo-500">
-          <FileText className="w-12 h-12" />
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="text-3xl font-bold text-slate-900 dark:text-white">Convert PDF to Word</h3>
-          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-            Our advanced converter will transform your PDF into an editable Word document while preserving the original layout.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-lg">
-          <div className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-            <ShieldCheck className="w-6 h-6 text-emerald-500" />
-            <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Secure & Private</span>
+      {/* TOP NAVBAR */}
+      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between shrink-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#2B579A] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
+            DOCX
           </div>
-          <div className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-            <Zap className="w-6 h-6 text-amber-500" />
-            <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Fast Processing</span>
-          </div>
+          <span className="font-bold text-xl text-slate-900 dark:text-white">PDF to Word</span>
         </div>
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600">
+            {pageCount > 0 ? `${pageCount} ${pageCount === 1 ? 'Page' : 'Pages'}` : file.name}
+          </span>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+          )}
+        </div>
+      </header>
 
-        <button 
-          onClick={convertToWord}
-          disabled={isProcessing}
-          className="btn-primary w-full max-w-md py-5 text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Convert to Word
-          <ArrowRight className="w-6 h-6" />
-        </button>
+      {/* MAIN TWO-PANEL WORKSPACE */}
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
+        {/* LEFT CANVAS: File Preview */}
+        <main className="flex-1 min-h-0 bg-[#eef0f3] dark:bg-slate-900/80 p-6 md:p-8 overflow-y-auto flex flex-col items-center justify-center">
+          <div className="w-64 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-3 shadow-md flex flex-col items-center">
+            <div className="w-full aspect-[1/1.414] overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+              {previewUrl ? (
+                <img src={previewUrl} alt="PDF Preview" className="max-w-full max-h-full object-contain p-1" />
+              ) : (
+                <FileText className="w-16 h-16 text-slate-300" />
+              )}
+            </div>
+            <p className="mt-2 text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-full" title={file.name}>
+              {file.name}
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {(file.size / (1024 * 1024)).toFixed(2)} MB
+            </p>
+          </div>
+        </main>
+
+        {/* RIGHT SIDEBAR: Options */}
+        <aside className="w-full md:w-80 bg-white dark:bg-slate-800 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 flex flex-col justify-between shrink-0 max-h-[45vh] md:max-h-none md:h-full min-h-0 z-20">
+          <div className="hidden md:block flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+              Conversion Options
+            </h2>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              📝 Extract text from PDF into editable Word (.docx) paragraphs while preserving formatting.
+            </p>
+          </div>
+
+          <div className="p-6 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+            <button 
+              onClick={convertToWord}
+              disabled={isProcessing}
+              className="btn-primary w-full py-4 text-base font-extrabold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              Convert to Word
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </aside>
       </div>
-    </div>
+    </motion.div>
   );
 };

@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import JSZip from 'jszip';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, 
   CheckCircle2, 
   Image as ImageIcon,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   Zap,
   Layers,
-  Archive
+  Archive,
+  Check,
+  Settings,
+  X
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 
@@ -17,27 +22,59 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@$
 
 interface PDFToJPGToolProps {
   file: File;
+  onReset?: () => void;
 }
 
-export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
+const jpgThumbnailCache = new Map<string, string>();
+
+export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<{ url: string; count: number } | null>(null);
   const [quality, setQuality] = useState(0.8);
-  const [pages, setPages] = useState<string[]>([]);
+  const [pages, setPages] = useState<(string | null)[]>([]);
+  const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
+  const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
   const [isLoadingPreviews, setIsLoadingPreviews] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const loadPreviews = async () => {
-      setIsLoadingPreviews(true);
       try {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-        const thumbUrls: string[] = [];
+        const totalPages = pdf.numPages;
 
-        // Load first 10 pages for preview
-        const count = Math.min(pdf.numPages, 10);
-        for (let i = 1; i <= count; i++) {
+        if (!isMounted) return;
+
+        const initialPages: (string | null)[] = [];
+        const cacheBaseKey = `${file.name}-${file.size}`;
+        let allCached = true;
+
+        for (let i = 0; i < totalPages; i++) {
+          const cachedUrl = jpgThumbnailCache.get(`${cacheBaseKey}-jpg-${i}`);
+          if (!cachedUrl) {
+            allCached = false;
+          }
+          initialPages.push(cachedUrl || null);
+        }
+        setPages(initialPages);
+        setSelectedPages(new Set(Array.from({ length: totalPages }, (_, i) => i)));
+
+        if (allCached) {
+          return;
+        }
+
+        // Load preview thumbnails sequentially in background
+        for (let i = 1; i <= totalPages; i++) {
+          if (!isMounted) return;
+          const pageIndex = i - 1;
+          const cacheKey = `${cacheBaseKey}-jpg-${pageIndex}`;
+
+          if (jpgThumbnailCache.has(cacheKey)) {
+            continue;
+          }
+
           const page = await pdf.getPage(i);
           const viewport = page.getViewport({ scale: 0.8 });
           const canvas = document.createElement('canvas');
@@ -45,19 +82,50 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
           canvas.height = viewport.height;
           canvas.width = viewport.width;
           await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
-          thumbUrls.push(canvas.toDataURL());
+          const dataUrl = canvas.toDataURL();
+
+          if (isMounted) {
+            jpgThumbnailCache.set(cacheKey, dataUrl);
+            setPages(prev => {
+              const updated = [...prev];
+              updated[pageIndex] = dataUrl;
+              return updated;
+            });
+          }
         }
-        setPages(thumbUrls);
       } catch (error) {
         console.error('Failed to load previews:', error);
-      } finally {
-        setIsLoadingPreviews(false);
       }
     };
     loadPreviews();
+
+    return () => {
+      isMounted = false;
+    };
   }, [file]);
 
+  const togglePageSelection = (index: number) => {
+    setSelectedPages(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedPages(new Set(pages.map((_, i) => i)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedPages(new Set());
+  };
+
   const convertToJPG = async () => {
+    if (selectedPages.size === 0) return;
     setError(null);
     setIsProcessing(true);
     try {
@@ -65,7 +133,13 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       const zip = new JSZip();
 
+      let convertedCount = 0;
       for (let i = 1; i <= pdf.numPages; i++) {
+        const pageIndex = i - 1;
+        if (!selectedPages.has(pageIndex)) {
+          continue;
+        }
+
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 2.0 });
         const canvas = document.createElement('canvas');
@@ -78,18 +152,14 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
         const base64Data = dataUrl.split(',')[1];
         zip.file(`page-${i}.jpg`, base64Data, { base64: true });
+        convertedCount++;
       }
 
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       
-      // Artificial delay for UX
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
       setIsProcessing(false);
-      setTimeout(() => {
-        setResult({ url, count: pdf.numPages });
-      }, 1500);
+      setResult({ url, count: convertedCount });
     } catch (err: any) {
       console.error('Conversion failed:', err);
       setError(err.message || 'An error occurred while converting the PDF to JPG. Please try again.');
@@ -97,33 +167,38 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
     }
   };
 
+  const isConvertDisabled = isProcessing || isLoadingPreviews || selectedPages.size === 0;
+
   if (result) {
     return (
-      <div className="max-w-[600px] mx-auto text-center space-y-12 py-12">
-        <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-emerald-500/20">
-          <CheckCircle2 className="w-12 h-12" />
+      <div className="h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center space-y-6">
+        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20">
+          <CheckCircle2 className="w-10 h-10" />
         </div>
-        <div className="space-y-4">
-          <h2 className="text-4xl font-bold text-slate-900 dark:text-white tracking-tight">PDF converted to JPG!</h2>
-          <p className="text-lg text-slate-500 dark:text-slate-400 font-medium">
-            {result.count} images are ready for download in a ZIP file.
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">PDF converted to JPG!</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+            {result.count} {result.count === 1 ? 'image is' : 'images are'} ready for download in a ZIP file.
           </p>
         </div>
         
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
           <a 
             href={result.url} 
             download={`${file.name.replace('.pdf', '')}_images.zip`}
-            className="btn-primary text-xl py-5 flex items-center justify-center gap-3"
+            className="btn-primary flex-1 py-4 flex items-center justify-center gap-2 text-base font-extrabold"
           >
-            <Download className="w-6 h-6" />
+            <Download className="w-5 h-5" />
             Download ZIP file
           </a>
           <button 
-            onClick={() => setResult(null)}
-            className="text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-primary font-bold transition-colors"
+            onClick={() => {
+              setResult(null);
+              if (onReset) onReset();
+            }}
+            className="px-6 py-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer"
           >
-            Convert another PDF
+            Convert Another PDF
           </button>
         </div>
       </div>
@@ -131,7 +206,14 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-12">
+    <motion.div 
+      key="workspace-view"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.25 }}
+      className="flex flex-col h-full w-full bg-[#f3f4f6] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
+    >
       <LoadingOverlay 
         isVisible={isProcessing} 
         message="Converting pages to JPG..." 
@@ -140,71 +222,278 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file }) => {
       />
       <LoadingOverlay isVisible={isLoadingPreviews} message="Loading document..." />
 
-      {/* Main Area: Previews */}
-      <div className="flex-1 space-y-8">
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white">PDF to JPG</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{pages.length} pages loaded</p>
+      {/* TOP NAVBAR */}
+      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between shrink-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
+            PDF
+          </div>
+          <span className="font-bold text-xl text-slate-900 dark:text-white">PDF to JPG</span>
         </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-8">
-          {pages.map((url, index) => (
-            <div key={index} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 p-3 shadow-md hover:shadow-xl transition-all duration-300">
-              <div className="aspect-[1/1.414] overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-950/40 flex items-center justify-center">
-                <img src={url} alt={`Page ${index + 1}`} className="w-full h-full object-contain p-2" />
-              </div>
-              <p className="text-center mt-3 text-xs font-bold text-slate-500 dark:text-slate-400">Page {index + 1}</p>
-            </div>
-          ))}
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600">
+            {pages.length} {pages.length === 1 ? 'Page' : 'Pages'}
+          </span>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back
+            </button>
+          )}
         </div>
-      </div>
+      </header>
 
-      {/* Sidebar: Options */}
-      <div className="w-full lg:w-[360px] space-y-8">
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-8 shadow-xl space-y-8">
-          <div className="space-y-6">
-            <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">JPG Settings</h4>
-            
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <label className="text-sm font-bold text-slate-600 dark:text-slate-300">Image Quality</label>
-                  <span className="text-primary font-bold">{Math.round(quality * 100)}%</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0.1" 
-                  max="1" 
-                  step="0.1"
-                  value={quality}
-                  onChange={(e) => setQuality(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                  <Layers className="w-5 h-5 text-blue-500" />
-                  <span className="text-sm font-bold text-slate-600 dark:text-slate-300">All Pages</span>
-                </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                  <Zap className="w-5 h-5 text-amber-500" />
-                  <span className="text-sm font-bold text-slate-600 dark:text-slate-300">High Resolution</span>
-                </div>
+      {/* MAIN TWO-PANEL WORKSPACE */}
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
+        {/* LEFT CANVAS: Page Previews */}
+        <main className="flex-1 min-h-0 bg-[#eef0f3] dark:bg-slate-900/80 p-4 sm:p-6 md:p-8 overflow-y-auto relative flex flex-col">
+          {/* PAGE SELECTION TOOLBAR ROW */}
+          <div className="flex items-center justify-between gap-3 bg-white/80 dark:bg-slate-800/80 p-3.5 px-4 rounded-xl backdrop-blur-xs border border-slate-200/80 dark:border-slate-700/80 shadow-xs mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                {selectedPages.size} of {pages.length} pages selected
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="text-xs font-bold text-[#E5322D] hover:underline cursor-pointer"
+                >
+                  Select all
+                </button>
+                <span className="text-slate-300 dark:text-slate-600">|</span>
+                <button
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  Deselect all
+                </button>
               </div>
             </div>
+
+            {/* Mobile Settings Icon Button */}
+            <button
+              onClick={() => setIsMobileOptionsOpen(true)}
+              className="md:hidden shrink-0 bg-[#E5322D] text-white w-10 h-10 rounded-full shadow-lg hover:bg-[#c92824] active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-white/20"
+              aria-label="JPG Options"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
           </div>
 
-          <button 
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            {pages.map((url, index) => {
+              const isSelected = selectedPages.has(index);
+              return (
+                <div 
+                  key={index} 
+                  onClick={() => togglePageSelection(index)}
+                  className={`relative group bg-white dark:bg-slate-800 rounded-xl border p-2.5 shadow-sm hover:shadow-md transition-all flex flex-col items-center cursor-pointer select-none ${
+                    isSelected 
+                      ? 'border-[#E5322D] ring-2 ring-[#E5322D]/20' 
+                      : 'border-slate-200 dark:border-slate-700 opacity-60 grayscale-[30%]'
+                  }`}
+                >
+                  {/* Checkbox / Checkmark Toggle Overlay */}
+                  <div 
+                    className={`absolute top-2.5 left-2.5 z-10 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                      isSelected
+                        ? 'bg-[#E5322D] text-white shadow-sm'
+                        : 'bg-white/90 dark:bg-slate-800/90 text-slate-400 border border-slate-300 dark:border-slate-600 hover:border-slate-400'
+                    }`}
+                  >
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    ) : (
+                      <div className="w-2.5 h-2.5 rounded-full" />
+                    )}
+                  </div>
+
+                  <div className="w-full aspect-[1/1.414] overflow-hidden rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center relative">
+                    {url ? (
+                      <img src={url} alt={`Page ${index + 1}`} className="max-w-full max-h-full object-contain p-1 animate-fadeIn" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center space-y-2 p-3 bg-slate-100 dark:bg-slate-900 animate-pulse">
+                        <div className="w-10 h-14 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                      </div>
+                    )}
+                    {!isSelected && (
+                      <div className="absolute inset-0 bg-slate-900/10 dark:bg-slate-950/20 rounded-lg" />
+                    )}
+                  </div>
+                  <p className={`text-center mt-2 text-[11px] font-bold ${isSelected ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>
+                    Page {index + 1}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+
+        {/* RIGHT SIDEBAR: Options (Desktop Only) */}
+        <aside className="hidden md:flex w-80 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700 flex-col justify-between shrink-0 h-full min-h-0 z-20">
+          <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+              JPG Quality
+            </h2>
+
+            <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-200">
+                <span>Image Quality</span>
+                <span className="text-[#E5322D] font-extrabold">{Math.round(quality * 100)}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0.1" 
+                max="1" 
+                step="0.1"
+                value={quality}
+                onChange={(e) => setQuality(parseFloat(e.target.value))}
+                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#E5322D]"
+              />
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+              ⚡ Selected pages will be extracted as individual JPG image files and bundled into a downloadable ZIP archive.
+            </p>
+          </div>
+
+          <div className="p-6 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 shrink-0">
+            <button 
+              onClick={convertToJPG}
+              disabled={isConvertDisabled}
+              className="btn-primary w-full py-4 text-base font-extrabold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {selectedPages.size > 0 
+                ? `Convert to JPG (${selectedPages.size} of ${pages.length} pages)`
+                : 'Convert to JPG'}
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            {selectedPages.size === 0 && (
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 text-center mt-2">
+                Select at least one page
+              </p>
+            )}
+          </div>
+        </aside>
+
+        {/* MOBILE PINNED BOTTOM ACTION BAR */}
+        <div className="md:hidden shrink-0 p-3.5 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-30 space-y-1.5 shadow-lg">
+          <button
             onClick={convertToJPG}
-            disabled={isProcessing || isLoadingPreviews}
-            className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isConvertDisabled}
+            className="w-full bg-[#E5322D] hover:bg-[#c92824] disabled:opacity-50 text-white font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all text-sm tracking-wide cursor-pointer"
           >
-            Convert to JPG
-            <ArrowRight className="w-6 h-6" />
+            {isProcessing ? (
+              <span className="animate-pulse">Converting to JPG...</span>
+            ) : (
+              <>
+                {selectedPages.size > 0 
+                  ? `Convert to JPG (${selectedPages.size} of ${pages.length} pages)`
+                  : 'Convert to JPG'}
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
+          {selectedPages.size === 0 && (
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 text-center">
+              Select at least one page
+            </p>
+          )}
         </div>
+
+        {/* MOBILE SLIDE-IN PANEL OVERLAY */}
+        <AnimatePresence>
+          {isMobileOptionsOpen && (
+            <>
+              {/* Semi-transparent backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                onClick={() => setIsMobileOptionsOpen(false)}
+                className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 md:hidden"
+              />
+
+              {/* Slide-Up Bottom Drawer */}
+              <motion.div
+                initial={{ y: '100%', opacity: 0.8 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0.8 }}
+                transition={{ duration: 0.22, ease: [0.25, 1, 0.5, 1] }}
+                className="fixed bottom-0 inset-x-0 max-h-[85vh] bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl z-50 p-5 pb-6 space-y-4 md:hidden border-t border-slate-200 dark:border-slate-700 flex flex-col"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                  <div className="flex items-center gap-2 text-slate-900 dark:text-white font-extrabold text-base">
+                    <Settings className="w-5 h-5 text-[#E5322D]" />
+                    <span>JPG Quality</span>
+                  </div>
+                  <button
+                    onClick={() => setIsMobileOptionsOpen(false)}
+                    className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                    aria-label="Close options"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 min-h-0 overflow-y-auto pt-1 space-y-4">
+                  <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-200">
+                      <span>Image Quality</span>
+                      <span className="text-[#E5322D] font-extrabold">{Math.round(quality * 100)}%</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0.1" 
+                      max="1" 
+                      step="0.1"
+                      value={quality}
+                      onChange={(e) => setQuality(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#E5322D]"
+                    />
+                  </div>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    ⚡ Selected pages will be extracted as individual JPG image files and bundled into a downloadable ZIP archive.
+                  </p>
+                </div>
+
+                <div className="shrink-0 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                  <button
+                    onClick={() => {
+                      setIsMobileOptionsOpen(false);
+                      convertToJPG();
+                    }}
+                    disabled={isConvertDisabled}
+                    className="w-full bg-[#E5322D] hover:bg-[#c92824] disabled:opacity-50 text-white font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all text-sm tracking-wide cursor-pointer"
+                  >
+                    {isProcessing ? (
+                      <span className="animate-pulse">Converting to JPG...</span>
+                    ) : (
+                      <>
+                        {selectedPages.size > 0 
+                          ? `Convert to JPG (${selectedPages.size} of ${pages.length} pages)`
+                          : 'Convert to JPG'}
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                  {selectedPages.size === 0 && (
+                    <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 text-center mt-2">
+                      Select at least one page
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 };
