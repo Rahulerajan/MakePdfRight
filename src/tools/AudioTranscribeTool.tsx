@@ -52,6 +52,25 @@ export const AudioTranscribeTool: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Live Web Speech Recognition State
+  const [liveFinalText, setLiveFinalText] = useState<string>('');
+  const [liveInterimText, setLiveInterimText] = useState<string>('');
+  const speechRecognitionRef = useRef<any>(null);
+
+  // Helper to map UI language option to BCP-47 tag for SpeechRecognition
+  const getBcp47Lang = (lang: string): string => {
+    switch (lang) {
+      case 'English': return 'en-US';
+      case 'Hindi': return 'hi-IN';
+      case 'French': return 'fr-FR';
+      case 'German': return 'de-DE';
+      case 'Spanish': return 'es-ES';
+      case 'auto':
+      default:
+        return navigator.language || 'en-US';
+    }
+  };
+
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -93,6 +112,10 @@ export const AudioTranscribeTool: React.FC = () => {
     return () => {
       stopTimer();
       stopVisualizer();
+      if (speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.stop(); } catch (e) {}
+        speechRecognitionRef.current = null;
+      }
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
       }
@@ -208,6 +231,8 @@ export const AudioTranscribeTool: React.FC = () => {
     setTranscription(null);
     setConfidence(null);
     setDetectedLanguage(null);
+    setLiveFinalText('');
+    setLiveInterimText('');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setPermissionStatus('granted');
@@ -239,6 +264,43 @@ export const AudioTranscribeTool: React.FC = () => {
       setIsPaused(false);
       startTimer();
       startVisualizer(stream);
+
+      // Start Web Speech API recognition in parallel if supported
+      const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognitionClass) {
+        try {
+          const recognition = new SpeechRecognitionClass();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = getBcp47Lang(chosenLanguage);
+
+          recognition.onresult = (event: any) => {
+            let finalAcc = '';
+            let interimAcc = '';
+
+            for (let i = 0; i < event.results.length; i++) {
+              const res = event.results[i];
+              if (res.isFinal) {
+                finalAcc += res[0].transcript + ' ';
+              } else {
+                interimAcc += res[0].transcript;
+              }
+            }
+
+            setLiveFinalText(finalAcc);
+            setLiveInterimText(interimAcc);
+          };
+
+          recognition.onerror = (e: any) => {
+            console.warn('SpeechRecognition error:', e.error);
+          };
+
+          recognition.start();
+          speechRecognitionRef.current = recognition;
+        } catch (srErr) {
+          console.warn('Could not start SpeechRecognition:', srErr);
+        }
+      }
     } catch (err: any) {
       console.error('Failed to start recording:', err);
       setPermissionStatus('denied');
@@ -251,6 +313,9 @@ export const AudioTranscribeTool: React.FC = () => {
       mediaRecorderRef.current.pause();
       setIsPaused(true);
       pauseTimer();
+      if (speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.stop(); } catch (e) {}
+      }
     }
   };
 
@@ -259,6 +324,9 @@ export const AudioTranscribeTool: React.FC = () => {
       mediaRecorderRef.current.resume();
       setIsPaused(false);
       resumeTimer();
+      if (speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.start(); } catch (e) {}
+      }
     }
   };
 
@@ -269,6 +337,10 @@ export const AudioTranscribeTool: React.FC = () => {
       setIsPaused(false);
       stopTimer();
       stopVisualizer();
+      if (speechRecognitionRef.current) {
+        try { speechRecognitionRef.current.stop(); } catch (e) {}
+        speechRecognitionRef.current = null;
+      }
     }
   };
 
@@ -464,6 +536,8 @@ export const AudioTranscribeTool: React.FC = () => {
     setFileDuration(null);
     setUploadProgress(0);
     setError(null);
+    setLiveFinalText('');
+    setLiveInterimText('');
   };
 
   return (
@@ -771,16 +845,176 @@ export const AudioTranscribeTool: React.FC = () => {
         )}
       </div>
 
-      {/* DESKTOP LAYOUT (hidden md:flex) */}
-      <div className="hidden md:flex flex-col lg:flex-row gap-12">
-        <div className="flex-1 space-y-8">
-          <div className="flex items-center justify-between">
+      {/* DESKTOP LAYOUT (hidden md:block) */}
+      <div className="hidden md:block space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('ai.transcribe_title')}</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t('ai.transcribe_subtitle')}</p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left Card: Input Panel */}
+        {/* BEFORE STATE: Centered single recorder card if no active recording, no processing, and no transcript */}
+        {!isRecording && !isProcessing && !transcription ? (
+          <div className="max-w-2xl mx-auto w-full">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 md:p-10 shadow-xl space-y-8">
+              
+              {/* Tab Toggles */}
+              <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1.5 rounded-2xl w-full">
+                <button
+                  onClick={() => { setActiveTab('record'); setError(null); }}
+                  className={`flex-1 py-3 text-sm md:text-base font-extrabold rounded-xl transition-all duration-200 cursor-pointer ${
+                    activeTab === 'record'
+                      ? 'bg-white dark:bg-slate-800 text-primary shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {t('ai.record_start')}
+                </button>
+                <button
+                  onClick={() => { setActiveTab('upload'); setError(null); }}
+                  className={`flex-1 py-3 text-sm md:text-base font-extrabold rounded-xl transition-all duration-200 cursor-pointer ${
+                    activeTab === 'upload'
+                      ? 'bg-white dark:bg-slate-800 text-primary shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {t('ai.upload_audio')}
+                </button>
+              </div>
+
+              {/* Language Selection */}
+              <div className="w-full flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Audio Language
+                </label>
+                <select
+                  value={chosenLanguage}
+                  onChange={(e) => setChosenLanguage(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer transition-all"
+                >
+                  <option value="auto">Auto Detect Language</option>
+                  <option value="English">English</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                  <option value="Spanish">Spanish</option>
+                </select>
+              </div>
+
+              <div className="h-px bg-slate-100 dark:bg-slate-700/60" />
+
+              {/* Tab Contents: Live Recorder */}
+              {activeTab === 'record' && (
+                <div className="flex flex-col items-center justify-center space-y-6 text-center py-6">
+                  <div className="font-mono text-4xl font-black text-slate-900 dark:text-white">
+                    00:00
+                  </div>
+
+                  <button
+                    onClick={startRecording}
+                    className="w-20 h-20 rounded-full bg-primary hover:bg-primary-hover text-white flex items-center justify-center shadow-xl transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                    title="Start Recording"
+                  >
+                    <Mic className="w-9 h-9" />
+                  </button>
+
+                  <div className="space-y-1">
+                    <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                      Click Mic to Record
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-[280px] mx-auto">
+                      Speak clearly into your microphone to record audio.
+                    </p>
+                  </div>
+
+                  {permissionStatus === 'denied' && (
+                    <div className="flex items-center gap-2 p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-xs text-red-500 dark:text-red-400 font-medium">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>Microphone blocked. Please grant access in address bar.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab Contents: Audio File Upload */}
+              {activeTab === 'upload' && (
+                <div className="space-y-4 py-2">
+                  {!uploadedFile ? (
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                      <FileUpload 
+                        onFilesSelected={handleFileSelected} 
+                        accept={{ 'audio/*': ['.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.webm'], 'video/mp4': ['.mp4'] }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
+                          <FileAudio className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <h5 className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate" title={uploadedFile.name}>
+                            {uploadedFile.name}
+                          </h5>
+                          <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
+                            <span>{formatFileSize(uploadedFile.size)}</span>
+                            {fileDuration !== null && (
+                              <>
+                                <span>•</span>
+                                <span>Duration: {formatDuration(fileDuration)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setUploadedFile(null)}
+                          className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors"
+                          title="Remove file"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {isUploading && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                            <span>Analyzing audio track...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all duration-100" 
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {!isUploading && (
+                        <button
+                          onClick={transcribeUploadedFile}
+                          className="w-full py-3.5 px-6 bg-primary hover:bg-primary-hover text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <Sparkles className="w-5 h-5" />
+                          <span>Transcribe Audio File</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-slate-400 font-medium text-center">
+                    Supported: MP3, WAV, M4A, AAC, FLAC, OGG, WEBM, MP4 (max 25MB)
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        ) : (
+          /* ACTIVE / PROCESSING / TRANSCRIPTION STATE: 2-Column Side-by-Side Grid */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+            {/* Left Card: Input Panel / Recording Controls */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-8 shadow-xl flex flex-col space-y-6">
               
               {/* Tab Toggles */}
@@ -829,10 +1063,9 @@ export const AudioTranscribeTool: React.FC = () => {
                 </select>
               </div>
 
-              {/* Tab Contents: Live Recorder */}
+              {/* Recording / Controls Area */}
               {activeTab === 'record' && (
                 <div className="flex-1 flex flex-col items-center justify-center space-y-6 text-center py-6">
-                  {/* Visualizer & Timer */}
                   <div className="w-full space-y-4 flex flex-col items-center">
                     <div className="flex items-center gap-3">
                       {isRecording && (
@@ -857,7 +1090,7 @@ export const AudioTranscribeTool: React.FC = () => {
                     ) : (
                       <div className="w-full h-12 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80 flex items-center justify-center">
                         <span className="text-xs text-slate-400">
-                          {isPaused ? 'Audio capturing paused' : 'Microphone idle'}
+                          {isPaused ? 'Audio capturing paused' : isProcessing ? 'Processing audio file...' : 'Microphone idle'}
                         </span>
                       </div>
                     )}
@@ -869,18 +1102,17 @@ export const AudioTranscribeTool: React.FC = () => {
                       <button
                         onClick={startRecording}
                         disabled={isProcessing}
-                        className="w-16 h-16 rounded-full bg-primary hover:bg-primary-hover text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
+                        className="w-16 h-16 rounded-full bg-primary hover:bg-primary-hover text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 disabled:opacity-50 cursor-pointer"
                         title="Start Recording"
                       >
                         <Mic className="w-7 h-7" />
                       </button>
                     ) : (
                       <>
-                        {/* Pause / Resume */}
                         {isPaused ? (
                           <button
                             onClick={resumeRecording}
-                            className="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center shadow-md transition-transform hover:scale-105"
+                            className="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 cursor-pointer"
                             title="Resume Recording"
                           >
                             <Play className="w-5 h-5 ml-0.5" />
@@ -888,17 +1120,16 @@ export const AudioTranscribeTool: React.FC = () => {
                         ) : (
                           <button
                             onClick={pauseRecording}
-                            className="w-12 h-12 rounded-full bg-slate-500 hover:bg-slate-600 text-white flex items-center justify-center shadow-md transition-transform hover:scale-105"
+                            className="w-12 h-12 rounded-full bg-slate-500 hover:bg-slate-600 text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 cursor-pointer"
                             title="Pause Recording"
                           >
                             <Pause className="w-5 h-5" />
                           </button>
                         )}
 
-                        {/* Stop */}
                         <button
                           onClick={stopRecording}
-                          className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+                          className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 cursor-pointer"
                           title="Stop and Transcribe"
                         >
                           <Square className="w-6 h-6 fill-white" />
@@ -916,7 +1147,6 @@ export const AudioTranscribeTool: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Permission Status Check */}
                   {permissionStatus === 'denied' && (
                     <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-xs text-red-500 dark:text-red-400 font-medium">
                       <AlertCircle className="w-4 h-4 shrink-0" />
@@ -926,7 +1156,7 @@ export const AudioTranscribeTool: React.FC = () => {
                 </div>
               )}
 
-              {/* Tab Contents: Audio File Upload */}
+              {/* Upload Tab in 2-column view */}
               {activeTab === 'upload' && (
                 <div className="flex-1 flex flex-col space-y-4">
                   {!uploadedFile ? (
@@ -965,7 +1195,6 @@ export const AudioTranscribeTool: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* Upload / Read progress bar */}
                       {isUploading && (
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs font-bold text-slate-400">
@@ -981,12 +1210,11 @@ export const AudioTranscribeTool: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Transcribe trigger */}
                       {!isUploading && (
                         <button
                           onClick={transcribeUploadedFile}
                           disabled={isProcessing}
-                          className="w-full py-3 px-4 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                          className="w-full py-3 px-4 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                         >
                           {isProcessing ? (
                             <>
@@ -1003,43 +1231,56 @@ export const AudioTranscribeTool: React.FC = () => {
                       )}
                     </div>
                   )}
-
-                  <div className="text-[11px] text-slate-400 font-medium text-center">
-                    Supported: MP3, WAV, M4A, AAC, FLAC, OGG, WEBM, MP4 (max 25MB)
-                  </div>
                 </div>
               )}
-
             </div>
 
-            {/* Right Card: Transcription Result Panel */}
+            {/* Right Card: Transcription Result / Live Streaming Panel */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-8 shadow-xl flex flex-col h-full min-h-[420px]">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-700/60">
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-primary" />
                   <h4 className="text-lg font-bold text-slate-900 dark:text-white">Transcription</h4>
                 </div>
-                {transcription && (
-                  <div className="flex items-center gap-1.5">
-                    <button 
-                      onClick={copyToClipboard}
-                      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                      title="Copy to clipboard"
-                    >
-                      {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                    <button 
-                      onClick={clearAll}
-                      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"
-                      title="Clear session"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+
+                {/* Header Badge: Live / Processing / Actions */}
+                <div className="flex items-center gap-2">
+                  {isRecording && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 text-xs font-extrabold animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span>Live</span>
+                    </div>
+                  )}
+
+                  {!isRecording && isProcessing && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-600 dark:text-amber-400 text-xs font-extrabold">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Polishing AI Transcript...</span>
+                    </div>
+                  )}
+
+                  {transcription && (
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        onClick={copyToClipboard}
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                        title="Copy to clipboard"
+                      >
+                        {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                      <button 
+                        onClick={clearAll}
+                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors"
+                        title="Clear session"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Badges / Meta Info */}
+              {/* Confidence / Language Metadata Badges for final transcription */}
               {transcription && (confidence !== null || detectedLanguage) && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {detectedLanguage && (
@@ -1061,9 +1302,38 @@ export const AudioTranscribeTool: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto max-h-[340px] pr-1">
-                {transcription ? (
-                  <div className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+              {/* Main Content Area */}
+              <div className="flex-1 overflow-y-auto max-h-[380px] pr-1">
+                {isRecording ? (
+                  <div className="h-full min-h-[220px] p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    {(!liveFinalText && !liveInterimText) ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center py-12 space-y-3">
+                        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-950/40 flex items-center justify-center text-red-500">
+                          <Mic className="w-6 h-6 animate-pulse" />
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 text-sm font-bold">Listening for speech...</p>
+                        <p className="text-slate-400 text-xs max-w-xs">Live draft transcription will stream in real-time as you speak.</p>
+                      </div>
+                    ) : (
+                      <div className="text-slate-800 dark:text-slate-100 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                        <span>{liveFinalText}</span>
+                        {liveInterimText && (
+                          <span className="text-slate-400 dark:text-slate-500 italic ml-1">{liveInterimText}</span>
+                        )}
+                        <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse align-middle" />
+                      </div>
+                    )}
+                  </div>
+                ) : isProcessing ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-16">
+                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <div className="space-y-1">
+                      <p className="text-slate-800 dark:text-slate-200 text-base font-bold">Polishing Transcript with AI...</p>
+                      <p className="text-slate-400 text-xs">Converting audio to high-accuracy text via Gemini.</p>
+                    </div>
+                  </div>
+                ) : transcription ? (
+                  <div className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap font-medium">
                     {transcription}
                   </div>
                 ) : (
@@ -1086,14 +1356,14 @@ export const AudioTranscribeTool: React.FC = () => {
                 <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-end gap-3">
                   <button
                     onClick={downloadTXT}
-                    className="py-2.5 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-800 font-bold text-xs rounded-xl transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-1.5"
+                    className="py-2.5 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-800 font-bold text-xs rounded-xl transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download TXT
                   </button>
                   <button
                     onClick={downloadPDF}
-                    className="py-2.5 px-4 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                    className="py-2.5 px-4 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     Download PDF
@@ -1102,46 +1372,7 @@ export const AudioTranscribeTool: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
-
-        {/* Sidebar: Info */}
-        <div className="w-full lg:w-[360px] space-y-8">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-8 shadow-xl space-y-8">
-            <div className="space-y-6">
-              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Features</h4>
-              
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80">
-                  <Mic className="w-5 h-5 text-blue-500 animate-pulse" />
-                  <div className="space-y-0.5">
-                    <span className="block text-sm font-bold text-slate-700 dark:text-slate-300">Live Recording</span>
-                    <span className="block text-[11px] text-slate-400">Capture microphone with pause controls</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80">
-                  <Zap className="w-5 h-5 text-amber-500" />
-                  <div className="space-y-0.5">
-                    <span className="block text-sm font-bold text-slate-700 dark:text-slate-300">High Fidelity</span>
-                    <span className="block text-[11px] text-slate-400">Verbatim transcripts & punctuation</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80">
-                  <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                  <div className="space-y-0.5">
-                    <span className="block text-sm font-bold text-slate-700 dark:text-slate-300">Multilingual</span>
-                    <span className="block text-[11px] text-slate-400">Supports English, Hindi, Spanish & more</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                <p className="text-xs text-primary font-bold leading-relaxed">
-                  Powered by advanced Google Gemini 3.5 Flash, delivering fast, highly-accurate conversions with automatic language classification.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

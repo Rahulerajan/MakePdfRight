@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as pdfjs from 'pdfjs-dist';
+import { pdfjs } from '../utils/pdfWorker';
 import { PDFDocument } from 'pdf-lib';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -18,8 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import { HistoryService } from '../services/historyService';
 
 interface SplitToolProps {
   file: File;
@@ -37,11 +36,20 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultPageCount, setResultPageCount] = useState<number | null>(null);
   const [splitMode, setSplitMode] = useState<'range' | 'all'>('range');
   const [error, setError] = useState<string | null>(null);
   const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
   const optionsContainerRef = useRef<HTMLDivElement | null>(null);
   const initializedRef = useRef(false);
+  const resultUrlRef = useRef<string | null>(null);
+
+  const cleanupResultUrl = () => {
+    if (resultUrlRef.current) {
+      URL.revokeObjectURL(resultUrlRef.current);
+      resultUrlRef.current = null;
+    }
+  };
 
   const handleSplitModeChange = (mode: 'range' | 'all') => {
     setSplitMode(mode);
@@ -62,6 +70,7 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
     console.log('[SplitTool] Component mounted');
     return () => {
       console.log('[SplitTool] Component unmounted');
+      cleanupResultUrl();
     };
   }, []);
 
@@ -93,13 +102,11 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
 
         if (!initializedRef.current && totalPages > 0) {
           initializedRef.current = true;
-          const defaultEnd = Math.min(totalPages, 5);
+          // Default range to just Page 1 so default state never equals "select whole document"
           setFromPage('1');
-          setToPage(String(defaultEnd));
-          setRangeInput(`1-${defaultEnd}`);
-          const initialIndices: number[] = [];
-          for (let i = 0; i < defaultEnd; i++) initialIndices.push(i);
-          setSelectedPages(initialIndices);
+          setToPage('1');
+          setRangeInput('1');
+          setSelectedPages([0]);
         }
 
         if (allCached) {
@@ -247,10 +254,30 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
       copiedPages.forEach(page => newPdf.addPage(page));
 
       const pdfBytes = await newPdf.save();
+
+      // Confirm output page count directly on generated document
+      const verifyPdf = await PDFDocument.load(pdfBytes);
+      const actualCount = verifyPdf.getPageCount();
+
+      // Revoke previous blob URL if any
+      cleanupResultUrl();
+
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
+      resultUrlRef.current = url;
       
+      HistoryService.addHistoryItem({
+        toolId: 'split',
+        toolName: 'Split PDF',
+        fileName: `split_${file.name}`,
+        outputSize: blob.size,
+        resultUrl: url,
+        status: 'completed',
+        details: `Extracted ${actualCount} page(s) from document`
+      });
+
       setIsExporting(false);
+      setResultPageCount(actualCount);
       setResultUrl(url);
     } catch (err: any) {
       console.error('Splitting failed:', err);
@@ -401,6 +428,13 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">PDF has been split!</h2>
           <p className="text-base text-slate-500 dark:text-slate-400 font-medium">Your extracted pages are ready for download.</p>
         </div>
+
+        {resultPageCount !== null && (
+          <div className="inline-flex items-center gap-2 bg-[#E5322D]/10 text-[#E5322D] dark:bg-[#E5322D]/20 border border-[#E5322D]/30 px-4 py-2 rounded-xl text-sm font-extrabold shadow-xs">
+            <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
+            <span>Verified Output: {resultPageCount} {resultPageCount === 1 ? 'page' : 'pages'} extracted</span>
+          </div>
+        )}
         
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
           <a 

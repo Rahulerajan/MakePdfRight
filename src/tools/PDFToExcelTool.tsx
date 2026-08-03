@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import * as pdfjs from 'pdfjs-dist';
+import { pdfjs } from '../utils/pdfWorker';
 import * as XLSX from 'xlsx';
 import { motion } from 'framer-motion';
 import { 
@@ -14,8 +14,7 @@ import {
   FileText
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import { HistoryService } from '../services/historyService';
 
 interface PDFToExcelToolProps {
   file: File;
@@ -116,6 +115,16 @@ export const PDFToExcelTool: React.FC<PDFToExcelToolProps> = ({ file, onReset })
       const blob = new Blob([wbout], { type: 'application/octet-stream' });
       const url = URL.createObjectURL(blob);
       
+      HistoryService.addHistoryItem({
+        toolId: 'pdf-to-excel',
+        toolName: 'PDF to Excel',
+        fileName: `${file.name.replace('.pdf', '')}.xlsx`,
+        outputSize: blob.size,
+        resultUrl: url,
+        status: 'completed',
+        details: 'Extracted tabular data to XLSX spreadsheet'
+      });
+
       setIsProcessing(false);
       setResultUrl(url);
     } catch (err: any) {

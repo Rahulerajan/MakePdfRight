@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as pdfjs from 'pdfjs-dist';
+import { pdfjs } from '../utils/pdfWorker';
 import { PDFDocument } from 'pdf-lib';
 import { 
   FileText, 
@@ -20,10 +20,7 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { useLanguage } from '../components/LanguageContext';
-
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-}
+import { HistoryService } from '../services/historyService';
 
 interface CompressToolProps {
   file?: File;
@@ -136,6 +133,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
   } | null>(null);
 
   const isCancelledRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const optionsContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -277,6 +275,10 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
 
   const cancelCompression = () => {
     isCancelledRef.current = true;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setIsProcessing(false);
     setManualProgress(undefined);
   };
@@ -288,6 +290,9 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
     isCancelledRef.current = false;
     setManualProgress(10);
     const startTime = performance.now();
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
       // 1. Try Server-Side High-Efficiency Sharp Image Compression Endpoint first
@@ -303,6 +308,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
         // Merge multiple files before sending to server compression service
         const mergedDoc = await PDFDocument.create();
         for (const item of validItems) {
+          if (isCancelledRef.current) return;
           const docBytes = await item.file.arrayBuffer();
           const doc = await PDFDocument.load(docBytes, { ignoreEncryption: true });
           const copiedPages = await mergedDoc.copyPages(doc, doc.getPageIndices());
@@ -310,6 +316,8 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
         }
         pdfToProcess = await mergedDoc.save();
       }
+
+      if (isCancelledRef.current) return;
 
       // Convert PDF to Base64
       let binaryStr = '';
@@ -325,6 +333,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
       const response = await fetch('/api/pdf/compress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           pdfBase64,
           level,
@@ -332,12 +341,26 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
         })
       });
 
+      if (isCancelledRef.current) return;
+
       if (response.ok) {
         const data = await response.json();
+        if (isCancelledRef.current) return;
         if (data.success && data.pdfBase64) {
           setManualProgress(100);
           const endTime = performance.now();
           const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
+
+          HistoryService.addHistoryItem({
+            toolId: 'compress',
+            toolName: 'Compress PDF',
+            fileName: fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf',
+            fileSize: data.originalSize,
+            outputSize: data.compressedSize,
+            resultUrl: data.pdfBase64,
+            status: 'completed',
+            details: `Reduced size by ${data.percentage}% (${((data.spaceSaved || 0) / (1024 * 1024)).toFixed(2)} MB saved)`
+          });
 
           setResult({
             url: data.pdfBase64,
@@ -467,6 +490,17 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
       const compressedSize = compressedBlob.size;
       const savedSize = Math.max(0, originalTotalSize - compressedSize);
       const percentage = originalTotalSize > 0 ? Math.round((savedSize / originalTotalSize) * 100) : 0;
+
+      HistoryService.addHistoryItem({
+        toolId: 'compress',
+        toolName: 'Compress PDF',
+        fileName: fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf',
+        fileSize: originalTotalSize,
+        outputSize: compressedSize,
+        resultUrl: compressedUrl,
+        status: 'completed',
+        details: `Compressed client-side by ${percentage}% (${(savedSize / (1024 * 1024)).toFixed(2)} MB saved)`
+      });
 
       setResult({
         url: compressedUrl,

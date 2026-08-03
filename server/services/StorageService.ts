@@ -5,46 +5,60 @@ import crypto from 'crypto';
 import { LoggingService } from './LoggingService';
 
 export class StorageService {
-  private static tempDir = path.join(os.tmpdir(), 'make-pdf-right');
+  private static tempDir = path.resolve(os.tmpdir(), 'make-pdf-right');
 
   static {
-    // Ensure temp directory exists and cleanup startup orphans
-    if (!fs.existsSync(this.tempDir)) {
-      fs.mkdirSync(this.tempDir, { recursive: true });
-    } else {
-      this.cleanupAll();
+    try {
+      // Ensure temp directory exists with restrictive directory permissions (0o700)
+      if (!fs.existsSync(this.tempDir)) {
+        fs.mkdirSync(this.tempDir, { recursive: true, mode: 0o700 });
+      } else {
+        this.cleanupAll();
+      }
+      this.startScheduledCleanup();
+    } catch (err) {
+      LoggingService.error('Failed to initialize StorageService directory:', err);
     }
-    this.startScheduledCleanup();
+  }
+
+  // Robust path containment check using path.resolve and path.relative comparison
+  static isPathContained(targetPath: string, parentDir: string = this.tempDir): boolean {
+    if (!targetPath || typeof targetPath !== 'string') return false;
+    const resolvedTarget = path.resolve(targetPath);
+    const resolvedParent = path.resolve(parentDir);
+    const relative = path.relative(resolvedParent, resolvedTarget);
+    return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
   }
 
   static writeTempFile(buffer: Buffer, originalName: string = 'document.pdf'): string {
     const uuid = crypto.randomUUID();
     const sanitizedName = path.basename(originalName).replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = path.join(this.tempDir, `${uuid}_${sanitizedName}`);
+    const filePath = path.resolve(this.tempDir, `${uuid}_${sanitizedName}`);
     
-    // Prevent directory traversal
-    if (!filePath.startsWith(this.tempDir)) {
-      throw new Error('Invalid file path: path traversal detected.');
+    if (!this.isPathContained(filePath)) {
+      throw new Error('Security Error: Path traversal attempt detected.');
     }
 
-    fs.writeFileSync(filePath, buffer);
-    LoggingService.info(`Wrote temporary file: ${filePath}`);
+    // Write file with restrictive permissions (0o600)
+    fs.writeFileSync(filePath, buffer, { mode: 0o600 });
+    LoggingService.info(`Wrote temporary file securely: ${filePath}`);
     return filePath;
   }
 
   static readTempFile(filePath: string): Buffer {
-    if (!filePath.startsWith(this.tempDir)) {
-      throw new Error('Access denied: path traversal prevention.');
+    if (!this.isPathContained(filePath)) {
+      throw new Error('Access denied: Path traversal prevention.');
     }
     return fs.readFileSync(filePath);
   }
 
   static deleteTempFile(filePath: string) {
     try {
+      if (!this.isPathContained(filePath)) {
+        LoggingService.warn(`Skipped deleting untrusted file path: ${filePath}`);
+        return;
+      }
       if (fs.existsSync(filePath)) {
-        if (!filePath.startsWith(this.tempDir)) {
-          throw new Error('Access denied: path traversal prevention.');
-        }
         fs.unlinkSync(filePath);
         LoggingService.info(`Deleted temporary file: ${filePath}`);
       }
@@ -61,14 +75,16 @@ export class StorageService {
         if (file.endsWith('.db') || file.endsWith('.db-journal') || file.endsWith('.db-wal')) {
           continue; // Preserve database files
         }
-        const fullPath = path.join(this.tempDir, file);
-        try {
-          fs.unlinkSync(fullPath);
-        } catch (e) {
-          // Ignore unlinking errors if file locked or gone
+        const fullPath = path.resolve(this.tempDir, file);
+        if (this.isPathContained(fullPath)) {
+          try {
+            fs.unlinkSync(fullPath);
+          } catch (e) {
+            // File might be locked or already deleted
+          }
         }
       }
-      LoggingService.info('Cleaned up all temporary storage files on startup.');
+      LoggingService.info('Cleaned up temporary storage files.');
     } catch (err) {
       LoggingService.error('Failed to cleanup temp directory', err);
     }
@@ -86,7 +102,9 @@ export class StorageService {
           if (file.endsWith('.db') || file.endsWith('.db-journal') || file.endsWith('.db-wal')) {
             continue;
           }
-          const filePath = path.join(this.tempDir, file);
+          const filePath = path.resolve(this.tempDir, file);
+          if (!this.isPathContained(filePath)) continue;
+
           try {
             const stats = fs.statSync(filePath);
             if (now - stats.mtimeMs > maxAgeMs) {

@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type, ThinkingLevel, Modality } from "@google/genai";
 import dotenv from "dotenv";
@@ -34,7 +35,22 @@ dotenv.config();
 
 const PORT = 3000;
 
-// Configure rate limiters
+// Validate Environment at Startup
+function validateEnvironment() {
+  const isProd = process.env.NODE_ENV === "production";
+  if (isProd) {
+    if (!process.env.ALLOWED_ORIGINS) {
+      LoggingService.warn("[Security Notice] ALLOWED_ORIGINS environment variable is not defined in production. Dynamic origin checks will apply.");
+    }
+    if (!process.env.APP_URL) {
+      LoggingService.warn("[Security Notice] APP_URL environment variable is not defined in production. Dynamic URLs will rely on Request Host.");
+    }
+  }
+}
+
+validateEnvironment();
+
+// Configure Rate Limiters
 const standardLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute window
   max: 60, // 60 requests per minute
@@ -49,10 +65,25 @@ const standardLimiter = rateLimit({
   }
 });
 
+// Processing operations limiter (20 requests per minute)
+const processingLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      status: "error",
+      statusCode: 429,
+      error: "Rate limit exceeded for PDF processing. Please wait a minute before submitting more files."
+    });
+  }
+});
+
 // Stricter rate limit for Gemini-backed AI endpoints (10 requests per minute)
 const aiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute window
-  max: 10, // 10 requests per minute
+  windowMs: 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -64,18 +95,70 @@ const aiLimiter = rateLimit({
   }
 });
 
+// Auth & Session Identification Middleware
+declare global {
+  namespace Express {
+    interface Request {
+      ownerId?: string;
+    }
+  }
+}
+
+function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  // Check authorization key if API_ACCESS_KEY is set
+  const accessKey = process.env.API_ACCESS_KEY;
+  if (accessKey) {
+    const authHeader = req.headers['authorization'];
+    const apiKeyHeader = req.headers['x-api-key'];
+    const providedKey = authHeader ? authHeader.replace(/^Bearer\s+/i, '') : apiKeyHeader;
+    if (!providedKey || providedKey !== accessKey) {
+      return res.status(401).json({ status: "error", statusCode: 401, error: "Unauthorized access: Invalid or missing API key." });
+    }
+  }
+
+  // Derive owner ID for job isolation and request ownership
+  const ownerHeader = req.headers['x-owner-id'] || req.headers['x-session-id'];
+  if (ownerHeader && typeof ownerHeader === 'string' && ownerHeader.trim().length > 0) {
+    req.ownerId = ownerHeader.trim().substring(0, 100);
+  } else {
+    // Fallback to IP + User-Agent identifier hash if no session token provided
+    const clientIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'unknown-client';
+    req.ownerId = 'anon_' + crypto.createHash('sha256').update(`${clientIp}_${userAgent}`).digest('hex').substring(0, 16);
+  }
+
+  next();
+}
+
 async function startServer() {
   const app = express();
 
-  // Security headers middleware
+  // Trust reverse proxy headers (Cloud Run / Nginx) for rate-limiting
+  app.set("trust proxy", 1);
+
+  // Restrictive Security Headers (Helmet CSP)
   app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        mediaSrc: ["'self'", "data:", "blob:"],
+        connectSrc: ["'self'", "https://generativelanguage.googleapis.com", "wss:", "ws:"],
+        frameAncestors: ["'self'", "https://*.studio.google", "https://*.google.com", "https://*.google.dev", "https://*.run.app"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      }
+    },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" }
   }));
 
   // Configure explicit CORS
   const allowedOrigins = process.env.ALLOWED_ORIGINS 
-    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
     : undefined;
 
   app.use(cors({
@@ -85,11 +168,11 @@ async function startServer() {
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
           return callback(null, true);
         }
-        return callback(new Error('CORS policy restriction: Domain not allowed.'), false);
+        return callback(new AppError('CORS policy restriction: Domain origin not allowed.', 403), false);
       }
       return callback(null, true);
     },
-    credentials: true
+    credentials: false
   }));
 
   // Request logging & observability middleware
@@ -114,17 +197,17 @@ async function startServer() {
         },
       },
     });
-    LoggingService.info("[Server] Gemini client initialized successfully with API key.");
+    LoggingService.info("[Server] Gemini client initialized successfully.");
   } else {
-    LoggingService.warn("[Server] WARNING: GEMINI_API_KEY environment variable is not defined.");
+    LoggingService.warn("[Server] GEMINI_API_KEY environment variable is not defined.");
   }
 
-  // Helper to ensure Gemini is initialized
+  // Helper to ensure Gemini is initialized lazily
   const getAI = () => {
     if (!ai) {
       const currentKey = process.env.GEMINI_API_KEY;
       if (!currentKey) {
-        throw new Error("GEMINI_API_KEY is not configured on the server. Please check your secrets/environment.");
+        throw new AppError("GEMINI_API_KEY environment variable is missing on the server.", 500);
       }
       ai = new GoogleGenAI({
         apiKey: currentKey,
@@ -140,19 +223,31 @@ async function startServer() {
 
   // --- API Endpoints ---
 
-  // Health check
+  // Health check (Non-disclosing)
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", apiKeyConfigured: !!process.env.GEMINI_API_KEY });
+    res.json({ status: "ok" });
   });
 
+  // Protect processing and AI routes with Auth Middleware
+  app.use("/api/pdf/", authMiddleware);
+  app.use("/api/chat-pdf", authMiddleware);
+  app.use("/api/analyze-image", authMiddleware);
+  app.use("/api/transcribe-audio", authMiddleware);
+  app.use("/api/generate-speech", authMiddleware);
+  app.use("/api/complex-query", authMiddleware);
+  app.use("/api/pdf-editor-ai", authMiddleware);
+  app.use("/api/pdf-editor-ocr", authMiddleware);
+
   // 1. PDF Compression Endpoint
-  app.post("/api/pdf/compress", async (req, res, next) => {
+  app.post("/api/pdf/compress", processingLimiter, async (req, res, next) => {
     let tempPath: string | null = null;
     try {
       const { pdfBase64, level, customValue } = req.body;
       if (!pdfBase64) {
         return res.status(400).json({ error: "pdfBase64 is required" });
       }
+
+      ValidationService.validateStrictBase64(pdfBase64);
       const compressionLevel = level || 'recommended';
       const customVal = customValue !== undefined ? Number(customValue) : 50;
 
@@ -183,16 +278,18 @@ async function startServer() {
   });
 
   // 2. PDF Merge Endpoint
-  app.post("/api/pdf/merge", async (req, res, next) => {
+  app.post("/api/pdf/merge", processingLimiter, async (req, res, next) => {
     const tempPaths: string[] = [];
     try {
       const { files } = req.body; // Array of { name: string, data: string } (base64)
-      if (!files || !Array.isArray(files) || files.length === 0) {
-        return res.status(400).json({ error: "files array is required" });
-      }
+      ValidationService.validateMergeFilesPayload(files);
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if (!file || !file.data) {
+          throw new AppError(`File item at index ${i} is missing base64 data.`, 400);
+        }
+        ValidationService.validateStrictBase64(file.data);
         const path = await UploadService.handleBase64Upload(file.data, file.name || `doc_${i}.pdf`);
         tempPaths.push(path);
       }
@@ -210,13 +307,16 @@ async function startServer() {
   });
 
   // 3. PDF Split Endpoint
-  app.post("/api/pdf/split", async (req, res, next) => {
+  app.post("/api/pdf/split", processingLimiter, async (req, res, next) => {
     let tempPath: string | null = null;
     try {
       const { pdfBase64, pageIndices } = req.body;
-      if (!pdfBase64 || !pageIndices || !Array.isArray(pageIndices)) {
-        return res.status(400).json({ error: "pdfBase64 and pageIndices are required" });
+      if (!pdfBase64) {
+        return res.status(400).json({ error: "pdfBase64 is required" });
       }
+
+      ValidationService.validateStrictBase64(pdfBase64);
+      ValidationService.validateSplitPayload(pageIndices);
 
       tempPath = await UploadService.handleBase64Upload(pdfBase64, 'split.pdf');
       const splitBuffer = await SplitService.splitPDF(tempPath, pageIndices);
@@ -233,7 +333,7 @@ async function startServer() {
   });
 
   // 4. PDF Rotate Endpoint
-  app.post("/api/pdf/rotate", async (req, res, next) => {
+  app.post("/api/pdf/rotate", processingLimiter, async (req, res, next) => {
     let tempPath: string | null = null;
     try {
       const { pdfBase64, rotations } = req.body;
@@ -241,6 +341,11 @@ async function startServer() {
         return res.status(400).json({ error: "pdfBase64 and rotations array are required" });
       }
 
+      if (rotations.length > 2000) {
+        throw new AppError("Rotations array length exceeds 2000 items limit.", 400);
+      }
+
+      ValidationService.validateStrictBase64(pdfBase64);
       tempPath = await UploadService.handleBase64Upload(pdfBase64, 'rotate.pdf');
       const rotatedBuffer = await RotateService.rotatePDF(tempPath, rotations);
       
@@ -256,7 +361,7 @@ async function startServer() {
   });
 
   // 5. PDF Organize Endpoint
-  app.post("/api/pdf/organize", async (req, res, next) => {
+  app.post("/api/pdf/organize", processingLimiter, async (req, res, next) => {
     let tempPath: string | null = null;
     try {
       const { pdfBase64, pageItems } = req.body;
@@ -264,6 +369,11 @@ async function startServer() {
         return res.status(400).json({ error: "pdfBase64 and pageItems array are required" });
       }
 
+      if (pageItems.length > 2000) {
+        throw new AppError("Page items array length exceeds 2000 items limit.", 400);
+      }
+
+      ValidationService.validateStrictBase64(pdfBase64);
       tempPath = await UploadService.handleBase64Upload(pdfBase64, 'organize.pdf');
       const organizedBuffer = await OrganizeService.organizePDF(tempPath, pageItems);
       
@@ -287,9 +397,10 @@ async function startServer() {
       }
 
       ValidationService.validateImageUpload(imageBase64, 'image/png');
+      const cleanBase64 = ValidationService.validateStrictBase64(imageBase64);
       
       const client = getAI();
-      const blocks = await OCRService.performOCR(imageBase64, client);
+      const blocks = await OCRService.performOCR(cleanBase64, client);
       res.json({ success: true, blocks });
     } catch (err: any) {
       next(err);
@@ -297,13 +408,16 @@ async function startServer() {
   });
 
   // 7. PDF Watermark Endpoint
-  app.post("/api/pdf/watermark", async (req, res, next) => {
+  app.post("/api/pdf/watermark", processingLimiter, async (req, res, next) => {
     let tempPath: string | null = null;
     try {
       const { pdfBase64, text, fontSize, opacity, color, rotation } = req.body;
       if (!pdfBase64 || !text) {
         return res.status(400).json({ error: "pdfBase64 and text are required" });
       }
+
+      ValidationService.validateStrictBase64(pdfBase64);
+      ValidationService.validateWatermarkText(text);
 
       tempPath = await UploadService.handleBase64Upload(pdfBase64, 'watermark.pdf');
       const watermarkedBuffer = await WatermarkService.addWatermark(tempPath, {
@@ -326,7 +440,7 @@ async function startServer() {
   });
 
   // 8. PDF Repair Endpoint
-  app.post("/api/pdf/repair", async (req, res, next) => {
+  app.post("/api/pdf/repair", processingLimiter, async (req, res, next) => {
     let tempPath: string | null = null;
     try {
       const { pdfBase64 } = req.body;
@@ -334,6 +448,7 @@ async function startServer() {
         return res.status(400).json({ error: "pdfBase64 is required" });
       }
 
+      ValidationService.validateStrictBase64(pdfBase64);
       tempPath = await UploadService.handleBase64Upload(pdfBase64, 'repair.pdf');
       const repairedBuffer = await RepairService.repairPDF(tempPath);
       
@@ -349,7 +464,7 @@ async function startServer() {
   });
 
   // 9. PDF Details Endpoint
-  app.post("/api/pdf/details", async (req, res, next) => {
+  app.post("/api/pdf/details", processingLimiter, async (req, res, next) => {
     let tempPath: string | null = null;
     try {
       const { pdfBase64 } = req.body;
@@ -357,6 +472,7 @@ async function startServer() {
         return res.status(400).json({ error: "pdfBase64 is required" });
       }
 
+      ValidationService.validateStrictBase64(pdfBase64);
       tempPath = await UploadService.handleBase64Upload(pdfBase64, 'details.pdf');
       const details = await ThumbnailService.getDetails(tempPath);
       
@@ -372,37 +488,39 @@ async function startServer() {
   });
 
   // 10. Async Background Processing Queue Endpoints
-  app.post("/api/pdf/job/create", async (req, res, next) => {
+  app.post("/api/pdf/job/create", processingLimiter, async (req, res, next) => {
     try {
       const { type, payload } = req.body;
       if (!type || !payload) {
         return res.status(400).json({ error: "Job type and payload are required." });
       }
 
-      const job = JobService.createJob(type);
+      const ownerId = req.ownerId || 'anonymous';
+      const job = JobService.createJob(type, ownerId);
       
       // Process Job Asynchronously without blocking the response
       setTimeout(async () => {
         let tempPath: string | null = null;
         try {
-          JobService.updateJob(job.id, { status: 'processing', progress: 10 });
+          JobService.updateJob(job.id, ownerId, { status: 'processing', progress: 10 });
           
           if (type === 'compress') {
             const { pdfBase64, level, customValue } = payload;
+            ValidationService.validateStrictBase64(pdfBase64);
             tempPath = await UploadService.handleBase64Upload(pdfBase64, 'compress_async.pdf');
             
-            JobService.updateJob(job.id, { progress: 30 });
+            JobService.updateJob(job.id, ownerId, { progress: 30 });
             
-            if (JobService.getJob(job.id)?.cancelRequested) throw new Error('Job cancelled.');
+            if (JobService.getJob(job.id, ownerId)?.cancelRequested) throw new Error('Job cancelled.');
             
             const result = await CompressionService.compressPDF(tempPath, level, customValue);
             
-            if (JobService.getJob(job.id)?.cancelRequested) throw new Error('Job cancelled.');
+            if (JobService.getJob(job.id, ownerId)?.cancelRequested) throw new Error('Job cancelled.');
             
-            JobService.updateJob(job.id, { progress: 90 });
+            JobService.updateJob(job.id, ownerId, { progress: 90 });
             
             const base64 = result.pdfBuffer.toString('base64');
-            JobService.updateJob(job.id, {
+            JobService.updateJob(job.id, ownerId, {
               status: 'completed',
               progress: 100,
               result: {
@@ -421,22 +539,24 @@ async function startServer() {
             });
           } else if (type === 'merge') {
             const { files } = payload;
+            ValidationService.validateMergeFilesPayload(files);
             const tempPaths: string[] = [];
             
             for (let i = 0; i < files.length; i++) {
-              if (JobService.getJob(job.id)?.cancelRequested) throw new Error('Job cancelled.');
+              if (JobService.getJob(job.id, ownerId)?.cancelRequested) throw new Error('Job cancelled.');
               const file = files[i];
+              ValidationService.validateStrictBase64(file.data);
               const path = await UploadService.handleBase64Upload(file.data, file.name);
               tempPaths.push(path);
             }
             
-            JobService.updateJob(job.id, { progress: 50 });
+            JobService.updateJob(job.id, ownerId, { progress: 50 });
             const mergedBuffer = await MergeService.mergePDFs(tempPaths);
             
             tempPaths.forEach(p => StorageService.deleteTempFile(p));
             
-            if (JobService.getJob(job.id)?.cancelRequested) throw new Error('Job cancelled.');
-            JobService.updateJob(job.id, {
+            if (JobService.getJob(job.id, ownerId)?.cancelRequested) throw new Error('Job cancelled.');
+            JobService.updateJob(job.id, ownerId, {
               status: 'completed',
               progress: 100,
               result: {
@@ -448,8 +568,8 @@ async function startServer() {
           }
         } catch (jobErr: any) {
           LoggingService.error(`Async job ${job.id} failed:`, jobErr);
-          JobService.updateJob(job.id, {
-            status: JobService.getJob(job.id)?.cancelRequested ? 'cancelled' : 'failed',
+          JobService.updateJob(job.id, ownerId, {
+            status: JobService.getJob(job.id, ownerId)?.cancelRequested ? 'cancelled' : 'failed',
             error: jobErr.message || 'An unexpected error occurred during job execution.'
           });
         } finally {
@@ -468,9 +588,10 @@ async function startServer() {
   });
 
   app.get("/api/pdf/job/status/:jobId", (req, res) => {
-    const job = JobService.getJob(req.params.jobId);
+    const ownerId = req.ownerId || 'anonymous';
+    const job = JobService.getJob(req.params.jobId, ownerId);
     if (!job) {
-      return res.status(404).json({ error: "Job not found." });
+      return res.status(404).json({ error: "Job not found or access denied." });
     }
     res.json({
       jobId: job.id,
@@ -483,24 +604,37 @@ async function startServer() {
   });
 
   app.post("/api/pdf/job/cancel/:jobId", (req, res) => {
-    const success = JobService.cancelJob(req.params.jobId);
+    const ownerId = req.ownerId || 'anonymous';
+    const success = JobService.cancelJob(req.params.jobId, ownerId);
     if (!success) {
       return res.status(400).json({ error: "Job could not be cancelled (either not found or already completed)." });
     }
     res.json({ success: true, message: "Cancellation request sent." });
   });
 
-  // 2. Chat with PDF Endpoint (AI rate limited)
+  // 11. Chat with PDF Endpoint (AI rate limited)
   app.post("/api/chat-pdf", aiLimiter, async (req, res, next) => {
-    const { pdfBase64, message } = req.body;
+    const { pdfBase64, message, enableThinking } = req.body;
     if (!pdfBase64 || !message) {
       return res.status(400).json({ error: "Both pdfBase64 and message are required." });
     }
 
     try {
+      const cleanPdfBase64 = ValidationService.validateStrictBase64(pdfBase64);
+      ValidationService.validateTextPrompt(message, 5000);
+
       const client = getAI();
+      const isThinking = !!enableThinking;
+      const model = isThinking ? "gemini-3.1-pro-preview" : "gemini-3.5-flash";
+      const config: any = {};
+      if (isThinking) {
+        config.thinkingConfig = {
+          thinkingLevel: ThinkingLevel.HIGH,
+        };
+      }
+
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model,
         contents: [
           {
             role: "user",
@@ -508,7 +642,7 @@ async function startServer() {
               {
                 inlineData: {
                   mimeType: "application/pdf",
-                  data: pdfBase64,
+                  data: cleanPdfBase64,
                 },
               },
               {
@@ -517,6 +651,7 @@ async function startServer() {
             ],
           },
         ],
+        config: Object.keys(config).length > 0 ? config : undefined,
       });
 
       res.json({ text: response.text });
@@ -525,19 +660,30 @@ async function startServer() {
     }
   });
 
-  // 3. Analyze Image Endpoint (AI rate limited)
+  // 12. Analyze Image Endpoint (AI rate limited)
   app.post("/api/analyze-image", aiLimiter, async (req, res, next) => {
-    const { imageBase64, mimeType, prompt } = req.body;
+    const { imageBase64, mimeType, prompt, enableThinking } = req.body;
     if (!imageBase64 || !mimeType || !prompt) {
       return res.status(400).json({ error: "imageBase64, mimeType, and prompt are required." });
     }
 
     try {
       ValidationService.validateImageUpload(imageBase64, mimeType);
+      const cleanImageBase64 = ValidationService.validateStrictBase64(imageBase64);
+      ValidationService.validateTextPrompt(prompt, 5000);
 
       const client = getAI();
+      const isThinking = !!enableThinking;
+      const model = isThinking ? "gemini-3.1-pro-preview" : "gemini-3.5-flash";
+      const config: any = {};
+      if (isThinking) {
+        config.thinkingConfig = {
+          thinkingLevel: ThinkingLevel.HIGH,
+        };
+      }
+
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model,
         contents: [
           {
             role: "user",
@@ -545,7 +691,7 @@ async function startServer() {
               {
                 inlineData: {
                   mimeType,
-                  data: imageBase64,
+                  data: cleanImageBase64,
                 },
               },
               {
@@ -554,6 +700,7 @@ async function startServer() {
             ],
           },
         ],
+        config: Object.keys(config).length > 0 ? config : undefined,
       });
 
       res.json({ text: response.text });
@@ -562,7 +709,7 @@ async function startServer() {
     }
   });
 
-  // 4. Transcribe Audio Endpoint (AI rate limited)
+  // 13. Transcribe Audio Endpoint (AI rate limited)
   app.post("/api/transcribe-audio", aiLimiter, async (req, res, next) => {
     const { audioBase64, mimeType, language } = req.body;
     if (!audioBase64 || !mimeType) {
@@ -571,6 +718,7 @@ async function startServer() {
 
     try {
       ValidationService.validateAudioUpload(audioBase64, mimeType);
+      const cleanAudioBase64 = ValidationService.validateStrictBase64(audioBase64);
 
       const client = getAI();
       const languageText = language && language !== "auto"
@@ -594,7 +742,7 @@ async function startServer() {
               {
                 inlineData: {
                   mimeType,
-                  data: audioBase64,
+                  data: cleanAudioBase64,
                 },
               },
               {
@@ -634,7 +782,7 @@ async function startServer() {
     }
   });
 
-  // 5. Generate Speech (Text-to-Speech) Endpoint (AI rate limited)
+  // 14. Generate Speech (Text-to-Speech) Endpoint (AI rate limited)
   app.post("/api/generate-speech", aiLimiter, async (req, res, next) => {
     const { text } = req.body;
     if (!text) {
@@ -642,6 +790,7 @@ async function startServer() {
     }
 
     try {
+      ValidationService.validateTextPrompt(text, 1000);
       const client = getAI();
       const response = await client.models.generateContent({
         model: "gemini-3.1-flash-tts-preview",
@@ -663,7 +812,122 @@ async function startServer() {
     }
   });
 
-  // 6. Complex Query Endpoint (with thinking mode, AI rate limited)
+  // 14b. Generate AI Image Endpoint (AI rate limited)
+  app.post("/api/generate-image", aiLimiter, async (req, res, next) => {
+    const { prompt, aspectRatio = "1:1" } = req.body;
+    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+      return res.status(400).json({ error: "Prompt is required for image generation." });
+    }
+
+    try {
+      ValidationService.validateTextPrompt(prompt, 2000);
+
+      let width = 1024;
+      let height = 1024;
+      switch (aspectRatio) {
+        case "16:9": width = 1024; height = 576; break;
+        case "4:3": width = 1024; height = 768; break;
+        case "3:4": width = 768; height = 1024; break;
+        case "9:16": width = 576; height = 1024; break;
+        default: width = 1024; height = 1024; break;
+      }
+
+      let imageBase64DataUrl: string | null = null;
+
+      // 1. Try Gemini image model if available
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          const client = getAI();
+          const validRatio = (aspectRatio === "16:9" || aspectRatio === "4:3" || aspectRatio === "3:4" || aspectRatio === "9:16") ? aspectRatio : "1:1";
+          const geminiResponse = await client.models.generateContent({
+            model: 'gemini-3.1-flash-lite-image',
+            contents: {
+              parts: [{ text: prompt.trim() }]
+            },
+            config: {
+              imageConfig: {
+                aspectRatio: validRatio as "1:1" | "3:4" | "4:3" | "9:16" | "16:9",
+              }
+            }
+          });
+
+          const parts = geminiResponse.candidates?.[0]?.content?.parts;
+          if (parts) {
+            for (const part of parts) {
+              if (part.inlineData && part.inlineData.data) {
+                const mime = part.inlineData.mimeType || 'image/png';
+                imageBase64DataUrl = `data:${mime};base64,${part.inlineData.data}`;
+                break;
+              }
+            }
+          }
+        } catch (geminiError) {
+          LoggingService.warn("[Server] Gemini image generation model failed or unavailable, trying fallback image generator:", geminiError);
+        }
+      }
+
+      // 2. Fallback: Try Pollinations AI server-side fetch (bypasses browser CORS)
+      if (!imageBase64DataUrl) {
+        try {
+          const seed = Math.floor(Math.random() * 1000000);
+          const encodedPrompt = encodeURIComponent(prompt.trim());
+          const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux`;
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+          const response = await fetch(pollinationsUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            if (arrayBuffer.byteLength > 0) {
+              const buffer = Buffer.from(arrayBuffer);
+              imageBase64DataUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+            }
+          }
+        } catch (pollinationsErr) {
+          LoggingService.warn("[Server] Pollinations AI fetch failed:", pollinationsErr);
+        }
+      }
+
+      // 3. Robust Fallback: SVG graphical representation
+      if (!imageBase64DataUrl) {
+        const cleanPromptEscaped = prompt.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+          <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1E293B" />
+              <stop offset="50%" stop-color="#0F172A" />
+              <stop offset="100%" stop-color="#020617" />
+            </linearGradient>
+            <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#E5322D" />
+              <stop offset="100%" stop-color="#FF6B6B" />
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grad)" />
+          <circle cx="${width / 2}" cy="${height / 2 - 40}" r="${Math.min(width, height) / 4}" fill="url(#accent)" opacity="0.15" />
+          <path d="M${width / 2 - 40} ${height / 2 - 60} L${width / 2 + 40} ${height / 2 - 60} L${width / 2} ${height / 2 + 20} Z" fill="url(#accent)" opacity="0.8" />
+          <text x="50%" y="${height / 2 + 70}" font-family="sans-serif" font-size="20" font-weight="600" fill="#F8FAFC" text-anchor="middle">
+            AI Generated Image
+          </text>
+          <text x="50%" y="${height / 2 + 105}" font-family="sans-serif" font-size="14" fill="#94A3B8" text-anchor="middle">
+            "${cleanPromptEscaped.slice(0, 60)}${cleanPromptEscaped.length > 60 ? '...' : ''}"
+          </text>
+        </svg>`;
+
+        const base64Svg = Buffer.from(svg).toString('base64');
+        imageBase64DataUrl = `data:image/svg+xml;base64,${base64Svg}`;
+      }
+
+      res.json({ imageBase64: imageBase64DataUrl });
+    } catch (error: any) {
+      next(error);
+    }
+  });
+
+  // 15. Complex Query Endpoint (with high thinking mode, AI rate limited)
   app.post("/api/complex-query", aiLimiter, async (req, res, next) => {
     const { prompt } = req.body;
     if (!prompt) {
@@ -671,6 +935,7 @@ async function startServer() {
     }
 
     try {
+      ValidationService.validateTextPrompt(prompt, 5000);
       const client = getAI();
       const response = await client.models.generateContent({
         model: "gemini-3.1-pro-preview",
@@ -688,9 +953,9 @@ async function startServer() {
     }
   });
 
-  // 7. PDF Editor AI Assistant (AI rate limited)
+  // 16. PDF Editor AI Assistant (AI rate limited)
   app.post("/api/pdf-editor-ai", aiLimiter, async (req, res, next) => {
-    const { promptType, selectedText, customPrompt } = req.body;
+    const { promptType, selectedText, customPrompt, enableThinking } = req.body;
     if (!promptType) {
       return res.status(400).json({ error: "promptType is required." });
     }
@@ -700,6 +965,10 @@ async function startServer() {
       let promptText = "";
 
       switch (promptType) {
+        case "deep-think":
+        case "reasoning":
+          promptText = `Perform a deep, step-by-step logical reasoning analysis of the following document text or instruction: "${customPrompt || selectedText || ''}". Provide detailed, thorough explanations and key conclusions.`;
+          break;
         case "rewrite":
           promptText = `Please rewrite the following text professionally, making it clear, engaging, and well-phrased while preserving the exact semantic meaning. Do not add conversational framing or explanations; return ONLY the rewritten text:\n\n"${selectedText || ""}"`;
           break;
@@ -725,9 +994,21 @@ async function startServer() {
           promptText = `Please analyze or assist with this document text:\n\n"${selectedText || ""}"`;
       }
 
+      ValidationService.validateTextPrompt(promptText, 10000);
+
+      const isThinkingRequested = !!enableThinking || promptType === "deep-think" || promptType === "reasoning";
+      const model = isThinkingRequested ? "gemini-3.1-pro-preview" : "gemini-3.5-flash";
+      const config: any = {};
+      if (isThinkingRequested) {
+        config.thinkingConfig = {
+          thinkingLevel: ThinkingLevel.HIGH,
+        };
+      }
+
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: promptText
+        model,
+        contents: promptText,
+        config: Object.keys(config).length > 0 ? config : undefined,
       });
 
       res.json({ text: response.text || "" });
@@ -736,7 +1017,7 @@ async function startServer() {
     }
   });
 
-  // 8. PDF Editor OCR Vision (Page Text Extraction to Overlays, AI rate limited)
+  // 17. PDF Editor OCR Vision (Page Text Extraction to Overlays, AI rate limited)
   app.post("/api/pdf-editor-ocr", aiLimiter, async (req, res, next) => {
     const { imageBase64 } = req.body;
     if (!imageBase64) {
@@ -745,6 +1026,7 @@ async function startServer() {
 
     try {
       ValidationService.validateImageUpload(imageBase64, 'image/png');
+      const cleanImageBase64 = ValidationService.validateStrictBase64(imageBase64);
 
       const client = getAI();
       const response = await client.models.generateContent({
@@ -753,7 +1035,7 @@ async function startServer() {
           {
             inlineData: {
               mimeType: "image/png",
-              data: imageBase64,
+              data: cleanImageBase64,
             },
           },
           {

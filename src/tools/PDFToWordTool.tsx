@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import * as pdfjs from 'pdfjs-dist';
+import { pdfjs } from '../utils/pdfWorker';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { motion } from 'framer-motion';
 import { 
@@ -13,8 +13,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import { HistoryService } from '../services/historyService';
 
 interface PDFToWordToolProps {
   file: File;
@@ -109,6 +108,16 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file, onReset }) =
       const blob = await Packer.toBlob(doc);
       const url = URL.createObjectURL(blob);
       
+      HistoryService.addHistoryItem({
+        toolId: 'pdf-to-word',
+        toolName: 'PDF to Word',
+        fileName: `${file.name.replace('.pdf', '')}.docx`,
+        outputSize: blob.size,
+        resultUrl: url,
+        status: 'completed',
+        details: 'Converted PDF to editable Word DOCX'
+      });
+
       setIsProcessing(false);
       setResultUrl(url);
     } catch (err: any) {

@@ -27,6 +27,11 @@ const ImageGenTool = lazy(() => import('./tools/ImageGenTool').then(m => ({ defa
 const AudioTranscribeTool = lazy(() => import('./tools/AudioTranscribeTool').then(m => ({ default: m.AudioTranscribeTool })));
 const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
 const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms })));
+const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
+const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
+const Disclaimer = lazy(() => import('./pages/Disclaimer').then(m => ({ default: m.Disclaimer })));
+import { StickyMobileAd } from './components/ads/AdUnit';
 
 // A sleek, minimal, high-performance page loader skeleton fallback
 const PageLoader = () => (
@@ -56,7 +61,17 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               
+              {/* Core PDF Tool Routes */}
               <Route path="/merge" element={
+                <ToolPage 
+                  title="Merge PDF" 
+                  description="Combine multiple PDF files into one document in seconds."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-pdf" element={
                 <ToolPage 
                   title="Merge PDF" 
                   description="Combine multiple PDF files into one document in seconds."
@@ -74,8 +89,25 @@ export default function App() {
                   {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
               } />
+              <Route path="/split-pdf" element={
+                <ToolPage 
+                  title="Split PDF" 
+                  description="Extract pages from your PDF or split it into multiple files."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
 
               <Route path="/compress" element={
+                <ToolPage 
+                  title="Compress PDF" 
+                  description="Reduce the size of your PDF while maintaining quality."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-pdf" element={
                 <ToolPage 
                   title="Compress PDF" 
                   description="Reduce the size of your PDF while maintaining quality."
@@ -98,6 +130,16 @@ export default function App() {
                 <ToolPage 
                   title="Image to PDF" 
                   description="Convert JPG and PNG images to PDF in seconds."
+                  multiple
+                  accept={{ 'image/*': ['.jpg', '.jpeg', '.png'] }}
+                >
+                  {(files, onReset) => <ImageToPDFTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/word-to-pdf" element={
+                <ToolPage 
+                  title="Image to PDF" 
+                  description="Convert Word and image documents to PDF in seconds."
                   multiple
                   accept={{ 'image/*': ['.jpg', '.jpeg', '.png'] }}
                 >
@@ -131,8 +173,24 @@ export default function App() {
                   {(files) => <EditTool file={files[0]} />}
                 </ToolPage>
               } />
+              <Route path="/edit-pdf" element={
+                <ToolPage 
+                  title="Edit PDF" 
+                  description="Modify text and add images to your PDF document."
+                >
+                  {(files) => <EditTool file={files[0]} />}
+                </ToolPage>
+              } />
 
               <Route path="/rotate" element={
+                <ToolPage 
+                  title="Rotate PDF" 
+                  description="Rotate your PDF pages and save them permanently."
+                >
+                  {(files, onReset) => <RotateTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/rotate-pdf" element={
                 <ToolPage 
                   title="Rotate PDF" 
                   description="Rotate your PDF pages and save them permanently."
@@ -147,6 +205,15 @@ export default function App() {
                   description="Reorder, rotate, and delete pages from your PDF."
                 >
                   {(files, onReset) => <OrganiseTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+
+              <Route path="/ocr" element={
+                <ToolPage 
+                  title="PDF to Word" 
+                  description="Perform OCR text recognition on scanned PDF files."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
               } />
 
@@ -166,13 +233,19 @@ export default function App() {
                 </div>
               } />
 
+              {/* Informational & Legal Pages */}
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/disclaimer" element={<Disclaimer />} />
             </Routes>
           </Suspense>
         </main>
 
         <Footer />
+        <StickyMobileAd />
       </div>
     </Router>
    </LanguageProvider>

@@ -440,38 +440,86 @@ export const Footer = () => {
   const { t } = useLanguage();
 
   return (
-    <footer className="bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 py-8 sm:py-10 mt-auto transition-colors">
-      <div className="container-custom flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-        {/* Brand & Security Assurance */}
-        <div className="space-y-2">
-          <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
-              <FileText className="text-white w-4 h-4" />
+    <footer className="bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800 pt-12 pb-8 mt-auto transition-colors">
+      <div className="container-custom space-y-10">
+        
+        {/* Main Footer Links Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+          
+          {/* Brand & Security Column */}
+          <div className="md:col-span-2 space-y-4">
+            <Link to="/" className="inline-flex items-center gap-2 group">
+              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <FileText className="text-white w-5 h-5" />
+              </div>
+              <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">MakePDFRight</span>
+            </Link>
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-normal leading-relaxed max-w-sm">
+              The premier suite of fast, private, and free online PDF and AI processing tools. Edit, merge, convert, split, transcribe, and generate images directly in your browser.
+            </p>
+
+            <div className="pt-2">
+              <div className="inline-flex items-center gap-2.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>🔒 100% Secure • Files auto-deleted in 15 mins</span>
+              </div>
             </div>
-            <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white">MakePDFRight</span>
-          </Link>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-sm">
-            🔒 All uploaded documents are processed securely in temporary server storage & deleted automatically within minutes.
-          </p>
+          </div>
+
+          {/* Column 1: PDF Tools */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">PDF Tools</h4>
+            <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <li><Link to="/merge" className="hover:text-primary transition-colors">Merge PDF</Link></li>
+              <li><Link to="/split" className="hover:text-primary transition-colors">Split PDF</Link></li>
+              <li><Link to="/compress" className="hover:text-primary transition-colors">Compress PDF</Link></li>
+              <li><Link to="/edit" className="hover:text-primary transition-colors">Edit PDF</Link></li>
+              <li><Link to="/organise" className="hover:text-primary transition-colors">Organize PDF</Link></li>
+              <li><Link to="/rotate" className="hover:text-primary transition-colors">Rotate PDF</Link></li>
+            </ul>
+          </div>
+
+          {/* Column 2: Convert & AI Tools */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Convert & AI</h4>
+            <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <li><Link to="/pdf-to-word" className="hover:text-primary transition-colors">PDF to Word</Link></li>
+              <li><Link to="/pdf-to-excel" className="hover:text-primary transition-colors">PDF to Excel</Link></li>
+              <li><Link to="/pdf-to-jpg" className="hover:text-primary transition-colors">PDF to JPG</Link></li>
+              <li><Link to="/image-to-pdf" className="hover:text-primary transition-colors">Image to PDF</Link></li>
+              <li><Link to="/generate-image" className="hover:text-primary transition-colors flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-primary" />AI Image Gen</Link></li>
+              <li><Link to="/transcribe" className="hover:text-primary transition-colors flex items-center gap-1.5"><Mic className="w-3 h-3 text-cyan-500" />Audio Transcribe</Link></li>
+            </ul>
+          </div>
+
+          {/* Column 3: Company & Legal */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Company & Legal</h4>
+            <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+              <li><Link to="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
+              <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+              <li><Link to="/cookie-policy" className="hover:text-primary transition-colors">Cookie Policy</Link></li>
+              <li><Link to="/disclaimer" className="hover:text-primary transition-colors">Disclaimer</Link></li>
+            </ul>
+          </div>
+
         </div>
 
-        {/* Navigation Links */}
-        <div className="flex flex-wrap items-center justify-center gap-6 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
-          <Link to="/" className="hover:text-primary transition-colors">
-            Home
-          </Link>
-          <Link to="/privacy" className="hover:text-primary transition-colors">
-            Privacy Policy
-          </Link>
-          <Link to="/terms" className="hover:text-primary transition-colors">
-            Terms of Service
-          </Link>
+        {/* Bottom Bar */}
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-400 dark:text-slate-500">
+          <div>
+            © {new Date().getFullYear()} MakePDFRight. All rights reserved. Built for Privacy & Speed.
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400">
+              v2.4.0 Production
+            </span>
+          </div>
         </div>
 
-        {/* Copyright */}
-        <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-          © {new Date().getFullYear()} MakePDFRight. All rights reserved.
-        </div>
       </div>
     </footer>
   );

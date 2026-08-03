@@ -35,6 +35,7 @@ export interface TextElement extends BaseElement {
   wordWrap: boolean;
   bullets?: 'none' | 'bullet' | 'number' | 'checklist';
   listItems?: { text: string; checked?: boolean }[];
+  isEditing?: boolean;
 }
 
 export interface ImageElement extends BaseElement {
@@ -92,6 +93,7 @@ export interface SignatureElement extends BaseElement {
   dataUrl: string; // contains the SVG path, text string, or base64 image
   typedText?: string;
   fontFamily?: string;
+  fontSize?: number;
 }
 
 export interface FormElement extends BaseElement {

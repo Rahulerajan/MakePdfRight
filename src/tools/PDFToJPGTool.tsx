@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import * as pdfjs from 'pdfjs-dist';
+import { pdfjs } from '../utils/pdfWorker';
 import JSZip from 'jszip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -17,8 +17,7 @@ import {
   X
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import { HistoryService } from '../services/historyService';
 
 interface PDFToJPGToolProps {
   file: File;
@@ -158,6 +157,16 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
       
+      HistoryService.addHistoryItem({
+        toolId: 'pdf-to-jpg',
+        toolName: 'PDF to JPG',
+        fileName: `${file.name.replace('.pdf', '')}_images.zip`,
+        outputSize: content.size,
+        resultUrl: url,
+        status: 'completed',
+        details: `Converted ${convertedCount} page(s) to JPG images (ZIP archive)`
+      });
+
       setIsProcessing(false);
       setResult({ url, count: convertedCount });
     } catch (err: any) {

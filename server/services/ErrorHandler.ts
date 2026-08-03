@@ -3,9 +3,12 @@ import { LoggingService } from './LoggingService';
 
 export class AppError extends Error {
   public statusCode: number;
+  public isOperational: boolean;
+
   constructor(message: string, statusCode: number = 400) {
     super(message);
     this.statusCode = statusCode;
+    this.isOperational = true;
     Object.setPrototypeOf(this, AppError.prototype);
   }
 }
@@ -22,13 +25,22 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
   }
 
   const statusCode = err.statusCode || err.status || 500;
-  const message = err.message || 'Internal Server Error';
+  const isProd = process.env.NODE_ENV === 'production';
   
-  LoggingService.error(`API Error on ${req.method} ${req.originalUrl}: ${message}`, err);
-  
+  // Clean message for production 500s to avoid leaking backend details
+  let publicMessage = err.message || 'An internal server error occurred.';
+  if (statusCode >= 500 && isProd && !err.isOperational) {
+    publicMessage = 'An unexpected server error occurred. Please try again later.';
+  }
+
+  LoggingService.error(`API Error on ${req.method} ${req.originalUrl} (${statusCode}): ${err.message}`, {
+    stack: err.stack,
+    isOperational: err.isOperational
+  });
+
   res.status(statusCode).json({
     status: 'error',
     statusCode,
-    error: message,
+    error: publicMessage,
   });
 }

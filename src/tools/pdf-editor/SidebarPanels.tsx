@@ -42,7 +42,7 @@ interface SidebarPanelsProps {
   versions: DocumentVersion[];
   onRestoreVersion: (id: string) => void;
   onTriggerOCR: (pageIndex: number) => void;
-  onTriggerAI: (promptType: string, customPrompt?: string) => void;
+  onTriggerAI: (promptType: string, customPrompt?: string, enableThinking?: boolean) => void;
   aiResponse: string;
   isAiLoading: boolean;
   isOcrLoading: boolean;
@@ -90,8 +90,9 @@ export const SidebarPanels: React.FC<SidebarPanelsProps> = ({
   // Comment state
   const [commentText, setCommentText] = useState('');
 
-  // AI custom prompt
+  // AI custom prompt & thinking state
   const [customAiPrompt, setCustomAiPrompt] = useState('');
+  const [enableThinking, setEnableThinking] = useState(true);
 
   // Drawing Canvas for Signatures
   useEffect(() => {
@@ -896,15 +897,43 @@ export const SidebarPanels: React.FC<SidebarPanelsProps> = ({
               </button>
             </div>
 
-            {/* AI Generator Prompts */}
+            {/* AI Generator Prompts & High Thinking Mode */}
             <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-850 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs">
-              <h4 className="font-bold text-slate-700 dark:text-slate-350 flex items-center gap-1.5">
-                <Bot className="w-4 h-4 text-primary" />
-                Smart Assist Prompts
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-slate-700 dark:text-slate-350 flex items-center gap-1.5">
+                  <Bot className="w-4 h-4 text-primary" />
+                  Smart Assist Prompts
+                </h4>
+                <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-200/50 text-[10px] font-bold">
+                  <span>gemini-3.1-pro</span>
+                </div>
+              </div>
+
+              {/* High Thinking Mode Toggle */}
+              <div className="p-2.5 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-950/40 dark:to-purple-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-900 dark:text-indigo-200 text-xs flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    High Thinking Mode
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={enableThinking} 
+                      onChange={(e) => setEnableThinking(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+                <p className="text-[10px] text-indigo-700/80 dark:text-indigo-300/80 leading-tight">
+                  Uses <code className="bg-indigo-100 dark:bg-indigo-900 px-1 py-0.2 rounded">gemini-3.1-pro-preview</code> with <code className="bg-indigo-100 dark:bg-indigo-900 px-1 py-0.2 rounded">ThinkingLevel.HIGH</code> for complex reasoning queries.
+                </p>
+              </div>
 
               <div className="grid grid-cols-2 gap-2">
                 {[
+                  { id: 'deep-think', label: '🧠 Deep Reasoning' },
                   { id: 'rewrite', label: 'Rewrite Text' },
                   { id: 'summarize', label: 'Summarize' },
                   { id: 'translate', label: 'Translate' },
@@ -914,9 +943,13 @@ export const SidebarPanels: React.FC<SidebarPanelsProps> = ({
                 ].map((act) => (
                   <button
                     key={act.id}
-                    onClick={() => onTriggerAI(act.id)}
-                    disabled={isAiLoading || !selectedElement}
-                    className="p-2 bg-white hover:bg-slate-100 border border-slate-200/50 rounded-xl font-bold text-xs text-slate-700 shadow-sm flex items-center justify-center gap-1 disabled:opacity-40"
+                    onClick={() => onTriggerAI(act.id, undefined, enableThinking)}
+                    disabled={isAiLoading || (!selectedElement && act.id !== 'deep-think')}
+                    className={`p-2 rounded-xl font-bold text-xs shadow-sm flex items-center justify-center gap-1 disabled:opacity-40 transition-colors ${
+                      act.id === 'deep-think' 
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700 col-span-2' 
+                        : 'bg-white hover:bg-slate-100 border border-slate-200/50 text-slate-700'
+                    }`}
                   >
                     {act.label}
                   </button>
@@ -930,11 +963,11 @@ export const SidebarPanels: React.FC<SidebarPanelsProps> = ({
                     type="text"
                     value={customAiPrompt}
                     onChange={(e) => setCustomAiPrompt(e.target.value)}
-                    placeholder="e.g. Turn into bullet points..."
+                    placeholder="e.g. Solve complex problem step by step..."
                     className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 p-1.5 rounded-lg text-xs"
                   />
                   <button
-                    onClick={() => onTriggerAI('custom', customAiPrompt)}
+                    onClick={() => onTriggerAI('custom', customAiPrompt, enableThinking)}
                     disabled={isAiLoading || !customAiPrompt}
                     className="p-1.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-40"
                   >

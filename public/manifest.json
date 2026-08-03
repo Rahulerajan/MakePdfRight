@@ -1,0 +1,22 @@
+{
+  "short_name": "MakePDFRight",
+  "name": "Make PDF Right - Fast & Secure PDF Toolkit",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#E5322D",
+  "display": "standalone",
+  "orientation": "any",
+  "description": "Fast, private, browser-first online PDF and AI processing tools."
+}

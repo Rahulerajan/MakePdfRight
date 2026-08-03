@@ -47,7 +47,7 @@ export const CanvasElement: React.FC<CanvasElementProps> = ({
   mode,
   searchQuery = ''
 }) => {
-  const [isEditingText, setIsEditingText] = useState(false);
+  const [isEditingText, setIsEditingText] = useState<boolean>(element.type === 'text' ? ((element as any).isEditing || false) : false);
   const [activeCellId, setActiveCellId] = useState<string | null>(null);
   const elementRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);

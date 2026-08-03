@@ -3,12 +3,12 @@
  * Bridges the client browser to the secure Express server API endpoints.
  */
 
-export const chatWithPDF = async (pdfBase64: string, message: string): Promise<string> => {
-  console.log("[Client Service] Sending chatWithPDF request to server...");
+export const chatWithPDF = async (pdfBase64: string, message: string, enableThinking: boolean = false): Promise<string> => {
+  console.log("[Client Service] Sending chatWithPDF request to server...", { enableThinking });
   const response = await fetch("/api/chat-pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pdfBase64, message }),
+    body: JSON.stringify({ pdfBase64, message, enableThinking }),
   });
 
   if (!response.ok) {
@@ -20,12 +20,12 @@ export const chatWithPDF = async (pdfBase64: string, message: string): Promise<s
   return data.text || "";
 };
 
-export const analyzeImage = async (imageBase64: string, mimeType: string, prompt: string): Promise<string> => {
-  console.log("[Client Service] Sending analyzeImage request to server...");
+export const analyzeImage = async (imageBase64: string, mimeType: string, prompt: string, enableThinking: boolean = false): Promise<string> => {
+  console.log("[Client Service] Sending analyzeImage request to server...", { enableThinking });
   const response = await fetch("/api/analyze-image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageBase64, mimeType, prompt }),
+    body: JSON.stringify({ imageBase64, mimeType, prompt, enableThinking }),
   });
 
   if (!response.ok) {
@@ -38,89 +38,29 @@ export const analyzeImage = async (imageBase64: string, mimeType: string, prompt
 };
 
 export const generateImage = async (prompt: string, aspectRatio: string = "1:1"): Promise<string> => {
-  console.log("[Client Service] Generating image via Pollinations AI:", { prompt, aspectRatio });
+  console.log("[Client Service] Sending generateImage request to server...", { prompt, aspectRatio });
   
   if (!prompt || !prompt.trim()) {
     throw new Error("Prompt is required for image generation.");
   }
 
-  // Determine width & height based on aspect ratio
-  let width = 1024;
-  let height = 1024;
-  
-  switch (aspectRatio) {
-    case "1:1":
-      width = 1024;
-      height = 1024;
-      break;
-    case "4:3":
-      width = 1024;
-      height = 768;
-      break;
-    case "16:9":
-      width = 1024;
-      height = 576;
-      break;
-    case "3:4":
-      width = 768;
-      height = 1024;
-      break;
-    case "9:16":
-      width = 576;
-      height = 1024;
-      break;
-    default:
-      width = 1024;
-      height = 1024;
+  const response = await fetch("/api/generate-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, aspectRatio }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to generate image. Server returned status ${response.status}`);
   }
 
-  // Pollinations AI supports parameters like width, height, nologo, and seed
-  const seed = Math.floor(Math.random() * 1000000);
-  const encodedPrompt = encodeURIComponent(prompt.trim());
-  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux`;
-
-  console.log("[Client Service] Fetching image from Pollinations AI:", url);
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for external API
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error("The image generation service is currently experiencing high demand (Rate Limit Exceeded). Please wait a moment and try again.");
-      }
-      throw new Error(`Image generation service returned status ${response.status}: ${response.statusText}`);
-    }
-
-    const blob = await response.blob();
-    if (!blob || blob.size === 0) {
-      throw new Error("Image generation service returned empty content. Please try a different prompt.");
-    }
-    
-    // Convert Blob to Base64 to seamlessly work with the existing UI/download functions
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          resolve(reader.result);
-        } else {
-          reject(new Error("Failed to convert image blob to data URL."));
-        }
-      };
-      reader.onerror = () => reject(new Error("File reader error while reading image blob."));
-      reader.readAsDataURL(blob);
-    });
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error("Image generation timed out after 45 seconds. The external image service may be temporarily slow or unreachable. Please try again later.");
-    }
-    console.error("[Client Service] Pollinations AI image fetch failed:", error);
-    throw new Error(error.message || "Failed to fetch image from external generation service. Please check your network or try a different prompt.");
+  const data = await response.json();
+  if (!data.imageBase64) {
+    throw new Error("No image was generated. Please try a different prompt.");
   }
+
+  return data.imageBase64;
 };
 
 export interface TranscriptionResult {

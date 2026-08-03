@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../components/ThemeContext';
-import * as pdfjs from 'pdfjs-dist';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { pdfjs } from '../utils/pdfWorker';
+import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, 
@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { CanvasElement } from './pdf-editor/CanvasElements';
 import { SidebarPanels } from './pdf-editor/SidebarPanels';
+import { HistoryService } from '../services/historyService';
 import { 
   EditorElement, 
   DrawingStroke, 
@@ -49,17 +50,98 @@ import {
   TableCell
 } from '../types/editor';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
 // Helper to convert hex colors to rgb for pdf-lib
 const hexToRgbColor = (hex: string) => {
-  const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+  let cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex.split('').map(c => c + c).join('');
+  }
   const bigint = parseInt(cleanHex, 16);
-  if (isNaN(bigint)) return rgb(0, 0, 0);
+  if (isNaN(bigint)) return rgb(1, 1, 1);
   const r = ((bigint >> 16) & 255) / 255;
   const g = ((bigint >> 8) & 255) / 255;
   const b = (bigint & 255) / 255;
   return rgb(r, g, b);
+};
+
+interface TextRun {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize: number;
+  fontFamily: string;
+}
+
+const extractRunsForPage = async (pdfObj: any, pageIndex: number): Promise<TextRun[]> => {
+  const page = await pdfObj.getPage(pageIndex + 1);
+  const textContent = await page.getTextContent();
+  const unscaledViewport = page.getViewport({ scale: 1.0 });
+  const editorScale = 612 / (unscaledViewport.width || 612);
+  const vp = page.getViewport({ scale: editorScale });
+
+  const runs: TextRun[] = [];
+  for (const item of textContent.items as any[]) {
+    if (item.str && item.str.trim().length > 0) {
+      const [vx, vy] = vp.convertToViewportPoint(item.transform[4], item.transform[5]);
+      const rawFontSize = Math.hypot(item.transform[2], item.transform[3]) || Math.abs(item.transform[3]) || Math.abs(item.transform[0]) || 12;
+      const fontSize = Math.max(8, Math.round(rawFontSize * editorScale));
+      const width = Math.max(12, item.width * editorScale);
+      const height = Math.max(fontSize, Math.round(fontSize * 1.15));
+      const x = vx;
+      const y = vy - fontSize;
+      const fontStyle = textContent.styles?.[item.fontName];
+      const fontFamily = fontStyle?.fontFamily || 'sans-serif';
+
+      runs.push({
+        text: item.str,
+        x,
+        y,
+        width,
+        height,
+        fontSize,
+        fontFamily
+      });
+    }
+  }
+  return runs;
+};
+
+const sampleBackgroundColor = (pageUrl: string, runX: number, runY: number, runWidth: number, runHeight: number): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve('#ffffff');
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+
+        const scaleX = img.width / 612;
+        const scaleY = img.height / 792;
+
+        const sampleX = Math.min(img.width - 1, Math.max(0, Math.round((runX + runWidth / 2) * scaleX)));
+        const sampleY = Math.min(img.height - 1, Math.max(0, Math.round((runY - 4) * scaleY)));
+
+        const pixel = ctx.getImageData(sampleX, sampleY, 1, 1).data;
+        const r = pixel[0].toString(16).padStart(2, '0');
+        const g = pixel[1].toString(16).padStart(2, '0');
+        const b = pixel[2].toString(16).padStart(2, '0');
+        resolve(`#${r}${g}${b}`);
+      } catch (err) {
+        resolve('#ffffff');
+      }
+    };
+    img.onerror = () => resolve('#ffffff');
+    img.src = pageUrl;
+  });
 };
 
 interface EditToolProps {
@@ -85,6 +167,47 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'select' | 'text' | 'draw' | 'comment' | 'shape' | 'table' | 'signature' | 'form'>('select');
+
+  // --- Page Text Runs for Click-To-Edit & Preloading ---
+  const [pageTextRuns, setPageTextRuns] = useState<Record<number, TextRun[]>>({});
+  const [hoveredRunPage, setHoveredRunPage] = useState<number | null>(null);
+  const pdfDocRef = useRef<any>(null);
+  const extractedPagesRef = useRef<Set<number>>(new Set());
+
+  // Helper to preload text runs for adjacent pages around targetPage
+  const preloadAdjacentPageTextRuns = useCallback(async (targetPage: number) => {
+    const pdfObj = pdfDocRef.current;
+    if (!pdfObj) return;
+
+    const totalPages = pdfObj.numPages;
+    const pagesToPreload = [
+      targetPage,
+      targetPage - 1,
+      targetPage + 1,
+      targetPage - 2,
+      targetPage + 2,
+      targetPage - 3,
+      targetPage + 3
+    ].filter(idx => idx >= 0 && idx < totalPages);
+
+    for (const pageIdx of pagesToPreload) {
+      if (extractedPagesRef.current.has(pageIdx)) continue;
+      extractedPagesRef.current.add(pageIdx);
+      try {
+        const runs = await extractRunsForPage(pdfObj, pageIdx);
+        setPageTextRuns(prev => (prev[pageIdx] ? prev : { ...prev, [pageIdx]: runs }));
+      } catch (err) {
+        console.error(`Failed to preload text runs for page ${pageIdx}:`, err);
+      }
+    }
+  }, []);
+
+  // Preload adjacent page text runs whenever currentPage changes
+  useEffect(() => {
+    if (pdfDocRef.current) {
+      preloadAdjacentPageTextRuns(currentPage);
+    }
+  }, [currentPage, preloadAdjacentPageTextRuns]);
 
   // --- Drawing / Pencil Tool States ---
   const [strokes, setStrokes] = useState<DrawingStroke[]>([]);
@@ -228,6 +351,12 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
           }
         ]);
 
+        pdfDocRef.current = pdf;
+        extractedPagesRef.current.clear();
+
+        // Immediately preload text runs for current and adjacent pages
+        preloadAdjacentPageTextRuns(0);
+
         // Unblock UI immediately after skeleton layout is established
         setIsProcessing(false);
 
@@ -237,10 +366,22 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
           const pageIndex = i - 1;
           const cacheKey = `${cacheBaseKey}-${pageIndex}`;
 
+          // Extract text runs if not already preloaded/extracted
+          if (!extractedPagesRef.current.has(pageIndex)) {
+            extractedPagesRef.current.add(pageIndex);
+            try {
+              const runs = await extractRunsForPage(pdf, pageIndex);
+              if (isMounted) {
+                setPageTextRuns(prev => (prev[pageIndex] ? prev : { ...prev, [pageIndex]: runs }));
+              }
+            } catch (te) {
+              console.error('Failed to extract text runs for page', pageIndex, te);
+            }
+          }
+
           if (editorPageCache.has(cacheKey)) {
             continue; // Already processed
           }
-
           const page = await pdf.getPage(i);
           const viewport = page.getViewport({ scale: 1.5 });
           const canvas = document.createElement('canvas');
@@ -511,19 +652,123 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
     setActiveStroke(newStroke);
   };
 
-  const handlePagePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (mode !== 'draw' || !activeStroke) return;
+  const handlePagePointerMove = (pageIndex: number, e: React.PointerEvent<HTMLDivElement>) => {
+    if (mode === 'draw' && activeStroke) {
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
 
-    e.preventDefault();
+      const updatedPoints = [...activeStroke.points, { x, y, pressure: e.pressure || 0.5 }];
+      setActiveStroke({
+        ...activeStroke,
+        points: updatedPoints
+      });
+      return;
+    }
+
+    if (mode === 'select') {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) / zoom;
+      const mouseY = (e.clientY - rect.top) / zoom;
+
+      const runs = pageTextRuns[pageIndex] || [];
+      const hit = runs.some(run =>
+        mouseX >= run.x - 2 &&
+        mouseX <= run.x + run.width + 2 &&
+        mouseY >= run.y - 2 &&
+        mouseY <= run.y + run.height + 2
+      );
+
+      if (hit && hoveredRunPage !== pageIndex) {
+        setHoveredRunPage(pageIndex);
+      } else if (!hit && hoveredRunPage === pageIndex) {
+        setHoveredRunPage(null);
+      }
+    }
+  };
+
+  const handlePageClick = async (pageIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
+    setCurrentPage(pageIndex);
+    if (mode !== 'select') return;
+
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
+    const clickX = (e.clientX - rect.left) / zoom;
+    const clickY = (e.clientY - rect.top) / zoom;
 
-    const updatedPoints = [...activeStroke.points, { x, y, pressure: e.pressure || 0.5 }];
-    setActiveStroke({
-      ...activeStroke,
-      points: updatedPoints
-    });
+    // Existing element interaction takes priority
+    const existingElementsOnPage = elements.filter(el => el.pageIndex === pageIndex);
+    const hitExisting = existingElementsOnPage.some(el =>
+      clickX >= el.x &&
+      clickX <= el.x + el.width &&
+      clickY >= el.y &&
+      clickY <= el.y + el.height
+    );
+
+    if (hitExisting) return;
+
+    // Check hit against cached text runs
+    const runs = pageTextRuns[pageIndex] || [];
+    const hitRunIndex = runs.findIndex(run =>
+      clickX >= run.x - 2 &&
+      clickX <= run.x + run.width + 2 &&
+      clickY >= run.y - 2 &&
+      clickY <= run.y + run.height + 2
+    );
+
+    if (hitRunIndex === -1) return;
+
+    const run = runs[hitRunIndex];
+
+    // Sample background color from rendered page
+    const pageUrl = pages[pageIndex];
+    let backgroundColor = '#ffffff';
+    if (pageUrl) {
+      backgroundColor = await sampleBackgroundColor(pageUrl, run.x, run.y, run.width, run.height);
+    }
+
+    const pad = 2;
+    const newElement: EditorElement = {
+      id: Math.random().toString(36).substring(2, 11),
+      type: 'text',
+      text: run.text,
+      x: Math.max(0, run.x - pad),
+      y: Math.max(0, run.y - pad),
+      width: run.width + pad * 2,
+      height: run.height + pad * 2,
+      rotation: 0,
+      opacity: 1,
+      zIndex: elements.length + 1,
+      pageIndex: pageIndex,
+      fontSize: run.fontSize,
+      fontFamily: run.fontFamily,
+      color: '#000000',
+      backgroundColor: backgroundColor,
+      highlightColor: 'transparent',
+      bold: false,
+      italic: false,
+      underline: false,
+      strikethrough: false,
+      superscript: false,
+      subscript: false,
+      smallCaps: false,
+      charSpacing: 0,
+      lineHeight: 1.2,
+      padding: 2,
+      align: 'left',
+      wordWrap: true,
+      isEditing: true
+    } as any;
+
+    const nextElements = [...elements, newElement];
+    setElements(nextElements);
+    pushHistory(nextElements, strokes);
+    setSelectedId(newElement.id);
+
+    // Remove converting text run from pageTextRuns
+    const nextRuns = runs.filter((_, idx) => idx !== hitRunIndex);
+    setPageTextRuns(prev => ({ ...prev, [pageIndex]: nextRuns }));
+    setHoveredRunPage(null);
   };
 
   const handlePagePointerUp = () => {
@@ -692,7 +937,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
   };
 
   // --- AI Co-Pilot Server Call ---
-  const handleTriggerAI = async (promptType: string, customPrompt?: string) => {
+  const handleTriggerAI = async (promptType: string, customPrompt?: string, enableThinking?: boolean) => {
     setIsAiLoading(true);
     setAiResponse('');
     try {
@@ -702,7 +947,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
       const res = await fetch('/api/pdf-editor-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promptType, selectedText, customPrompt })
+        body: JSON.stringify({ promptType, selectedText, customPrompt, enableThinking })
       });
       const data = await res.json();
       if (data.text) {
@@ -776,6 +1021,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
       const originalPages = pdfDoc.getPages();
       const fontHelvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const fontTimes = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+      const fontCourier = await pdfDoc.embedFont(StandardFonts.Courier);
 
       // We process each page config
       for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
@@ -795,8 +1041,11 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
         const scaleY = pRealH / pVisH;
 
         // Apply rotation configuration to the real PDF page
-        if (pageConfigs[pageIdx]?.rotation) {
-          docPage.setRotation(pageConfigs[pageIdx].rotation);
+        if (pageConfigs[pageIdx]?.rotation !== undefined) {
+          const rawRot = ((pageConfigs[pageIdx].rotation % 360) + 360) % 360;
+          if (rawRot === 0 || rawRot === 90 || rawRot === 180 || rawRot === 270) {
+            docPage.setRotation(degrees(rawRot));
+          }
         }
 
         // 1. Draw page headers & footers
@@ -831,7 +1080,13 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
           const elH = el.height * scaleY;
 
           if (el.type === 'text') {
-            const font = el.fontFamily.includes('Playfair') ? fontTimes : fontHelvetica;
+            const familyLower = (el.fontFamily || '').toLowerCase();
+            let font = fontHelvetica;
+            if (familyLower.includes('times') || familyLower.includes('serif') || familyLower.includes('playfair')) {
+              font = fontTimes;
+            } else if (familyLower.includes('courier') || familyLower.includes('mono')) {
+              font = fontCourier;
+            }
             const textColor = hexToRgbColor(el.color || '#000000');
             
             // Draw background highlight color if configured
@@ -990,6 +1245,16 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       
+      HistoryService.addHistoryItem({
+        toolId: 'edit',
+        toolName: 'Edit PDF',
+        fileName: `edited_${file.name}`,
+        outputSize: blob.size,
+        resultUrl: url,
+        status: 'completed',
+        details: `Saved PDF edits (${elements.length} custom elements added/modified)`
+      });
+
       setIsSaving(false);
       setResultUrl(url);
     } catch (err: any) {
@@ -1483,9 +1748,9 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
                 <div
                   key={index}
                   ref={el => { pageRefs.current[index] = el; }}
-                  onClick={() => setCurrentPage(index)}
+                  onClick={(e) => handlePageClick(index, e)}
                   onPointerDown={(e) => handlePagePointerDown(index, e)}
-                  onPointerMove={handlePagePointerMove}
+                  onPointerMove={(e) => handlePagePointerMove(index, e)}
                   onPointerUp={handlePagePointerUp}
                   className={`relative bg-white shadow-[0_24px_64px_-16px_rgba(0,0,0,0.1)] transition-all ${
                     isCurrent 
@@ -1495,7 +1760,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
                   style={{
                     width: '612px',  // Match standard Letter dimensions
                     height: '792px',
-                    cursor: mode === 'draw' ? 'crosshair' : mode === 'text' ? 'text' : 'default',
+                    cursor: mode === 'draw' ? 'crosshair' : (mode === 'text' || (mode === 'select' && hoveredRunPage === index)) ? 'text' : 'default',
                     touchAction: 'none'
                   }}
                 >

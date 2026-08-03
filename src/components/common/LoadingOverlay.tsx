@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Check, AlertTriangle, X } from 'lucide-react';
 
 interface LoadingOverlayProps {
@@ -9,6 +9,8 @@ interface LoadingOverlayProps {
   error?: string | null; // Optional error message
   onCloseError?: () => void; // Callback to close error state
   onCancel?: () => void; // Callback to cancel processing
+  cancelable?: boolean; // Explicit cancellation control
+  cancelLabel?: string; // Optional custom label for cancel button
 }
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
@@ -18,6 +20,8 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   error = null,
   onCloseError,
   onCancel,
+  cancelable,
+  cancelLabel = 'Cancel',
 }) => {
   const [simulatedProgress, setSimulatedProgress] = useState(0);
   const [statusText, setStatusText] = useState('Preparing files...');
@@ -91,7 +95,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     }
   }, [currentProgress, showSuccess]);
 
-  const checkmarkPathVariants = {
+  const checkmarkPathVariants: Variants = {
     hidden: { pathLength: 0 },
     visible: {
       pathLength: 1,
@@ -237,13 +241,13 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                 </div>
               </div>
 
-              {onCancel && !showSuccess && (
+              {(cancelable !== false && onCancel && !showSuccess) && (
                 <div className="pt-2">
                   <button
                     onClick={onCancel}
                     className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer"
                   >
-                    Cancel Compression
+                    {cancelLabel}
                   </button>
                 </div>
               )}

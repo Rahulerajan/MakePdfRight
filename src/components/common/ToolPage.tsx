@@ -7,6 +7,10 @@ import { LoadingOverlay } from './LoadingOverlay';
 import { useLanguage } from '../LanguageContext';
 import { SEO } from './SEO';
 import { SEO_DATA } from '../../constants/seoData';
+import { AdUnit } from '../ads/AdUnit';
+import { ToolSEOContent } from '../seo/ToolSEOContent';
+import { TOOL_SEO_CONTENT_MAP } from '../../constants/toolSeoData';
+import { analytics } from '../../services/analytics';
 
 interface ToolPageProps {
   title: string;
@@ -27,6 +31,11 @@ export const ToolPage: React.FC<ToolPageProps> = ({
   const [files, setFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useLanguage();
+  const location = useLocation();
+
+  useEffect(() => {
+    analytics.trackToolOpened(title);
+  }, [title]);
 
   useEffect(() => {
     if (stage === 2) {
@@ -40,8 +49,10 @@ export const ToolPage: React.FC<ToolPageProps> = ({
   }, [stage]);
 
   const handleFilesSelected = (selectedFiles: File[]) => {
+    analytics.trackUploadStarted(title, selectedFiles.length);
     setFiles(selectedFiles);
     setStage(2);
+    analytics.trackUploadCompleted(title);
   };
 
   const reset = () => {
@@ -66,14 +77,19 @@ export const ToolPage: React.FC<ToolPageProps> = ({
   const displayTitle = baseKey ? t(`tool.${baseKey}.title`) : title;
   const displayDesc = baseKey ? t(`tool.${baseKey}.desc`) : description;
 
-  const location = useLocation();
   const routeSeo = SEO_DATA[location.pathname];
   const seoTitle = routeSeo?.title || `${title} – Online Free | MakePDFRight`;
   const seoDesc = routeSeo?.description || description;
+  const toolSeoContent = TOOL_SEO_CONTENT_MAP[location.pathname] || TOOL_SEO_CONTENT_MAP[`/${baseKey}`];
 
   return (
     <div className={`flex flex-col bg-slate-50 dark:bg-slate-900/50 transition-colors ${stage === 1 ? 'min-h-[calc(100dvh-72px)]' : 'h-[calc(100dvh-72px)] overflow-hidden'}`}>
-      <SEO title={seoTitle} description={seoDesc} />
+      <SEO 
+        title={seoTitle} 
+        description={seoDesc} 
+        toolName={title}
+        faqs={toolSeoContent?.faqs}
+      />
       <LoadingOverlay isVisible={isLoading} />
 
       {stage === 1 ? (
@@ -95,7 +111,7 @@ export const ToolPage: React.FC<ToolPageProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.25 }}
-              className="space-y-6 md:space-y-8 max-w-3xl mx-auto"
+              className="space-y-6 md:space-y-8 max-w-4xl mx-auto"
             >
               <div className="text-center space-y-3">
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">{displayTitle}</h1>
@@ -107,6 +123,14 @@ export const ToolPage: React.FC<ToolPageProps> = ({
                 multiple={multiple}
                 accept={accept}
               />
+
+              {/* In-Content Ad Placement Below Upload */}
+              <AdUnit format="in-content" className="max-w-3xl mx-auto" />
+
+              {/* Comprehensive Tool SEO Content */}
+              {toolSeoContent && (
+                <ToolSEOContent data={toolSeoContent} />
+              )}
             </motion.div>
           </div>
         </div>

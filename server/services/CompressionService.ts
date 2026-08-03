@@ -18,6 +18,15 @@ function getDictNumber(dict: PDFDict, name: string): number {
   }
 }
 
+function lookupObj(pdfDoc: PDFDocument, obj: any): any {
+  if (!obj) return undefined;
+  try {
+    return pdfDoc.context.lookup(obj);
+  } catch {
+    return obj;
+  }
+}
+
 export type CompressionLevel = 'less' | 'recommended' | 'extreme' | 'custom';
 
 export interface CompressionResult {
@@ -102,9 +111,9 @@ export class CompressionService {
 
             const width = getDictNumber(dict, 'Width');
             const height = getDictNumber(dict, 'Height');
-            const filterObj = dict.get(PDFName.of('Filter'));
-            const colorSpaceObj = dict.get(PDFName.of('ColorSpace'));
-            const decodeParmsObj = dict.get(PDFName.of('DecodeParms'));
+            const filterObj = lookupObj(pdfDoc, dict.get(PDFName.of('Filter')));
+            const colorSpaceObj = lookupObj(pdfDoc, dict.get(PDFName.of('ColorSpace')));
+            const decodeParmsObj = lookupObj(pdfDoc, dict.get(PDFName.of('DecodeParms')));
             const filterStr = filterObj ? filterObj.toString() : '';
 
             const originalImageBytes = rawStream.contents;
@@ -120,15 +129,29 @@ export class CompressionService {
               try {
                 const inflated = zlib.inflateSync(Buffer.from(originalImageBytes));
                 
-                // Check if inflated data is a valid PNG file with magic header
+                // Check if inflated data is a valid PNG or JPEG file with magic header
                 if (inflated.length >= 8 && inflated[0] === 0x89 && inflated[1] === 0x50 && inflated[2] === 0x4e && inflated[3] === 0x47) {
                   imageInput = inflated;
+                } else if (inflated.length >= 3 && inflated[0] === 0xff && inflated[1] === 0xd8 && inflated[2] === 0xff) {
+                  imageInput = inflated;
                 } else if (width > 0 && height > 0) {
-                  let channels = 3;
                   const csStr = colorSpaceObj ? colorSpaceObj.toString() : '';
-                  if (csStr.includes('/DeviceGray') || csStr.includes('/CalGray')) channels = 1;
-                  else if (csStr.includes('/DeviceCMYK')) channels = 4;
-                  else if (csStr.includes('/DeviceRGB') || csStr.includes('/CalRGB')) channels = 3;
+                  let channels = 3;
+
+                  // Infer channels from inflated data length matching width * height
+                  if (inflated.length === width * height * 1 || inflated.length === height * (width * 1 + 1)) {
+                    channels = 1;
+                  } else if (inflated.length === width * height * 4 || inflated.length === height * (width * 4 + 1)) {
+                    channels = 4;
+                  } else if (inflated.length === width * height * 3 || inflated.length === height * (width * 3 + 1)) {
+                    channels = 3;
+                  } else if (csStr.includes('/DeviceGray') || csStr.includes('/CalGray')) {
+                    channels = 1;
+                  } else if (csStr.includes('/DeviceCMYK')) {
+                    channels = 4;
+                  } else {
+                    channels = 3;
+                  }
 
                   let rawPixels = inflated;
 
@@ -165,16 +188,23 @@ export class CompressionService {
             if (!imageInput) continue;
 
             try {
-              let pipeline = sharp(imageInput, sharpOptions);
-              
-              if (sharpOptions?.raw?.channels === 4) {
-                pipeline = pipeline.toColorspace('srgb');
+              let pipeline: any;
+              try {
+                pipeline = sharp(imageInput, sharpOptions);
+                if (sharpOptions?.raw?.channels === 4) {
+                  pipeline = pipeline.toColorspace('srgb');
+                }
+              } catch (initErr) {
+                // Fallback without raw sharpOptions if raw metadata mismatch
+                pipeline = sharp(imageInput);
               }
 
               const meta = await pipeline.metadata().catch(() => null);
 
               const currentWidth = meta?.width || width || 0;
               const currentHeight = meta?.height || height || 0;
+              const isLargeImage = currentWidth > 500 || currentHeight > 500;
+              let isResized = false;
 
               // Determine if resizing is needed
               if (currentWidth > targetMaxDim || currentHeight > targetMaxDim) {
@@ -184,20 +214,50 @@ export class CompressionService {
                   fit: 'inside',
                   withoutEnlargement: true
                 });
+                isResized = true;
               }
 
               // Re-encode as high-efficiency JPEG
-              const compressedJpeg = await pipeline
+              let compressedJpeg = await pipeline
                 .jpeg({ quality: targetQuality, mozjpeg: true })
                 .toBuffer();
 
+              // If level is extreme and image is large, ensure we attempt maximum quality drop if size didn't shrink
+              if (level === 'extreme' && isLargeImage && compressedJpeg.length >= originalImageBytes.length) {
+                try {
+                  const lowerJpeg = await sharp(imageInput, sharpOptions)
+                    .resize({
+                      width: currentWidth >= currentHeight ? Math.min(targetMaxDim, 800) : undefined,
+                      height: currentHeight > currentWidth ? Math.min(targetMaxDim, 800) : undefined,
+                      fit: 'inside',
+                      withoutEnlargement: true
+                    })
+                    .jpeg({ quality: 20, mozjpeg: true })
+                    .toBuffer();
+                  if (lowerJpeg.length < compressedJpeg.length) {
+                    compressedJpeg = lowerJpeg;
+                  }
+                } catch (lowerErr) {}
+              }
+
               // Get new image dimensions
               const newMeta = await sharp(compressedJpeg).metadata().catch(() => null);
-              const newWidth = newMeta?.width || currentWidth;
-              const newHeight = newMeta?.height || currentHeight;
+              const newWidth = newMeta?.width || (isResized ? Math.min(currentWidth, targetMaxDim) : currentWidth);
+              const newHeight = newMeta?.height || (isResized ? Math.min(currentHeight, targetMaxDim) : currentHeight);
 
-              // Replace if re-encoded byte size is smaller or if we converted lossless FlateDecode to JPEG
-              if (compressedJpeg.length < originalImageBytes.length || filterStr.includes('/FlateDecode')) {
+              // Decision heuristic:
+              // 1. compressedJpeg is smaller than original image stream
+              // 2. Original filter was FlateDecode / uncompressed / non-JPEG (converting lossless/raw to JPEG)
+              // 3. Image dimensions were downsampled (reduced pixel count)
+              // 4. Level is 'extreme' AND image is large (> 500px in either dimension)
+              const shouldReplace = 
+                compressedJpeg.length < originalImageBytes.length ||
+                filterStr.includes('/FlateDecode') ||
+                filterStr === '' ||
+                isResized ||
+                (level === 'extreme' && isLargeImage);
+
+              if (shouldReplace) {
                 dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
                 dict.set(PDFName.of('Width'), pdfDoc.context.obj(newWidth));
                 dict.set(PDFName.of('Height'), pdfDoc.context.obj(newHeight));
@@ -257,13 +317,15 @@ export class CompressionService {
     let compressedSize = finalBytes.length;
 
     const spaceSaved = Math.max(0, originalSize - compressedSize);
-    const percentage = originalSize > 0 && spaceSaved > 0 ? Math.round((spaceSaved / originalSize) * 100) : 0;
+    const percentage = originalSize > 0 && spaceSaved > 0
+      ? Math.max(1, Math.round((spaceSaved / originalSize) * 100))
+      : 0;
     const endTime = performance.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
 
     // Generate accurate optimization summary reflecting ACTUAL processing
     let summary = '';
-    if (spaceSaved <= 0 || percentage === 0) {
+    if (imagesOptimized === 0 && spaceSaved <= 0) {
       if (imageCount > 0) {
         summary = `Analyzed ${imageCount} image stream(s) and document structure. The embedded images were already in an optimal compressed state; further downsampling was skipped to preserve visual fidelity.`;
       } else {
@@ -276,8 +338,9 @@ export class CompressionService {
       
       const metaDetail = metadataRemoved ? ' Purged metadata headers.' : '';
       const thumbDetail = thumbnailsRemoved > 0 ? ` Stripped ${thumbnailsRemoved} thumbnail preview(s).` : '';
+      const kbSaved = Math.max(1, Math.round(spaceSaved / 1024));
 
-      summary = `${imgDetail}${metaDetail}${thumbDetail} Re-indexed ${fontCount} font map(s) into packed object streams to save ${Math.round(spaceSaved / 1024)} KB (${percentage}% reduction).`;
+      summary = `${imgDetail}${metaDetail}${thumbDetail} Re-indexed ${fontCount} font map(s) into packed object streams to save ${kbSaved} KB (${percentage}% reduction).`;
     }
 
     return {

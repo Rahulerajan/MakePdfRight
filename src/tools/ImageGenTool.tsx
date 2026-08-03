@@ -12,7 +12,8 @@ import {
   ImageIcon,
   RefreshCw,
   Maximize2,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react';
 import { generateImage } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
@@ -273,19 +274,20 @@ export const ImageGenTool: React.FC = () => {
         )}
       </div>
 
-      {/* DESKTOP LAYOUT (hidden md:flex) */}
-      <div className="hidden md:flex flex-col lg:flex-row gap-12">
-        {/* Left/Main Column: Form & Result */}
-        <div className="flex-1 space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">AI Image Generator</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Create high-quality custom visual assets for your PDFs instantly.</p>
-            </div>
+      {/* DESKTOP LAYOUT (hidden md:block) */}
+      <div className="hidden md:block space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">AI Image Generator</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Create high-quality custom visual assets for your PDFs instantly.</p>
           </div>
+        </div>
 
-          {/* Form Card */}
-          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-8">
+        <div className="flex flex-col lg:flex-row gap-12 items-start">
+          {/* Left/Main Column: Form & Result */}
+          <div className="flex-1 space-y-8 w-full">
+            {/* Form Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-8">
             
             {/* Prompt Textarea */}
             <div className="space-y-3">
@@ -327,7 +329,7 @@ export const ImageGenTool: React.FC = () => {
                 ))}
               </div>
               <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">
-                Pollinations AI dynamically maps your chosen aspect ratio to tailored high-definition dimensions (e.g. 1024x576 for widescreen).
+                Dynamically maps your chosen aspect ratio to tailored high-definition dimensions (e.g. 1024x576 for widescreen).
               </p>
             </div>
 
@@ -427,16 +429,21 @@ export const ImageGenTool: React.FC = () => {
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Automated safety filters for safe assets.</p>
                 </div>
               </div>
-            </div>
 
-            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-              <p className="text-xs text-primary font-bold leading-relaxed">
-                Generate tailored visual material to insert directly into PDF documents, presentations, and digital covers.
-              </p>
+              <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-[#E5322D]/5 dark:bg-[#E5322D]/10 border border-[#E5322D]/20 dark:border-[#E5322D]/30">
+                <div className="w-9 h-9 rounded-xl bg-[#E5322D]/10 flex items-center justify-center text-[#E5322D]">
+                  <FileText className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[#E5322D]">PDF-Ready Output</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Insert directly into documents, decks, and covers.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

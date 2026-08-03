@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import * as pdfjs from 'pdfjs-dist';
+import React, { useState, useEffect, useRef } from 'react';
+import { pdfjs } from '../utils/pdfWorker';
 import { PDFDocument } from 'pdf-lib';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { 
@@ -14,8 +14,7 @@ import {
   GripVertical
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import { HistoryService } from '../services/historyService';
 
 interface OrganiseToolProps {
   file: File;
@@ -35,7 +34,22 @@ export const OrganiseTool: React.FC<OrganiseToolProps> = ({ file, onReset }) => 
   const [isSaving, setIsSaving] = useState(false);
   const [pages, setPages] = useState<PageItem[]>([]);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultPageCount, setResultPageCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resultUrlRef = useRef<string | null>(null);
+
+  const cleanupResultUrl = () => {
+    if (resultUrlRef.current) {
+      URL.revokeObjectURL(resultUrlRef.current);
+      resultUrlRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      cleanupResultUrl();
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -121,10 +135,30 @@ export const OrganiseTool: React.FC<OrganiseToolProps> = ({ file, onReset }) => 
       }
 
       const pdfBytes = await newDoc.save();
+
+      // Verify actual output page count
+      const verifyPdf = await PDFDocument.load(pdfBytes);
+      const actualCount = verifyPdf.getPageCount();
+
+      // Revoke previous blob URL if any
+      cleanupResultUrl();
+
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
+      resultUrlRef.current = url;
       
+      HistoryService.addHistoryItem({
+        toolId: 'organise',
+        toolName: 'Organize PDF',
+        fileName: `organized_${file.name}`,
+        outputSize: blob.size,
+        resultUrl: url,
+        status: 'completed',
+        details: `Reordered ${actualCount} page(s)`
+      });
+
       setIsSaving(false);
+      setResultPageCount(actualCount);
       setResultUrl(url);
     } catch (err: any) {
       console.error('Organization failed:', err);
@@ -143,6 +177,13 @@ export const OrganiseTool: React.FC<OrganiseToolProps> = ({ file, onReset }) => 
           <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">PDF organized successfully!</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">Your document has been reordered and is ready for download.</p>
         </div>
+
+        {resultPageCount !== null && (
+          <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-4 py-2 rounded-xl text-sm font-extrabold shadow-xs">
+            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
+            <span>Verified Output: {resultPageCount} {resultPageCount === 1 ? 'page' : 'pages'} in new sequence</span>
+          </div>
+        )}
         
         <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
           <a 

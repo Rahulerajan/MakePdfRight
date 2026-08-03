@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { FileUpload } from '../components/common/FileUpload';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
+import { HistoryService } from '../services/historyService';
 
 interface ImageToPDFToolProps {
   initialFiles: File[];
@@ -109,6 +110,16 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles, on
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       
+      HistoryService.addHistoryItem({
+        toolId: 'image-to-pdf',
+        toolName: 'Image to PDF',
+        fileName: images[0]?.file.name ? `converted_${images[0].file.name.split('.')[0]}.pdf` : 'converted_images.pdf',
+        outputSize: blob.size,
+        resultUrl: url,
+        status: 'completed',
+        details: `Converted ${images.length} image(s) to PDF`
+      });
+
       setIsProcessing(false);
       setResultUrl(url);
     } catch (err: any) {

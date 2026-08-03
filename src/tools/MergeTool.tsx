@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PDFDocument } from 'pdf-lib';
-import * as pdfjs from 'pdfjs-dist';
+import { pdfjs } from '../utils/pdfWorker';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { 
   Download, 
@@ -16,8 +16,7 @@ import {
 import { FileUpload } from '../components/common/FileUpload';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { useLanguage } from '../components/LanguageContext';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import { HistoryService } from '../services/historyService';
 
 interface MergeToolProps {
   initialFiles: File[];
@@ -191,6 +190,16 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       
+      HistoryService.addHistoryItem({
+        toolId: 'merge',
+        toolName: 'Merge PDF',
+        fileName: files[0]?.file.name ? `merged_${files[0].file.name}` : 'merged_document.pdf',
+        outputSize: blob.size,
+        resultUrl: url,
+        status: 'completed',
+        details: `Merged ${files.length} PDF files`
+      });
+
       setIsProcessing(false);
       setResultUrl(url);
       console.log(`[MergeTool] Merged file successfully created.`);

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../components/LanguageContext';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
+import { AdUnit } from '../components/ads/AdUnit';
 import { 
   FileStack, 
   Scissors, 
@@ -186,8 +187,13 @@ export const Home = () => {
         </div>
       </section>
 
+      {/* Top Ad Unit Below Hero */}
+      <div className="container-custom py-2">
+        <AdUnit format="top-banner" />
+      </div>
+
       {/* PDF Tools Section */}
-      <section className="w-full pt-8 pb-12">
+      <section id="tools" className="w-full pt-4 pb-12">
         <div className="container-custom">
           <div className="flex items-center gap-3 mb-5 justify-center md:justify-start">
             <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center">
@@ -235,6 +241,55 @@ export const Home = () => {
                 </Link>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* In-Content Ad Between Grid and FAQs */}
+      <div className="container-custom py-2">
+        <AdUnit format="in-content" />
+      </div>
+
+      {/* Homepage FAQ Section */}
+      <section className="w-full py-12 bg-white dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
+        <div className="container-custom max-w-4xl space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
+              Everything you need to know about MakePDFRight tools and document security.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">Are my PDF files kept private?</h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Yes. All uploaded files are stored temporarily in isolated memory and automatically purged within 15 minutes. We never view, index, or sell document contents.
+              </p>
+            </div>
+
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">Is there any software installation required?</h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                No! All tools run directly in your web browser across desktop computers, tablets, and smartphones.
+              </p>
+            </div>
+
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">Is MakePDFRight free to use?</h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Yes! Every tool on MakePDFRight is 100% free with no registration or credit cards required.
+              </p>
+            </div>
+
+            <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">What file formats are supported?</h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                We support PDF, DOCX, XLSX, JPG, PNG, WEBP, BMP, MP3, WAV, M4A, and AAC audio files.
+              </p>
+            </div>
           </div>
         </div>
       </section>
