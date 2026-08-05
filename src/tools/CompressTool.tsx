@@ -21,6 +21,8 @@ import {
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { useLanguage } from '../components/LanguageContext';
 import { HistoryService } from '../services/historyService';
+import { BackButton } from '../components/common/BackButton';
+import { ResultPanel } from '../components/common/ResultPanel';
 
 interface CompressToolProps {
   file?: File;
@@ -28,7 +30,7 @@ interface CompressToolProps {
   onReset?: () => void;
 }
 
-type CompressionLevel = 'extreme' | 'recommended' | 'less' | 'custom';
+type CompressionLevel = 'extreme' | 'recommended' | 'less';
 
 interface FileItem {
   id: string;
@@ -114,7 +116,6 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
   const { t } = useLanguage();
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
   const [level, setLevel] = useState<CompressionLevel>('recommended');
-  const [customValue, setCustomValue] = useState(50);
   const [isProcessing, setIsProcessing] = useState(false);
   const [manualProgress, setManualProgress] = useState<number | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -136,20 +137,22 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
   const abortControllerRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const optionsContainerRef = useRef<HTMLDivElement | null>(null);
+  const resultRef = useRef<typeof result>(null);
+
+  useEffect(() => {
+    resultRef.current = result;
+  }, [result]);
+
+  useEffect(() => {
+    return () => {
+      if (resultRef.current?.url) {
+        URL.revokeObjectURL(resultRef.current.url);
+      }
+    };
+  }, []);
 
   const handleLevelChange = (newLevel: CompressionLevel) => {
     setLevel(newLevel);
-    if (newLevel === 'custom') {
-      setTimeout(() => {
-        if (optionsContainerRef.current) {
-          const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-          optionsContainerRef.current.scrollTo({
-            top: optionsContainerRef.current.scrollHeight,
-            behavior: prefersReducedMotion ? 'auto' : 'smooth',
-          });
-        }
-      }, 50);
-    }
   };
 
   const renderCompressionOptionsContent = () => (
@@ -174,11 +177,6 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
             id: 'less', 
             title: 'Less Compression', 
             desc: 'High quality, less compression' 
-          },
-          {
-            id: 'custom',
-            title: 'Custom Compression',
-            desc: 'Manually adjust target quality & scale'
           }
         ].map((option) => {
           const active = level === option.id;
@@ -210,27 +208,6 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
           );
         })}
       </div>
-
-      {level === 'custom' && (
-        <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Target Quality</span>
-            <span className="text-xs font-extrabold text-[#E5322D] bg-red-50 dark:bg-red-950/50 px-2 py-0.5 rounded">{customValue}%</span>
-          </div>
-          <input 
-            type="range" 
-            min="1" 
-            max="100" 
-            value={customValue}
-            onChange={(e) => setCustomValue(parseInt(e.target.value))}
-            className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#E5322D]"
-          />
-          <div className="flex justify-between text-[10px] font-bold text-slate-400">
-            <span>High Quality</span>
-            <span>Small Size</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -336,8 +313,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
         signal: controller.signal,
         body: JSON.stringify({
           pdfBase64,
-          level,
-          customValue
+          level
         })
       });
 
@@ -391,9 +367,6 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
       } else if (level === 'less') {
         scale = 2.0;
         quality = 0.90;
-      } else if (level === 'custom') {
-        quality = Math.max(0.10, Math.min(1.00, 1.0 - (customValue / 100) * 0.88));
-        scale = Math.max(0.80, Math.min(2.00, 2.0 - (customValue / 100) * 1.2));
       }
 
       const newPdfDoc = await PDFDocument.create();
@@ -536,231 +509,40 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
 
       <AnimatePresence mode="wait">
         {result ? (
-          <motion.div 
-            key="result-state"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.25 }}
-            className="flex flex-col h-full w-full bg-[#f3f4f6] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
+          <ResultPanel
+            title="PDF compressed!"
+            subtitle={`Your file is now ${result.percentage}% smaller (Saved ${formatFileSize(result.savedSize)}).`}
+            details={[
+              { label: `Original: ${formatFileSize(result.originalSize)}` },
+              { label: `Compressed: ${formatFileSize(result.size)}` },
+              { label: `Saved: ${formatFileSize(result.savedSize)}` },
+              { label: `Pages: ${result.totalPages}` },
+            ]}
+            downloadUrl={result.url}
+            downloadFileName={
+              fileItems.length === 1 ? `compressed_${fileItems[0].name}` : 'compressed_documents.pdf'
+            }
+            downloadLabel="Download Compressed PDF"
+            onReset={() => {
+              if (result?.url) {
+                URL.revokeObjectURL(result.url);
+              }
+              setResult(null);
+              setFileItems([]);
+              setIsSummaryExpanded(false);
+              if (onReset) onReset();
+            }}
+            resetLabel="Compress another file"
           >
-            {/* TOP NAVBAR HEADER */}
-            <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
-                  PDF
-                </div>
-                <span className="font-bold text-lg sm:text-xl text-slate-900 dark:text-white">Compress PDF</span>
+            {result.optimizationSummary && (
+              <div className="w-full max-w-sm text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-left">
+                <span className="font-bold block mb-1 text-slate-700 dark:text-slate-300">
+                  Optimization Summary:
+                </span>
+                {result.optimizationSummary}
               </div>
-              <div className="flex items-center gap-2 sm:gap-4">
-                <button
-                  onClick={() => {
-                    setResult(null);
-                    setIsSummaryExpanded(false);
-                  }}
-                  className="text-xs font-bold text-[#E5322D] hover:bg-red-50 dark:hover:bg-red-950/40 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900 transition-colors flex items-center gap-1.5 cursor-pointer"
-                  title="Go back to options to re-compress with different settings"
-                >
-                  <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Back to options</span><span className="sm:hidden">Options</span>
-                </button>
-                {onReset && (
-                  <button
-                    onClick={() => {
-                      setResult(null);
-                      setFileItems([]);
-                      onReset();
-                    }}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-                    title="Reset and choose a new file"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Start over</span>
-                  </button>
-                )}
-              </div>
-            </header>
-
-            {/* MAIN RESULT CONTAINER */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 md:p-8 flex flex-col items-center justify-center">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg md:shadow-xl border border-slate-200 dark:border-slate-700 p-5 sm:p-8 md:p-10 max-w-lg w-full text-center space-y-4 md:space-y-6 my-auto">
-                <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-                  className="w-16 h-16 md:w-20 md:h-20 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner"
-                >
-                  <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />
-                </motion.div>
-
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white mb-1.5 md:mb-2">
-                    PDF compressed!
-                  </h1>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
-                    Your file is now <span className="font-bold text-emerald-600 dark:text-emerald-400">{result.percentage}% smaller</span> (Saved {formatFileSize(result.savedSize)}).
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-900/60 p-3.5 sm:p-4 rounded-xl border border-slate-200/80 dark:border-slate-700/80 text-left text-xs space-y-3">
-                  {/* MOBILE 2x2 GRID */}
-                  <div className="grid grid-cols-2 gap-2.5 md:hidden">
-                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Original Size</span>
-                      <span className="font-extrabold text-xs sm:text-sm text-slate-800 dark:text-slate-100">{formatFileSize(result.originalSize)}</span>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Compressed Size</span>
-                      <span className="font-extrabold text-xs sm:text-sm text-emerald-500">{formatFileSize(result.size)}</span>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Space Saved</span>
-                      <span className="font-extrabold text-xs sm:text-sm text-emerald-500">{formatFileSize(result.savedSize)}</span>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700/60">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Pages</span>
-                      <span className="font-extrabold text-xs sm:text-sm text-slate-800 dark:text-slate-100">{result.totalPages}</span>
-                    </div>
-                  </div>
-
-                  {/* DESKTOP STACKED ROWS */}
-                  <div className="hidden md:block space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-semibold uppercase">Original Size</span>
-                      <span className="font-bold text-slate-700 dark:text-slate-300">{formatFileSize(result.originalSize)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-semibold uppercase">Compressed Size</span>
-                      <span className="font-bold text-emerald-500">{formatFileSize(result.size)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-semibold uppercase">Space Saved</span>
-                      <span className="font-bold text-slate-700 dark:text-slate-300">{formatFileSize(result.savedSize)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400 font-semibold uppercase">Pages Processed</span>
-                      <span className="font-bold text-slate-700 dark:text-slate-300">{result.totalPages}</span>
-                    </div>
-                  </div>
-
-                  {/* OPTIMIZATION SUMMARY */}
-                  {result.optimizationSummary && (
-                    <>
-                      {/* Mobile Collapsible Toggle */}
-                      <div className="md:hidden pt-1 border-t border-slate-200 dark:border-slate-700/60">
-                        <button
-                          type="button"
-                          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-                          className="w-full flex items-center justify-between py-1 px-1 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-bold text-xs cursor-pointer transition-colors"
-                        >
-                          <span>View optimization details</span>
-                          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isSummaryExpanded ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        <AnimatePresence>
-                          {isSummaryExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="pt-2 text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed border-t border-slate-200/60 dark:border-slate-700/40 mt-1">
-                                {result.optimizationSummary}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* Desktop Always Visible Summary */}
-                      <div className="hidden md:block pt-2 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
-                        <span className="font-bold text-slate-700 dark:text-slate-300 block mb-0.5">Optimization Summary:</span>
-                        {result.optimizationSummary}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* MOBILE ACTIONS */}
-                <div className="md:hidden space-y-2.5 w-full pt-1">
-                  <a
-                    href={result.url}
-                    download={fileItems.length === 1 ? `compressed_${fileItems[0].name}` : `compressed_documents.pdf`}
-                    className="w-full bg-[#E5322D] hover:bg-[#c92824] text-white font-extrabold py-3.5 px-4 rounded-xl shadow-md transition-all text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
-                  >
-                    <Download className="w-5 h-5" /> Download PDF
-                  </a>
-
-                  <button
-                    onClick={() => {
-                      setResult(null);
-                      setIsSummaryExpanded(false);
-                    }}
-                    className="w-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 font-bold py-3 px-4 rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
-                  >
-                    <ArrowLeft className="w-4 h-4" /> Change compression settings
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setResult(null);
-                      setFileItems([]);
-                      setIsSummaryExpanded(false);
-                      if (onReset) onReset();
-                    }}
-                    className="w-full bg-transparent border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 font-bold py-3 px-4 rounded-xl transition-all text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
-                  >
-                    <RotateCcw className="w-4 h-4" /> Compress another file
-                  </button>
-
-                  <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-medium pt-0.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span>Auto-deleted shortly after processing</span>
-                  </div>
-                </div>
-
-                {/* DESKTOP ACTIONS */}
-                <div className="hidden md:flex md:flex-col md:space-y-4 w-full">
-                  <a
-                    href={result.url}
-                    download={fileItems.length === 1 ? `compressed_${fileItems[0].name}` : `compressed_documents.pdf`}
-                    className="w-full bg-[#E5322D] hover:bg-[#c92824] text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all text-lg flex items-center justify-center gap-3 cursor-pointer"
-                  >
-                    <Download className="w-6 h-6" /> Download Compressed PDF
-                  </a>
-
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium pt-1">
-                    <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Files are automatically deleted from server storage shortly after processing.</span>
-                  </div>
-
-                  <div className="flex items-center justify-center gap-4 pt-2">
-                    <button
-                      onClick={() => {
-                        setResult(null);
-                        setIsSummaryExpanded(false);
-                      }}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-[#E5322D] hover:text-[#c92824] transition-colors cursor-pointer"
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Change compression level
-                    </button>
-                    <span className="text-slate-300 dark:text-slate-600">|</span>
-                    <button
-                      onClick={() => {
-                        setResult(null);
-                        setFileItems([]);
-                        setIsSummaryExpanded(false);
-                        if (onReset) onReset();
-                      }}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                    >
-                      <RotateCcw className="w-4 h-4" /> Compress another file
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            )}
+          </ResultPanel>
         ) : (
           <motion.div 
             key="workspace-view"
@@ -773,7 +555,10 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
             {/* 1. TOP NAVBAR */}
             <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between shrink-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
+                {onReset && (
+                  <BackButton onClick={onReset} label="" className="min-w-[40px] min-h-[40px] sm:min-w-[48px] sm:min-h-[48px] p-2" />
+                )}
+                <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-xs">
                   PDF
                 </div>
                 <span className="font-bold text-xl text-slate-900 dark:text-white">Compress PDF</span>
@@ -782,14 +567,6 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
                 <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600">
                   {fileItems.length} {fileItems.length === 1 ? 'file' : 'files'} selected
                 </span>
-                {onReset && (
-                  <button
-                    onClick={onReset}
-                    className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <ArrowLeft className="w-4 h-4" /> Back
-                  </button>
-                )}
               </div>
             </header>
 

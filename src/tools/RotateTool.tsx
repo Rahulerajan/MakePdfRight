@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { HistoryService } from '../services/historyService';
+import { BackButton } from '../components/common/BackButton';
+import { ResultPanel } from '../components/common/ResultPanel';
 
 interface RotateToolProps {
   file: File;
@@ -176,42 +178,29 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file, onReset }) => {
 
   if (resultUrl) {
     return (
-      <div className="h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center space-y-6">
-        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-        <div className="space-y-2 max-w-md">
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">PDF pages rotated!</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Your document has been updated and is ready for download.</p>
-        </div>
-
-        {resultPageCount !== null && (
-          <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-4 py-2 rounded-xl text-sm font-extrabold shadow-xs">
-            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
-            <span>Verified Output: {resultPageCount} {resultPageCount === 1 ? 'page' : 'pages'} with custom rotations applied</span>
-          </div>
-        )}
-        
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-          <a 
-            href={resultUrl} 
-            download={`rotated_${file.name}`}
-            className="btn-primary flex-1 py-4 flex items-center justify-center gap-2 text-base font-extrabold"
-          >
-            <Download className="w-5 h-5" />
-            Download PDF
-          </a>
-          <button 
-            onClick={() => {
-              setResultUrl(null);
-              if (onReset) onReset();
-            }}
-            className="px-6 py-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer"
-          >
-            Rotate Another
-          </button>
-        </div>
-      </div>
+      <ResultPanel
+        title="PDF pages rotated!"
+        subtitle="Your document has been updated and is ready for download."
+        details={
+          resultPageCount !== null
+            ? [
+                {
+                  label: `Verified Output: ${resultPageCount} ${
+                    resultPageCount === 1 ? 'page' : 'pages'
+                  } with custom rotations applied`,
+                },
+              ]
+            : undefined
+        }
+        downloadUrl={resultUrl}
+        downloadFileName={`rotated_${file.name}`}
+        downloadLabel="Download PDF"
+        onReset={() => {
+          setResultUrl(null);
+          if (onReset) onReset();
+        }}
+        resetLabel="Rotate Another"
+      />
     );
   }
 
@@ -233,9 +222,12 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file, onReset }) => {
       />
 
       {/* TOP NAVBAR */}
-      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between shrink-0 z-10">
+      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
+          {onReset && (
+            <BackButton onClick={onReset} label="" className="min-w-[40px] min-h-[40px] sm:min-w-[48px] sm:min-h-[48px] p-2" />
+          )}
+          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-xs">
             PDF
           </div>
           <span className="font-bold text-xl text-slate-900 dark:text-white">Rotate PDF Pages</span>
@@ -251,14 +243,6 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file, onReset }) => {
             <RotateCw className="w-3.5 h-3.5" />
             Rotate All
           </button>
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          )}
         </div>
       </header>
 

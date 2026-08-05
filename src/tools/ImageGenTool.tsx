@@ -19,6 +19,7 @@ import { generateImage } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
+import { BackButton } from '../components/common/BackButton';
 
 interface AspectRatioOption {
   value: string;
@@ -114,14 +115,8 @@ export const ImageGenTool: React.FC = () => {
     <div className="relative">
       <SEO title={SEO_DATA['/generate-image'].title} description={SEO_DATA['/generate-image'].description} />
       {/* Navigation Header */}
-      <div className="mb-4 sm:mb-0 sm:absolute sm:-top-10 sm:left-0">
-        <Link 
-          to="/"
-          className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group font-bold text-sm"
-        >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          Back to Home
-        </Link>
+      <div className="mb-6">
+        <BackButton label="Back to Home" />
       </div>
 
       <LoadingOverlay 

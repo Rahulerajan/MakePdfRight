@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { HistoryService } from '../services/historyService';
+import { BackButton } from '../components/common/BackButton';
+import { ResultPanel } from '../components/common/ResultPanel';
 
 interface SplitToolProps {
   file: File;
@@ -416,52 +418,29 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
 
   if (resultUrl) {
     return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl mx-auto text-center space-y-8 py-8"
-      >
-        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-xl shadow-emerald-500/20">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">PDF has been split!</h2>
-          <p className="text-base text-slate-500 dark:text-slate-400 font-medium">Your extracted pages are ready for download.</p>
-        </div>
-
-        {resultPageCount !== null && (
-          <div className="inline-flex items-center gap-2 bg-[#E5322D]/10 text-[#E5322D] dark:bg-[#E5322D]/20 border border-[#E5322D]/30 px-4 py-2 rounded-xl text-sm font-extrabold shadow-xs">
-            <CheckCircle2 className="w-4.5 h-4.5 shrink-0" />
-            <span>Verified Output: {resultPageCount} {resultPageCount === 1 ? 'page' : 'pages'} extracted</span>
-          </div>
-        )}
-        
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-          <a 
-            href={resultUrl} 
-            download={`split_${file.name}`}
-            className="w-full bg-[#E5322D] hover:bg-[#c92824] text-white font-extrabold py-4 px-6 rounded-xl flex items-center justify-center gap-3 shadow-lg shadow-[#E5322D]/20 transition-all text-lg cursor-pointer"
-          >
-            <Download className="w-6 h-6" />
-            Download Split PDF
-          </a>
-
-          <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium pt-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>Files are automatically deleted from server storage shortly after processing.</span>
-          </div>
-
-          <button 
-            onClick={() => {
-              setResultUrl(null);
-              if (onReset) onReset();
-            }}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer pt-2"
-          >
-            <RotateCcw className="w-4 h-4" /> Split another PDF
-          </button>
-        </div>
-      </motion.div>
+      <ResultPanel
+        title="PDF has been split!"
+        subtitle="Your extracted pages are ready for download."
+        details={
+          resultPageCount !== null
+            ? [
+                {
+                  label: `Verified Output: ${resultPageCount} ${
+                    resultPageCount === 1 ? 'page' : 'pages'
+                  } extracted`,
+                },
+              ]
+            : undefined
+        }
+        downloadUrl={resultUrl}
+        downloadFileName={`split_${file.name}`}
+        downloadLabel="Download Split PDF"
+        onReset={() => {
+          setResultUrl(null);
+          if (onReset) onReset();
+        }}
+        resetLabel="Split another PDF"
+      />
     );
   }
 
@@ -488,6 +467,9 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
       {/* 1. TOP NAVBAR */}
       <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">
         <div className="flex items-center gap-2.5 sm:gap-3">
+          {onReset && (
+            <BackButton onClick={onReset} label="" className="min-w-[40px] min-h-[40px] sm:min-w-[48px] sm:min-h-[48px] p-2" />
+          )}
           <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-base sm:text-lg tracking-wider shadow-sm">
             PDF
           </div>
@@ -497,14 +479,6 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
           <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-slate-200 dark:border-slate-600">
             {pages.length} {pages.length === 1 ? 'page' : 'pages'} total
           </span>
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          )}
         </div>
       </header>
 

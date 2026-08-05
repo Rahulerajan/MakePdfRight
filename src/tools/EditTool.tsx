@@ -168,6 +168,20 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'select' | 'text' | 'draw' | 'comment' | 'shape' | 'table' | 'signature' | 'form'>('select');
 
+  const resultUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    resultUrlRef.current = resultUrl;
+  }, [resultUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (resultUrlRef.current) {
+        URL.revokeObjectURL(resultUrlRef.current);
+      }
+    };
+  }, []);
+
   // --- Page Text Runs for Click-To-Edit & Preloading ---
   const [pageTextRuns, setPageTextRuns] = useState<Record<number, TextRun[]>>({});
   const [hoveredRunPage, setHoveredRunPage] = useState<number | null>(null);
@@ -918,6 +932,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
       setIsSaving(false);
     } catch (err: any) {
@@ -1277,6 +1292,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
       a.href = url;
       a.download = `extracted_${file.name.replace('.pdf', '')}.txt`;
       a.click();
+      URL.revokeObjectURL(url);
     } else {
       // Simulate DOCX download payload
       const dummyContent = 'Make PDF Right Document Export System';
@@ -1286,6 +1302,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
       a.href = url;
       a.download = `converted_${file.name.replace('.pdf', '')}.docx`;
       a.click();
+      URL.revokeObjectURL(url);
     }
   };
 
@@ -1328,7 +1345,12 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
           </div>
 
           <button 
-            onClick={() => setResultUrl(null)}
+            onClick={() => {
+              if (resultUrl) {
+                URL.revokeObjectURL(resultUrl);
+              }
+              setResultUrl(null);
+            }}
             className="text-slate-400 hover:text-primary dark:hover:text-primary font-bold text-sm transition-colors mt-4"
           >
             ← Return to Editor Workspace

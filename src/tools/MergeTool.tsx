@@ -17,6 +17,8 @@ import { FileUpload } from '../components/common/FileUpload';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { useLanguage } from '../components/LanguageContext';
 import { HistoryService } from '../services/historyService';
+import { BackButton } from '../components/common/BackButton';
+import { ResultPanel } from '../components/common/ResultPanel';
 
 interface MergeToolProps {
   initialFiles: File[];
@@ -42,6 +44,19 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const initialFilesLoadedRef = useRef(false);
+  const resultUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    resultUrlRef.current = resultUrl;
+  }, [resultUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (resultUrlRef.current) {
+        URL.revokeObjectURL(resultUrlRef.current);
+      }
+    };
+  }, []);
 
   // Generates or retrieves PDF preview thumbnail asynchronously and stores in cache
   const generatePreview = async (file: File): Promise<string> => {
@@ -212,36 +227,22 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
 
   if (resultUrl) {
     return (
-      <div className="h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center space-y-6">
-        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-        <div className="space-y-2 max-w-md">
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{t('merge.merged_title')}</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t('merge.merged_desc')}</p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-          <a 
-            href={resultUrl} 
-            download="merged_document.pdf"
-            className="btn-primary flex-1 py-4 flex items-center justify-center gap-2 text-base font-extrabold"
-          >
-            <Download className="w-5 h-5" />
-            {t('merge.download_btn')}
-          </a>
-          <button 
-            onClick={() => {
-              setResultUrl(null);
-              setFiles([]);
-              if (onReset) onReset();
-            }}
-            className="px-6 py-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer"
-          >
-            {t('merge.more_btn')}
-          </button>
-        </div>
-      </div>
+      <ResultPanel
+        title={t('merge.merged_title')}
+        subtitle={t('merge.merged_desc')}
+        downloadUrl={resultUrl}
+        downloadFileName="merged_document.pdf"
+        downloadLabel={t('merge.download_btn')}
+        onReset={() => {
+          if (resultUrl) {
+            URL.revokeObjectURL(resultUrl);
+          }
+          setResultUrl(null);
+          setFiles([]);
+          if (onReset) onReset();
+        }}
+        resetLabel={t('merge.more_btn')}
+      />
     );
   }
 
@@ -262,9 +263,12 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
       />
 
       {/* TOP NAVBAR */}
-      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between shrink-0 z-10">
+      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
+          {onReset && (
+            <BackButton onClick={onReset} label="" className="min-w-[40px] min-h-[40px] sm:min-w-[48px] sm:min-h-[48px] p-2" />
+          )}
+          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-xs">
             PDF
           </div>
           <span className="font-bold text-xl text-slate-900 dark:text-white">Merge PDF Files</span>
@@ -273,14 +277,6 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
           <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600">
             {files.length} {files.length === 1 ? 'File' : 'Files'}
           </span>
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          )}
         </div>
       </header>
 

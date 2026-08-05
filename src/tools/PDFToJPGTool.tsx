@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { pdfjs } from '../utils/pdfWorker';
 import JSZip from 'jszip';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { HistoryService } from '../services/historyService';
+import { BackButton } from '../components/common/BackButton';
+import { ResultPanel } from '../components/common/ResultPanel';
 
 interface PDFToJPGToolProps {
   file: File;
@@ -35,6 +37,20 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
   const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
   const [isLoadingPreviews, setIsLoadingPreviews] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const resultRef = useRef<{ url: string; count: number } | null>(null);
+
+  useEffect(() => {
+    resultRef.current = result;
+  }, [result]);
+
+  useEffect(() => {
+    return () => {
+      if (resultRef.current?.url) {
+        URL.revokeObjectURL(resultRef.current.url);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -180,37 +196,21 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
 
   if (result) {
     return (
-      <div className="h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center space-y-6">
-        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-        <div className="space-y-2 max-w-md">
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">PDF converted to JPG!</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {result.count} {result.count === 1 ? 'image is' : 'images are'} ready for download in a ZIP file.
-          </p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-          <a 
-            href={result.url} 
-            download={`${file.name.replace('.pdf', '')}_images.zip`}
-            className="btn-primary flex-1 py-4 flex items-center justify-center gap-2 text-base font-extrabold"
-          >
-            <Download className="w-5 h-5" />
-            Download ZIP file
-          </a>
-          <button 
-            onClick={() => {
-              setResult(null);
-              if (onReset) onReset();
-            }}
-            className="px-6 py-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer"
-          >
-            Convert Another PDF
-          </button>
-        </div>
-      </div>
+      <ResultPanel
+        title="PDF converted to JPG!"
+        subtitle={`${result.count} ${result.count === 1 ? 'image is' : 'images are'} ready for download in a ZIP file.`}
+        downloadUrl={result.url}
+        downloadFileName={`${file.name.replace('.pdf', '')}_images.zip`}
+        downloadLabel="Download ZIP file"
+        onReset={() => {
+          if (result?.url) {
+            URL.revokeObjectURL(result.url);
+          }
+          setResult(null);
+          if (onReset) onReset();
+        }}
+        resetLabel="Convert Another PDF"
+      />
     );
   }
 
@@ -232,9 +232,12 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
       <LoadingOverlay isVisible={isLoadingPreviews} message="Loading document..." />
 
       {/* TOP NAVBAR */}
-      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 flex items-center justify-between shrink-0 z-10">
+      <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-sm">
+          {onReset && (
+            <BackButton onClick={onReset} label="" className="min-w-[40px] min-h-[40px] sm:min-w-[48px] sm:min-h-[48px] p-2" />
+          )}
+          <div className="bg-[#E5322D] text-white font-black px-2.5 py-1 rounded text-lg tracking-wider shadow-xs">
             PDF
           </div>
           <span className="font-bold text-xl text-slate-900 dark:text-white">PDF to JPG</span>
@@ -243,14 +246,6 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
           <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-600">
             {pages.length} {pages.length === 1 ? 'Page' : 'Pages'}
           </span>
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back
-            </button>
-          )}
         </div>
       </header>
 

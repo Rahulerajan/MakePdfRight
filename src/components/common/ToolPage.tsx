@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { LoadingOverlay } from './LoadingOverlay';
 import { useLanguage } from '../LanguageContext';
@@ -11,6 +11,7 @@ import { AdUnit } from '../ads/AdUnit';
 import { ToolSEOContent } from '../seo/ToolSEOContent';
 import { TOOL_SEO_CONTENT_MAP } from '../../constants/toolSeoData';
 import { analytics } from '../../services/analytics';
+import { BackButton } from './BackButton';
 
 interface ToolPageProps {
   title: string;
@@ -95,14 +96,8 @@ export const ToolPage: React.FC<ToolPageProps> = ({
       {stage === 1 ? (
         <div className="flex-1 py-4 sm:py-6 md:py-10 px-4 md:px-6 flex flex-col justify-start md:justify-center">
           <div className="container-custom relative w-full pt-1 sm:pt-0">
-            <div className="mb-4 sm:mb-0 sm:absolute sm:-top-10 sm:left-0 z-10">
-              <Link 
-                to="/"
-                className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group font-bold text-sm"
-              >
-                <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                {t('back_home')}
-              </Link>
+            <div className="mb-4 sm:mb-6 max-w-4xl mx-auto">
+              <BackButton label={t('back_home')} />
             </div>
 
             <motion.div

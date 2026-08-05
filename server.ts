@@ -39,8 +39,12 @@ const PORT = 3000;
 function validateEnvironment() {
   const isProd = process.env.NODE_ENV === "production";
   if (isProd) {
-    if (!process.env.ALLOWED_ORIGINS) {
-      LoggingService.warn("[Security Notice] ALLOWED_ORIGINS environment variable is not defined in production. Dynamic origin checks will apply.");
+    const rawOrigins = process.env.ALLOWED_ORIGINS;
+    const origins = rawOrigins 
+      ? rawOrigins.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    if (origins.length === 0) {
+      LoggingService.warn("[Security Warning] ALLOWED_ORIGINS environment variable is not defined or is empty in production. CORS is not configured; defaulting to allowing same-origin/no-origin requests only.");
     }
     if (!process.env.APP_URL) {
       LoggingService.warn("[Security Notice] APP_URL environment variable is not defined in production. Dynamic URLs will rely on Request Host.");
@@ -157,18 +161,22 @@ async function startServer() {
   }));
 
   // Configure explicit CORS
+  const isProd = process.env.NODE_ENV === "production";
   const allowedOrigins = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
-    : undefined;
+    : [];
 
   app.use(cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins && allowedOrigins.length > 0) {
+      if (allowedOrigins.length > 0) {
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
           return callback(null, true);
         }
         return callback(new AppError('CORS policy restriction: Domain origin not allowed.', 403), false);
+      }
+      if (isProd) {
+        return callback(new AppError('CORS policy restriction: Domain origin not allowed in production when ALLOWED_ORIGINS is unset.', 403), false);
       }
       return callback(null, true);
     },

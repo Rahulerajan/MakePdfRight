@@ -26,6 +26,7 @@ import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
 import { jsPDF } from 'jspdf';
 import { useLanguage } from '../components/LanguageContext';
+import { BackButton } from '../components/common/BackButton';
 
 export const AudioTranscribeTool: React.FC = () => {
   const { t } = useLanguage();
@@ -543,14 +544,8 @@ export const AudioTranscribeTool: React.FC = () => {
   return (
     <div className="relative">
       <SEO title={SEO_DATA['/transcribe'].title} description={SEO_DATA['/transcribe'].description} />
-      <div className="mb-4 sm:mb-0 sm:absolute sm:-top-10 sm:left-0">
-        <Link 
-          to="/"
-          className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group font-bold text-sm"
-        >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          {t('back_home')}
-        </Link>
+      <div className="mb-6">
+        <BackButton label={t('back_home')} />
       </div>
 
       <LoadingOverlay 
