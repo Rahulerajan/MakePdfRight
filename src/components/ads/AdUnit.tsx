@@ -53,7 +53,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({
 
   // Reserved min height classes to eliminate Cumulative Layout Shift (CLS)
   const formatHeightClasses: Record<AdFormat, string> = {
-    'top-banner': 'min-h-[50px] sm:min-h-[60px] max-w-5xl mx-auto',
+    'top-banner': 'min-h-[90px] max-w-5xl mx-auto',
     'in-content': 'min-h-[250px] sm:min-h-[280px] w-full',
     'sidebar': 'min-h-[250px] lg:min-h-[600px] w-full',
     'sticky-mobile': 'min-h-[50px] w-full',
@@ -61,17 +61,15 @@ export const AdUnit: React.FC<AdUnitProps> = ({
     'native': 'min-h-[120px] w-full',
   };
 
-  const myMarginClass = format === 'top-banner' ? 'my-1 sm:my-2' : 'my-4';
-
   if (isDev) {
     return (
       <div
         ref={adRef}
         aria-label={label}
-        className={`${myMarginClass} relative flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/80 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 p-2 text-center transition-colors select-none ${formatHeightClasses[format]} ${className}`}
+        className={`my-4 relative flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/80 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 p-3 text-center transition-colors select-none ${formatHeightClasses[format]} ${className}`}
         style={style}
       >
-        <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500">
+        <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-400/60 dark:bg-slate-600"></span>
           <span>{label}</span>
           <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono">
@@ -86,7 +84,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({
     <div
       ref={adRef}
       aria-label={label}
-      className={`${myMarginClass} flex flex-col items-center justify-center overflow-hidden transition-all ${formatHeightClasses[format]} ${className}`}
+      className={`my-4 flex flex-col items-center justify-center overflow-hidden transition-all ${formatHeightClasses[format]} ${className}`}
       style={style}
     >
       <div className="w-full text-center text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
