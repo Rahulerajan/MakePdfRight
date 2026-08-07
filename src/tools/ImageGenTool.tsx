@@ -129,7 +129,7 @@ export const ImageGenTool: React.FC = () => {
       {/* MOBILE LAYOUT (md:hidden) */}
       <div className="block md:hidden space-y-4">
         <div className="space-y-1 mb-2">
-          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">AI Image Generator</h3>
+          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Image Generator</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Create high-quality custom visual assets for your PDFs instantly.</p>
         </div>
 
@@ -273,7 +273,7 @@ export const ImageGenTool: React.FC = () => {
       <div className="hidden md:block space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">AI Image Generator</h3>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Image Generator</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Create high-quality custom visual assets for your PDFs instantly.</p>
           </div>
         </div>
@@ -351,7 +351,7 @@ export const ImageGenTool: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5 text-emerald-500">
                     <CheckCircle2 className="w-5.5 h-5.5 fill-emerald-500/10" />
-                    <h4 className="text-lg font-extrabold text-slate-800 dark:text-white">AI Image Ready!</h4>
+                    <h4 className="text-lg font-extrabold text-slate-800 dark:text-white">Image Ready!</h4>
                   </div>
                   <div className="flex gap-2.5">
                     <button 

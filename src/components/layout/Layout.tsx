@@ -50,10 +50,10 @@ export const Header = () => {
       ]
     },
     { 
-      label: 'AI Tools', 
+      label: 'Media Tools', 
       id: 'ai',
       tools: [
-        { name: 'AI Image Gen', path: '/generate-image', icon: <Sparkles className="w-4 h-4" /> },
+        { name: 'Image Generator', path: '/generate-image', icon: <Sparkles className="w-4 h-4" /> },
         { name: 'Transcribe', path: '/transcribe', icon: <Mic className="w-4 h-4" /> },
       ]
     },
@@ -97,6 +97,7 @@ export const Header = () => {
     const map: Record<string, string> = {
       'All Tools': 'all_tools',
       'AI Tools': 'ai_tools',
+      'Media Tools': 'ai_tools',
       'Compress': 'compress',
       'Convert': 'convert',
       'Edit': 'edit'
@@ -110,6 +111,7 @@ export const Header = () => {
       'Split PDF': 'tools.split.name',
       'Organize PDF': 'tools.organise.name',
       'Rotate PDF': 'tools.rotate.name',
+      'Image Generator': 'tools.image_gen.name',
       'AI Image Gen': 'tools.image_gen.name',
       'AI Image Generator': 'tools.image_gen.name',
       'Transcribe': 'tools.transcribe.name',

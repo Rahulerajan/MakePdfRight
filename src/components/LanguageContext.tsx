@@ -14,7 +14,7 @@ const translations: Record<Language, Record<string, string>> = {
   en: {
     // Nav & General
     'all_tools': 'All Tools',
-    'ai_tools': 'AI Tools',
+    'ai_tools': 'Media Tools',
     'compress': 'Compress',
     'convert': 'Convert',
     'edit': 'Edit',
@@ -30,7 +30,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_2': 'PDFs',
     'hero_title_3': ' Right.',
     'hero_desc': 'Every tool you need to work with PDFs in one place. 100% free and secure',
-    'ai_powered_tools_heading': 'AI Powered Tools',
+    'ai_powered_tools_heading': 'Media & Audio Tools',
     'standard_pdf_tools_heading': 'Standard PDF Tools',
 
     // Tools Names & Descriptions
@@ -54,8 +54,8 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.rotate.description': 'Rotate one or multiple PDF pages to the correct orientation in seconds.',
     'tools.organise.name': 'Organize PDF',
     'tools.organise.description': 'Reorder, rotate, add, delete, extract, and manage PDF pages with an intuitive interface.',
-    'tools.image_gen.name': 'AI Image Generator',
-    'tools.image_gen.description': 'Create stunning images from text descriptions using advanced AI models.',
+    'tools.image_gen.name': 'Image Generator',
+    'tools.image_gen.description': 'Create custom visuals from text descriptions using advanced models.',
     'tools.transcribe.name': 'Audio Transcription',
     'tools.transcribe.description': 'Convert voice recordings and audio files into accurate text transcripts.',
 
@@ -157,8 +157,8 @@ const translations: Record<Language, Record<string, string>> = {
     'convert.convert_btn': 'Convert Document',
 
     // AI Tools
-    'ai.image_gen_title': 'AI Image Generator',
-    'ai.image_gen_subtitle': 'Create stunning custom visuals from simple text descriptions.',
+    'ai.image_gen_title': 'Image Generator',
+    'ai.image_gen_subtitle': 'Create custom visuals from simple text descriptions.',
     'ai.prompt_placeholder': 'Describe what you want to create (e.g. A futuristic city in cyberpunk style, high detail)...',
     'ai.style_label': 'Visual Style',
     'ai.ratio_label': 'Aspect Ratio',
@@ -167,12 +167,12 @@ const translations: Record<Language, Record<string, string>> = {
     'ai.download_visual': 'Download Image',
     'ai.image_to_pdf_btn': 'Convert to PDF',
 
-    'ai.transcribe_title': 'AI Voice Transcription',
-    'ai.transcribe_subtitle': 'Upload audio or record your voice to generate highly accurate transcription text.',
+    'ai.transcribe_title': 'Voice & Audio Transcription',
+    'ai.transcribe_subtitle': 'Upload audio or record your voice to generate accurate transcription text.',
     'ai.record_start': 'Start Recording',
     'ai.record_stop': 'Stop Recording',
     'ai.upload_audio': 'Upload Audio File',
-    'ai.transcribing': 'AI Transcription in progress...',
+    'ai.transcribing': 'Transcription in progress...',
     'ai.copy_transcript': 'Copy to Clipboard',
     'ai.download_txt': 'Download Text File',
 
@@ -186,7 +186,7 @@ const translations: Record<Language, Record<string, string>> = {
     'editor.comments': 'Comments',
     'editor.style': 'Style',
     'editor.insert': 'Insert',
-    'editor.ai': 'AI Assist',
+    'editor.ai': 'Assist',
     'editor.track': 'Track Changes',
     'editor.close': 'Close',
     'editor.close_panel': 'Close Panel',
@@ -196,7 +196,7 @@ const translations: Record<Language, Record<string, string>> = {
   hi: {
     // Nav & General
     'all_tools': 'सभी टूल्स',
-    'ai_tools': 'AI टूल्स',
+    'ai_tools': 'मीडिया टूल्स',
     'compress': 'कंप्रेस',
     'convert': 'कन्वर्ट',
     'edit': 'एडिट',
@@ -211,8 +211,8 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'अपने ',
     'hero_title_2': 'PDFs',
     'hero_title_3': ' को सही बनाएं।',
-    'hero_desc': 'PDFs के साथ काम करने के लिए आवश्यक हर टूल एक ही स्थान पर। 100% मुफ़्त, सुरक्षित और AI द्वारा संचालित।',
-    'ai_powered_tools_heading': 'AI संचालित टूल्स',
+    'hero_desc': 'PDFs के साथ काम करने के लिए आवश्यक हर टूल एक ही स्थान पर। 100% मुफ़्त और सुरक्षित।',
+    'ai_powered_tools_heading': 'मीडिया और ऑडियो टूल्स',
     'standard_pdf_tools_heading': 'मानक PDF टूल्स',
 
     // Tools Names & Descriptions
@@ -236,8 +236,8 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.rotate.description': 'अपने PDFs को अपनी आवश्यकता के अनुसार घुमाएं। एक साथ कई PDFs भी घुमा सकते हैं!',
     'tools.organise.name': 'PDF व्यवस्थित करें',
     'tools.organise.description': 'PDF पेजों को क्रमबद्ध करें, जोड़ें और हटाएं। आवश्यकतानुसार घुमाएं और पुनर्व्यवस्थित करें।',
-    'tools.image_gen.name': 'AI इमेज जनरेटर',
-    'tools.image_gen.description': 'उन्नत AI मॉडल का उपयोग करके टेक्स्ट विवरण से शानदार चित्र बनाएं।',
+    'tools.image_gen.name': 'इमेज जनरेटर',
+    'tools.image_gen.description': 'टेक्स्ट विवरण से कस्टम चित्र बनाएं।',
     'tools.transcribe.name': 'ऑडियो ट्रांसक्रिप्शन',
     'tools.transcribe.description': 'आवाज रिकॉर्डिंग और ऑडियो फाइलों को सटीक पाठ ट्रांसक्रिप्ट में बदलें।',
 
@@ -339,7 +339,7 @@ const translations: Record<Language, Record<string, string>> = {
     'convert.convert_btn': 'दस्तावेज़ परिवर्तित करें',
 
     // AI Tools
-    'ai.image_gen_title': 'AI इमेज जनरेटर',
+    'ai.image_gen_title': 'इमेज जनरेटर',
     'ai.image_gen_subtitle': 'सरल पाठ विवरणों से शानदार कस्टम विज़ुअल बनाएं।',
     'ai.prompt_placeholder': 'आप क्या बनाना चाहते हैं उसका विवरण दें (जैसे साइबरपंक शैली में एक भविष्य का शहर, उच्च विवरण)...',
     'ai.style_label': 'दृश्य शैली (Style)',
@@ -349,12 +349,12 @@ const translations: Record<Language, Record<string, string>> = {
     'ai.download_visual': 'इमेज डाउनलोड करें',
     'ai.image_to_pdf_btn': 'PDF में बदलें',
 
-    'ai.transcribe_title': 'AI वॉयस ट्रांसक्रिप्शन',
+    'ai.transcribe_title': 'वॉयस और ऑडियो ट्रांसक्रिप्शन',
     'ai.transcribe_subtitle': 'अत्यधिक सटीक ट्रांसक्रिप्शन टेक्स्ट जेनरेट करने के लिए ऑडियो अपलोड करें या अपनी आवाज़ रिकॉर्ड करें।',
     'ai.record_start': 'रिकॉर्डिंग शुरू करें',
     'ai.record_stop': 'रिकॉर्डिंग बंद करें',
     'ai.upload_audio': 'ऑडियो फाइल अपलोड करें',
-    'ai.transcribing': 'AI ट्रांसक्रिप्शन प्रगति पर है...',
+    'ai.transcribing': 'ट्रांसक्रिप्शन प्रगति पर है...',
     'ai.copy_transcript': 'क्लिपबोर्ड पर कॉपी करें',
     'ai.download_txt': 'टेक्स्ट फ़ाइल डाउनलोड करें',
 
@@ -368,7 +368,7 @@ const translations: Record<Language, Record<string, string>> = {
     'editor.comments': 'टिप्पणियाँ',
     'editor.style': 'शैली (Style)',
     'editor.insert': 'डालें',
-    'editor.ai': 'AI सहायता',
+    'editor.ai': 'सहायता',
     'editor.track': 'परिवर्तन ट्रैक करें',
     'editor.close': 'बंद करें',
     'editor.close_panel': 'पैनल बंद करें',
@@ -378,7 +378,7 @@ const translations: Record<Language, Record<string, string>> = {
   fr: {
     // Nav & General
     'all_tools': 'Tous les outils',
-    'ai_tools': 'Outils IA',
+    'ai_tools': 'Outils Média',
     'compress': 'Compresser',
     'convert': 'Convertir',
     'edit': 'Modifier',
@@ -393,8 +393,8 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Rendez vos ',
     'hero_title_2': 'PDF',
     'hero_title_3': ' Parfaits.',
-    'hero_desc': 'Tous les outils nécessaires pour travailler avec des PDF au même endroit. 100% gratuit, sécurisé et propulsé par l\'IA.',
-    'ai_powered_tools_heading': 'Outils Propulsés par l\'IA',
+    'hero_desc': 'Tous les outils nécessaires pour travailler avec des PDF au même endroit. 100% gratuit et sécurisé.',
+    'ai_powered_tools_heading': 'Outils Média & Audio',
     'standard_pdf_tools_heading': 'Outils PDF Standards',
 
     // Tools Names & Descriptions
@@ -418,8 +418,8 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.rotate.description': 'Faites pivoter vos PDF comme vous le souhaitez. Vous pouvez même en faire pivoter plusieurs à la fois !',
     'tools.organise.name': 'Organiser PDF',
     'tools.organise.description': 'Triez, ajoutez et supprimez des pages PDF. Pivotez et réorganisez-les selon vos besoins.',
-    'tools.image_gen.name': 'Générateur d\'images IA',
-    'tools.image_gen.description': 'Créez de superbes images à partir de descriptions textuelles à l\'aide de modèles IA avancés.',
+    'tools.image_gen.name': 'Générateur d\'images',
+    'tools.image_gen.description': 'Créez de superbes visuels à partir de descriptions textuelles à l\'aide de modèles avancés.',
     'tools.transcribe.name': 'Transcription Audio',
     'tools.transcribe.description': 'Convertissez des enregistrements vocaux et des fichiers audio en transcriptions textuelles précises.',
 
@@ -521,7 +521,7 @@ const translations: Record<Language, Record<string, string>> = {
     'convert.convert_btn': 'Convertir le document',
 
     // AI Tools
-    'ai.image_gen_title': 'Générateur d\'images IA',
+    'ai.image_gen_title': 'Générateur d\'images',
     'ai.image_gen_subtitle': 'Créez de superbes visuels personnalisés à partir de simples descriptions textuelles.',
     'ai.prompt_placeholder': 'Décrivez ce que vous souhaitez créer (ex: Une ville futuriste de style cyberpunk, haute définition)...',
     'ai.style_label': 'Style visuel',
@@ -531,12 +531,12 @@ const translations: Record<Language, Record<string, string>> = {
     'ai.download_visual': 'Télécharger l\'image',
     'ai.image_to_pdf_btn': 'Convertir en PDF',
 
-    'ai.transcribe_title': 'Transcription vocale par IA',
+    'ai.transcribe_title': 'Transcription Vocale & Audio',
     'ai.transcribe_subtitle': 'Téléchargez un fichier audio ou enregistrez votre voix pour générer une transcription ultra-précise.',
     'ai.record_start': 'Démarrer l\'enregistrement',
     'ai.record_stop': 'Arrêter l\'enregistrement',
     'ai.upload_audio': 'Télécharger un fichier audio',
-    'ai.transcribing': 'Transcription IA en cours...',
+    'ai.transcribing': 'Transcription en cours...',
     'ai.copy_transcript': 'Copier dans le presse-papiers',
     'ai.download_txt': 'Télécharger le fichier texte',
 
@@ -550,7 +550,7 @@ const translations: Record<Language, Record<string, string>> = {
     'editor.comments': 'Commentaires',
     'editor.style': 'Style',
     'editor.insert': 'Insérer',
-    'editor.ai': 'Assistant IA',
+    'editor.ai': 'Assistance',
     'editor.track': 'Suivi des modifs',
     'editor.close': 'Fermer',
     'editor.close_panel': 'Fermer le panneau',
@@ -560,7 +560,7 @@ const translations: Record<Language, Record<string, string>> = {
   de: {
     // Nav & General
     'all_tools': 'Alle Tools',
-    'ai_tools': 'KI-Tools',
+    'ai_tools': 'Medien-Tools',
     'compress': 'Komprimieren',
     'convert': 'Konvertieren',
     'edit': 'Bearbeiten',
@@ -575,8 +575,8 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Machen Sie Ihre ',
     'hero_title_2': 'PDFs',
     'hero_title_3': ' Richtig.',
-    'hero_desc': 'Jedes Tool, das Sie für die Arbeit mit PDFs benötigen, an einem Ort. 100% kostenlos, sicher und KI-gestützt.',
-    'ai_powered_tools_heading': 'KI-gestützte Tools',
+    'hero_desc': 'Jedes Tool, das Sie für die Arbeit mit PDFs benötigen, an einem Ort. 100% kostenlos und sicher.',
+    'ai_powered_tools_heading': 'Medien- & Audio-Tools',
     'standard_pdf_tools_heading': 'Standard PDF-Tools',
 
     // Tools Names & Descriptions
@@ -600,8 +600,8 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.rotate.description': 'Drehen Sie Ihre PDFs so, wie Sie sie benötigen. Sie können sogar mehrere PDFs auf einmal drehen!',
     'tools.organise.name': 'PDF organisieren',
     'tools.organise.description': 'Seiten sortieren, hinzufügen und löschen. Drehen und ordnen Sie sie nach Ihren Bedürfnissen neu an.',
-    'tools.image_gen.name': 'KI-Bildgenerator',
-    'tools.image_gen.description': 'Erstellen Sie atemberaubende Bilder aus Textbeschreibungen mit fortschrittlichen KI-Modellen.',
+    'tools.image_gen.name': 'Bildgenerator',
+    'tools.image_gen.description': 'Erstellen Sie atemberaubende Bilder aus Textbeschreibungen mit fortschrittlichen Modellen.',
     'tools.transcribe.name': 'Audio-Transkription',
     'tools.transcribe.description': 'Konvertieren Sie Sprachaufnahmen und Audiodateien in präzise Texttranskripte.',
 
@@ -703,7 +703,7 @@ const translations: Record<Language, Record<string, string>> = {
     'convert.convert_btn': 'Dokument konvertieren',
 
     // AI Tools
-    'ai.image_gen_title': 'KI-Bildgenerator',
+    'ai.image_gen_title': 'Bildgenerator',
     'ai.image_gen_subtitle': 'Erstellen Sie atemberaubende benutzerdefinierte Grafiken aus einfachen Textbeschreibungen.',
     'ai.prompt_placeholder': 'Beschreiben Sie, was Sie erstellen möchten (z. B. Eine futuristische Stadt im Cyberpunk-Stil, hohe Details)...',
     'ai.style_label': 'Visueller Stil',
@@ -713,12 +713,12 @@ const translations: Record<Language, Record<string, string>> = {
     'ai.download_visual': 'Bild herunterladen',
     'ai.image_to_pdf_btn': 'In PDF konvertieren',
 
-    'ai.transcribe_title': 'KI-Sprachtranskription',
+    'ai.transcribe_title': 'Sprach- & Audio-Transkription',
     'ai.transcribe_subtitle': 'Laden Sie Audiodateien hoch oder nehmen Sie Ihre Stimme auf, um hochpräzisen Transkriptionstext zu erhalten.',
     'ai.record_start': 'Aufnahme starten',
     'ai.record_stop': 'Aufnahme stoppen',
     'ai.upload_audio': 'Audiodatei hochladen',
-    'ai.transcribing': 'KI-Transkription läuft...',
+    'ai.transcribing': 'Transkription läuft...',
     'ai.copy_transcript': 'In Zwischenablage kopieren',
     'ai.download_txt': 'Textdatei herunterladen',
 
@@ -732,7 +732,7 @@ const translations: Record<Language, Record<string, string>> = {
     'editor.comments': 'Kommentare',
     'editor.style': 'Stil',
     'editor.insert': 'Einfügen',
-    'editor.ai': 'KI-Assistent',
+    'editor.ai': 'Assistent',
     'editor.track': 'Änderungen verfolgen',
     'editor.close': 'Schließen',
     'editor.close_panel': 'Panel schließen',
@@ -742,7 +742,7 @@ const translations: Record<Language, Record<string, string>> = {
   es: {
     // Nav & General
     'all_tools': 'Herramientas',
-    'ai_tools': 'Herramientas IA',
+    'ai_tools': 'Herramientas de Medios',
     'compress': 'Comprimir',
     'convert': 'Convertir',
     'edit': 'Editar',
@@ -757,8 +757,8 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Haga bien sus ',
     'hero_title_2': 'PDF',
     'hero_title_3': '.',
-    'hero_desc': 'Todas las herramientas que necesita para trabajar con PDF en un solo lugar. 100% gratis, seguro y con tecnología de IA.',
-    'ai_powered_tools_heading': 'Herramientas con Tecnología de IA',
+    'hero_desc': 'Todas las herramientas que necesita para trabajar con PDF en un solo lugar. 100% gratis y seguro.',
+    'ai_powered_tools_heading': 'Herramientas de Medios y Audio',
     'standard_pdf_tools_heading': 'Herramientas PDF Estándar',
 
     // Tools Names & Descriptions
@@ -782,8 +782,8 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.rotate.description': 'Rote sus PDF como los necesite. ¡Incluso puede rotar múltiples archivos PDF a la vez!',
     'tools.organise.name': 'Organizar PDF',
     'tools.organise.description': 'Ordene, agregue y elimine páginas PDF. Rote y reorganícelas según sus necesidades.',
-    'tools.image_gen.name': 'Generador de imágenes IA',
-    'tools.image_gen.description': 'Cree imágenes impresionantes a partir de descripciones de texto utilizando modelos de IA avanzados.',
+    'tools.image_gen.name': 'Generador de imágenes',
+    'tools.image_gen.description': 'Cree imágenes impresionantes a partir de descripciones de texto utilizando modelos avanzados.',
     'tools.transcribe.name': 'Transcripción de Audio',
     'tools.transcribe.description': 'Convierta grabaciones de voz y archivos de audio en transcripciones de texto de alta precisión.',
 
@@ -885,7 +885,7 @@ const translations: Record<Language, Record<string, string>> = {
     'convert.convert_btn': 'Convertir documento',
 
     // AI Tools
-    'ai.image_gen_title': 'Generador de imágenes IA',
+    'ai.image_gen_title': 'Generador de imágenes',
     'ai.image_gen_subtitle': 'Cree impresionantes gráficos personalizados a partir de descripciones de texto simples.',
     'ai.prompt_placeholder': 'Describa lo que desea crear (p. ej., Una ciudad futurista al estilo cyberpunk, alta definición)...',
     'ai.style_label': 'Estilo visual',
@@ -895,12 +895,12 @@ const translations: Record<Language, Record<string, string>> = {
     'ai.download_visual': 'Descargar imagen',
     'ai.image_to_pdf_btn': 'Convertir a PDF',
 
-    'ai.transcribe_title': 'Transcripción de voz IA',
+    'ai.transcribe_title': 'Transcripción de voz y audio',
     'ai.transcribe_subtitle': 'Suba archivos de audio o grabe su voz para obtener transcripciones de texto altamente precisas.',
     'ai.record_start': 'Iniciar grabación',
     'ai.record_stop': 'Detener grabación',
     'ai.upload_audio': 'Subir archivo de audio',
-    'ai.transcribing': 'Transcripción de IA en progreso...',
+    'ai.transcribing': 'Transcripción en progreso...',
     'ai.copy_transcript': 'Copiar al portapapeles',
     'ai.download_txt': 'Descargar archivo de texto',
 
@@ -914,7 +914,7 @@ const translations: Record<Language, Record<string, string>> = {
     'editor.comments': 'Comentarios',
     'editor.style': 'Estilo',
     'editor.insert': 'Insertar',
-    'editor.ai': 'Asistente IA',
+    'editor.ai': 'Asistente',
     'editor.track': 'Seguimiento de cambios',
     'editor.close': 'Cerrar',
     'editor.close_panel': 'Cerrar panel',

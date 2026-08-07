@@ -226,8 +226,8 @@ export default function App() {
               } />
 
               <Route path="/transcribe" element={
-                <div className="min-h-[calc(100dvh-72px)] flex flex-col bg-slate-50 dark:bg-slate-900/50 transition-colors py-6 md:py-16 px-3 md:px-6">
-                  <div className="container-custom !px-1 md:!px-6">
+                <div className="flex-1 flex flex-col justify-start bg-slate-50 dark:bg-slate-900/50 transition-colors py-4 md:py-8 px-4 md:px-8">
+                  <div className="max-w-6xl w-full mx-auto">
                     <AudioTranscribeTool />
                   </div>
                 </div>

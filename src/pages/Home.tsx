@@ -32,8 +32,8 @@ interface Tool {
 const tools: Tool[] = [
   {
     id: 'generate-image',
-    name: 'AI Image Generator',
-    description: 'Create stunning images from text descriptions using advanced AI models.',
+    name: 'Image Generator',
+    description: 'Create custom images from text descriptions using advanced models.',
     icon: <Sparkles className="w-10 h-10" />,
     path: '/generate-image',
     color: 'bg-violet-50 text-violet-500 dark:bg-violet-500/10',

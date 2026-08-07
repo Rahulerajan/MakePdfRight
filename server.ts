@@ -161,27 +161,57 @@ async function startServer() {
   }));
 
   // Configure explicit CORS
-  const isProd = process.env.NODE_ENV === "production";
-  const allowedOrigins = process.env.ALLOWED_ORIGINS 
-    ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
+  app.use((req, res, next) => {
+    const isProd = process.env.NODE_ENV === "production";
+    const allowedOrigins = process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
 
-  app.use(cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.length > 0) {
-        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+    cors({
+      origin: (origin, callback) => {
+        // Allow same-origin / non-browser requests without origin header
+        if (!origin) {
           return callback(null, true);
         }
-        return callback(new AppError('CORS policy restriction: Domain origin not allowed.', 403), false);
-      }
-      if (isProd) {
-        return callback(new AppError('CORS policy restriction: Domain origin not allowed in production when ALLOWED_ORIGINS is unset.', 403), false);
-      }
-      return callback(null, true);
-    },
-    credentials: false
-  }));
+
+        // Whitelist configuration when ALLOWED_ORIGINS is set
+        if (allowedOrigins.length > 0) {
+          if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            return callback(null, true);
+          }
+          return callback(new AppError('CORS policy restriction: Domain origin not allowed.', 403), false);
+        }
+
+        // Production fallback when ALLOWED_ORIGINS is unset: allow same-origin requests
+        if (isProd) {
+          const requestHost = req.headers.host;
+          const appUrl = process.env.APP_URL;
+
+          let isSameOrigin = false;
+          try {
+            const originUrl = new URL(origin);
+            if (requestHost && originUrl.host === requestHost) {
+              isSameOrigin = true;
+            } else if (appUrl && originUrl.origin === new URL(appUrl).origin) {
+              isSameOrigin = true;
+            }
+          } catch {
+            isSameOrigin = false;
+          }
+
+          if (isSameOrigin) {
+            return callback(null, true);
+          }
+
+          return callback(new AppError('CORS policy restriction: Cross-origin request blocked in production when ALLOWED_ORIGINS is unset.', 403), false);
+        }
+
+        // Development fallback: allow all origins
+        return callback(null, true);
+      },
+      credentials: false
+    })(req, res, next);
+  });
 
   // Request logging & observability middleware
   app.use(requestLogger);
@@ -841,12 +871,12 @@ async function startServer() {
       }
 
       let imageBase64DataUrl: string | null = null;
+      const validRatio = (aspectRatio === "16:9" || aspectRatio === "4:3" || aspectRatio === "3:4" || aspectRatio === "9:16") ? aspectRatio : "1:1";
 
-      // 1. Try Gemini image model if available
+      // 1. Strategy A: Gemini API via @google/genai SDK (gemini-3.1-flash-lite-image)
       if (process.env.GEMINI_API_KEY) {
         try {
           const client = getAI();
-          const validRatio = (aspectRatio === "16:9" || aspectRatio === "4:3" || aspectRatio === "3:4" || aspectRatio === "9:16") ? aspectRatio : "1:1";
           const geminiResponse = await client.models.generateContent({
             model: 'gemini-3.1-flash-lite-image',
             contents: {
@@ -865,41 +895,85 @@ async function startServer() {
               if (part.inlineData && part.inlineData.data) {
                 const mime = part.inlineData.mimeType || 'image/png';
                 imageBase64DataUrl = `data:${mime};base64,${part.inlineData.data}`;
+                LoggingService.info("[Server] Image generated successfully using gemini-3.1-flash-lite-image.");
                 break;
               }
             }
           }
-        } catch (geminiError) {
-          LoggingService.warn("[Server] Gemini image generation model failed or unavailable, trying fallback image generator:", geminiError);
+        } catch (geminiError: any) {
+          LoggingService.info("[Server] gemini-3.1-flash-lite-image quota or generation limit reached, switching to fast fallback generators.");
         }
       }
 
-      // 2. Fallback: Try Pollinations AI server-side fetch (bypasses browser CORS)
+      // 2. Strategy B: Pollinations AI with browser User-Agent headers & fast 5s timeout
+      if (!imageBase64DataUrl) {
+        const seed = Math.floor(Math.random() * 1000000);
+        const encodedPrompt = encodeURIComponent(prompt.trim());
+        const pollinationsEndpoints = [
+          `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=turbo`,
+          `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux`
+        ];
+
+        for (const url of pollinationsEndpoints) {
+          if (imageBase64DataUrl) break;
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            const response = await fetch(url, {
+              signal: controller.signal,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+              }
+            });
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              if (arrayBuffer.byteLength > 1000) {
+                const buffer = Buffer.from(arrayBuffer);
+                const contentType = response.headers.get('content-type') || 'image/jpeg';
+                imageBase64DataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
+                LoggingService.info(`[Server] Image generated successfully via Pollinations AI.`);
+              }
+            }
+          } catch (pollinationsErr: any) {
+            // Fast timeout fallback
+          }
+        }
+      }
+
+      // 3. Strategy C: Stock photo placeholder fallback
       if (!imageBase64DataUrl) {
         try {
-          const seed = Math.floor(Math.random() * 1000000);
-          const encodedPrompt = encodeURIComponent(prompt.trim());
-          const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux`;
-
+          const seed = Math.abs(prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) || 12345;
+          const picsumUrl = `https://picsum.photos/seed/${seed}/${width}/${height}`;
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 20000);
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-          const response = await fetch(pollinationsUrl, { signal: controller.signal });
+          const response = await fetch(picsumUrl, {
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            }
+          });
           clearTimeout(timeoutId);
 
           if (response.ok) {
             const arrayBuffer = await response.arrayBuffer();
-            if (arrayBuffer.byteLength > 0) {
+            if (arrayBuffer.byteLength > 1000) {
               const buffer = Buffer.from(arrayBuffer);
               imageBase64DataUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+              LoggingService.info("[Server] Stock photo retrieved successfully as fallback image.");
             }
           }
-        } catch (pollinationsErr) {
-          LoggingService.warn("[Server] Pollinations AI fetch failed:", pollinationsErr);
+        } catch (picsumErr: any) {
+          LoggingService.warn("[Server] Picsum fallback attempt failed:", picsumErr?.message || picsumErr);
         }
       }
 
-      // 3. Robust Fallback: SVG graphical representation
+      // 4. Strategy D: Vector SVG graphical image representation
       if (!imageBase64DataUrl) {
         const cleanPromptEscaped = prompt.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">

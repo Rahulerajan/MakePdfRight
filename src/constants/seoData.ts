@@ -5,8 +5,8 @@ export interface RouteSEO {
 
 export const SEO_DATA: Record<string, RouteSEO> = {
   '/': {
-    title: 'MakePDFRight – Fast, Private & Free Online PDF & AI Tools',
-    description: 'MakePDFRight is your all-in-one suite of online PDF and AI tools. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate AI images, and transcribe audio securely in your browser.'
+    title: 'MakePDFRight – Fast, Private & Free Online PDF & Media Tools',
+    description: 'MakePDFRight is your all-in-one suite of online PDF and media tools. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate images, and transcribe audio securely in your browser.'
   },
   '/compress': {
     title: 'Compress PDF – Reduce PDF File Size Online Free | MakePDFRight',
@@ -77,12 +77,12 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     description: 'Recognize text in scanned PDF files and extract editable text using MakePDFRight free OCR engine.'
   },
   '/generate-image': {
-    title: 'AI Image Generator – Create Images from Text Online Free | MakePDFRight',
-    description: 'Generate unique high-quality images from text prompts using advanced Gemini AI models online.'
+    title: 'Image Generator – Create Images from Text Online Free | MakePDFRight',
+    description: 'Generate unique high-quality images from text prompts using advanced models online.'
   },
   '/transcribe': {
     title: 'Audio Transcribe – Speech-to-Text Transcription Online Free | MakePDFRight',
-    description: 'Transcribe audio and voice recordings into clean text instantly with Google Gemini AI speech recognition.'
+    description: 'Transcribe audio and voice recordings into clean text instantly with high-accuracy speech recognition.'
   },
   '/about': {
     title: 'About Us – Mission & Technology | MakePDFRight',
