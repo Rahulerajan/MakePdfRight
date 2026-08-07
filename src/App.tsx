@@ -53,7 +53,7 @@ export default function App() {
       <LanguageProvider>
         <Router>
           <ScrollToTop />
-          <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300 text-slate-900 dark:text-slate-100">
+          <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300 text-slate-900 dark:text-slate-100 overflow-x-hidden">
             <Header />
         
         <main className="flex-1 flex flex-col">
