@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { pdfjs } from '../utils/pdfWorker';
-import * as XLSX from 'xlsx';
 import { motion } from 'framer-motion';
 import { 
   Download, 
@@ -75,6 +74,7 @@ export const PDFToExcelTool: React.FC<PDFToExcelToolProps> = ({ file, onReset })
     setError(null);
     setIsProcessing(true);
     try {
+      const XLSX = await import('xlsx');
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       const allData: any[][] = [];

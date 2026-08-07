@@ -25,7 +25,6 @@ import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { FileUpload } from '../components/common/FileUpload';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
-import { jsPDF } from 'jspdf';
 import { useLanguage } from '../components/LanguageContext';
 import { BackButton } from '../components/common/BackButton';
 import { ResultPanel } from '../components/common/ResultPanel';
@@ -499,8 +498,9 @@ export const AudioTranscribeTool: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
     if (!transcription) return;
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     
     // Frame PDF cleanly
