@@ -21,7 +21,7 @@
       "destination": "/api/pdf/job/cancel?jobId=:jobId"
     },
     {
-      "source": "/((?!api/|assets/|.*\\..*).*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

@@ -6,10 +6,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).send('Method not allowed');
   }
 
-  const host = (req.headers.host as string) || 'localhost:3000';
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const defaultOrigin = `${protocol}://${host}`;
-  const baseUrl = (process.env.APP_URL || defaultOrigin).replace(/\/$/, '');
+  const defaultDomain = 'https://www.makepdfright.com';
+  const baseUrl = (process.env.APP_URL || defaultDomain).replace(/\/$/, '');
 
   const urls = Object.keys(SEO_DATA).map((route) => {
     const loc = `${baseUrl}${route === '/' ? '' : route}`;
