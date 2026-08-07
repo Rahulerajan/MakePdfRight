@@ -1,6 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
-import { LoggingService } from './LoggingService';
+import { LoggingService } from './LoggingService.js';
 
 export class SplitService {
   static async splitPDF(filePath: string, pageIndices: number[]): Promise<Buffer> {

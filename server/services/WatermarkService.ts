@@ -1,6 +1,6 @@
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import fs from 'fs';
-import { LoggingService } from './LoggingService';
+import { LoggingService } from './LoggingService.js';
 
 export interface WatermarkOptions {
   text: string;

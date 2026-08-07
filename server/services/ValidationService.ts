@@ -1,6 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
-import { AppError } from './ErrorHandler';
-import { LoggingService } from './LoggingService';
+import { AppError } from './ErrorHandler.js';
+import { LoggingService } from './LoggingService.js';
 
 export class ValidationService {
   // Validate Base64 string strictly

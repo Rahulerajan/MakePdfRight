@@ -1,21 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ThinkingLevel } from '@google/genai';
-import { applyCors, verifyAuth, getAI, getOwnerId, handleError } from '../server/apiUtils';
-import { ValidationService } from '../server/services/ValidationService';
-import { UploadService } from '../server/services/UploadService';
-import { CompressionService } from '../server/services/CompressionService';
-import { MergeService } from '../server/services/MergeService';
-import { SplitService } from '../server/services/SplitService';
-import { RotateService } from '../server/services/RotateService';
-import { OrganizeService } from '../server/services/OrganizeService';
-import { OCRService } from '../server/services/OCRService';
-import { WatermarkService } from '../server/services/WatermarkService';
-import { RepairService } from '../server/services/RepairService';
-import { ThumbnailService } from '../server/services/ThumbnailService';
-import { JobService } from '../server/services/JobService';
-import { StorageService } from '../server/services/StorageService';
-import { LoggingService } from '../server/services/LoggingService';
-import { AppError } from '../server/services/ErrorHandler';
+import { applyCors, verifyAuth, getAI, getOwnerId, handleError } from '../server/apiUtils.js';
+import { ValidationService } from '../server/services/ValidationService.js';
+import { UploadService } from '../server/services/UploadService.js';
+import { CompressionService } from '../server/services/CompressionService.js';
+import { MergeService } from '../server/services/MergeService.js';
+import { SplitService } from '../server/services/SplitService.js';
+import { RotateService } from '../server/services/RotateService.js';
+import { OrganizeService } from '../server/services/OrganizeService.js';
+import { OCRService } from '../server/services/OCRService.js';
+import { WatermarkService } from '../server/services/WatermarkService.js';
+import { RepairService } from '../server/services/RepairService.js';
+import { ThumbnailService } from '../server/services/ThumbnailService.js';
+import { JobService } from '../server/services/JobService.js';
+import { StorageService } from '../server/services/StorageService.js';
+import { LoggingService } from '../server/services/LoggingService.js';
+import { AppError } from '../server/services/ErrorHandler.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req, res)) return;

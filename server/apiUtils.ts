@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import crypto from 'crypto';
-import { LoggingService } from './services/LoggingService';
-import { AppError } from './services/ErrorHandler';
+import { LoggingService } from './services/LoggingService.js';
+import { AppError } from './services/ErrorHandler.js';
 
 let aiClient: GoogleGenAI | null = null;
 

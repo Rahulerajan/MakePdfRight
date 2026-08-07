@@ -1,6 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
-import { LoggingService } from './LoggingService';
+import { LoggingService } from './LoggingService.js';
 
 export class MergeService {
   static async mergePDFs(filePaths: string[]): Promise<Buffer> {

@@ -1,5 +1,5 @@
-import { ValidationService } from './ValidationService';
-import { StorageService } from './StorageService';
+import { ValidationService } from './ValidationService.js';
+import { StorageService } from './StorageService.js';
 
 export class UploadService {
   static async handleBase64Upload(base64: string, filename: string = 'document.pdf'): Promise<string> {

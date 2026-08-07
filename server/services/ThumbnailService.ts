@@ -1,7 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
-import { LoggingService } from './LoggingService';
+import { LoggingService } from './LoggingService.js';
 
 export interface ThumbnailDetails {
   filename: string;

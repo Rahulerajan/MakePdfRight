@@ -2,9 +2,9 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
-import { LoggingService } from './LoggingService';
-import { StorageService } from './StorageService';
-import { AppError } from './ErrorHandler';
+import { LoggingService } from './LoggingService.js';
+import { StorageService } from './StorageService.js';
+import { AppError } from './ErrorHandler.js';
 
 export interface Job {
   id: string;

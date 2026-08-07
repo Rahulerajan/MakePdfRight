@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ThinkingLevel, Modality, Type } from '@google/genai';
-import { applyCors, verifyAuth, getAI, handleError } from '../server/apiUtils';
-import { ValidationService } from '../server/services/ValidationService';
-import { LoggingService } from '../server/services/LoggingService';
+import { applyCors, verifyAuth, getAI, handleError } from '../server/apiUtils.js';
+import { ValidationService } from '../server/services/ValidationService.js';
+import { LoggingService } from '../server/services/LoggingService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (applyCors(req, res)) return;

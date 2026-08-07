@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
-import { LoggingService } from './LoggingService';
+import { LoggingService } from './LoggingService.js';
 
 export class StorageService {
   private static tempDir = path.resolve(os.tmpdir(), 'make-pdf-right');

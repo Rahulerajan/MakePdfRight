@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { LoggingService } from './LoggingService';
-import { AppError } from './ErrorHandler';
+import { LoggingService } from './LoggingService.js';
+import { AppError } from './ErrorHandler.js';
 
 export class OCRService {
   static async performOCR(imageBase64: string, aiClient: GoogleGenAI): Promise<any> {

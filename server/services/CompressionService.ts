@@ -2,7 +2,7 @@ import { PDFDocument, PDFName, PDFRawStream, PDFDict } from 'pdf-lib';
 import sharp, { SharpOptions } from 'sharp';
 import fs from 'fs';
 import zlib from 'zlib';
-import { LoggingService } from './LoggingService';
+import { LoggingService } from './LoggingService.js';
 
 function getDictNumber(dict: PDFDict, name: string): number {
   try {
