@@ -380,7 +380,7 @@ export const Header = () => {
                     }} 
                     className="space-y-3"
                   >
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
+                    <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">
                       {t(getLabelKey(item.label))}
                     </div>
                     <div className="flex flex-col gap-1">
@@ -391,7 +391,7 @@ export const Header = () => {
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 transition-colors group"
                         >
-                          <span className="text-slate-400 group-hover:text-primary transition-colors">{tool.icon}</span>
+                          <span className="text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">{tool.icon}</span>
                           <span className="font-semibold text-sm">{t(getToolKey(tool.name))}</span>
                         </Link>
                       ))}
@@ -408,7 +408,7 @@ export const Header = () => {
                 }}
                 className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3"
               >
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Language</div>
+                <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Language</div>
                 <div className="grid grid-cols-2 gap-2">
                   {languagesList.map((lang) => (
                     <button
@@ -510,7 +510,7 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-400 dark:text-slate-500">
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-600 dark:text-slate-400">
           <div>
             © {new Date().getFullYear()} MakePDFRight. All rights reserved. Built for Privacy & Speed.
           </div>

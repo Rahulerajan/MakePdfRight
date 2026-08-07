@@ -1,0 +1,30 @@
+# MakePDFRight
+
+> Fast, private, and secure online PDF & AI toolkit. All file processing happens locally in the browser or via secure serverless handlers with automatic file deletion.
+
+## Core Tools
+
+- [Merge PDF](/merge): Combine multiple PDF files into a single document in any order.
+- [Split PDF](/split): Extract specific pages or page ranges from PDF files.
+- [Compress PDF](/compress): Reduce PDF file size while maintaining optimum document quality.
+- [PDF to Word](/pdf-to-word): Convert PDF files into editable Microsoft Word (.docx) documents.
+- [PDF to Excel](/pdf-to-excel): Extract tables and structured data from PDF into Microsoft Excel (.xlsx) spreadsheets.
+- [PDF to JPG](/pdf-to-jpg): Convert every PDF page into high-resolution JPG images.
+- [Image to PDF](/image-to-pdf): Convert JPG, PNG, WEBP, and BMP images into PDF documents.
+- [Edit PDF](/edit): Modify text, add images, drawings, signatures, and annotations directly in your browser.
+- [Rotate PDF](/rotate): Rotate individual or all PDF pages to correct orientation.
+- [Organize PDF](/organise): Rearrange, rotate, delete, extract, and insert pages in PDF files.
+- [AI Image Generator](/generate-image): Generate custom high-quality images from text prompts using Gemini AI models.
+- [Audio Transcription](/transcribe): Transcribe voice recordings and audio files into accurate text.
+
+## Information & Policies
+
+- [About Us](/about): Learn about our privacy-first document platform.
+- [Privacy Policy](/privacy): Detailed information on zero-retention data policies.
+- [Terms of Service](/terms): Terms and conditions for using MakePDFRight tools.
+- [Contact Us](/contact): Reach out to our team for questions or support.
+
+## Technical & System Info
+
+- [Sitemap](/sitemap.xml): Machine-readable XML sitemap.
+- [Health Check](/api/health): Backend API status endpoint.

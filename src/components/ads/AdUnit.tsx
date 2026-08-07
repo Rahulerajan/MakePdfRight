@@ -69,10 +69,10 @@ export const AdUnit: React.FC<AdUnitProps> = ({
         className={`my-4 relative flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300/80 dark:border-slate-800 bg-slate-100/50 dark:bg-slate-900/40 p-3 text-center transition-colors select-none ${formatHeightClasses[format]} ${className}`}
         style={style}
       >
-        <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400/60 dark:bg-slate-600"></span>
+        <div className="flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase text-slate-600 dark:text-slate-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400/60 dark:bg-slate-500"></span>
           <span>{label}</span>
-          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 font-mono">
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
             {format}
           </span>
         </div>
@@ -87,7 +87,7 @@ export const AdUnit: React.FC<AdUnitProps> = ({
       className={`my-4 flex flex-col items-center justify-center overflow-hidden transition-all ${formatHeightClasses[format]} ${className}`}
       style={style}
     >
-      <div className="w-full text-center text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
+      <div className="w-full text-center text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">
         {label}
       </div>
       <ins

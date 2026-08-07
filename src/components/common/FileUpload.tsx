@@ -329,7 +329,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         {/* Cloud Import Buttons (Google Drive / Dropbox) */}
         {(hasGoogle || hasDropbox) && (
           <div className="relative z-10 flex flex-wrap items-center justify-center gap-2.5 mt-2 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 w-full max-w-md">
-            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 w-full text-center sm:w-auto">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 w-full text-center sm:w-auto">
               Or import from:
             </span>
             {hasGoogle && (
@@ -380,7 +380,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         )}
 
         {/* Security & Auto-deletion reassurance */}
-        <div className="relative z-10 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 mt-0.5 whitespace-nowrap">
+        <div className="relative z-10 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 mt-0.5 whitespace-nowrap">
           <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
           <span>Auto-deleted after processing.</span>
         </div>
