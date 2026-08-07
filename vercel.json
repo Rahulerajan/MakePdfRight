@@ -14,11 +14,59 @@
     },
     {
       "source": "/api/pdf/job/status/:jobId",
-      "destination": "/api/pdf/job/status?jobId=:jobId"
+      "destination": "/api/pdf-tools?action=job-status&jobId=:jobId"
     },
     {
       "source": "/api/pdf/job/cancel/:jobId",
-      "destination": "/api/pdf/job/cancel?jobId=:jobId"
+      "destination": "/api/pdf-tools?action=job-cancel&jobId=:jobId"
+    },
+    {
+      "source": "/api/pdf/job/create",
+      "destination": "/api/pdf-tools?action=job-create"
+    },
+    {
+      "source": "/api/pdf/job/status",
+      "destination": "/api/pdf-tools?action=job-status"
+    },
+    {
+      "source": "/api/pdf/job/cancel",
+      "destination": "/api/pdf-tools?action=job-cancel"
+    },
+    {
+      "source": "/api/pdf-editor-ai",
+      "destination": "/api/pdf-tools?action=editor-ai"
+    },
+    {
+      "source": "/api/pdf-editor-ocr",
+      "destination": "/api/pdf-tools?action=editor-ocr"
+    },
+    {
+      "source": "/api/pdf/:action",
+      "destination": "/api/pdf-tools?action=:action"
+    },
+    {
+      "source": "/api/generate-image",
+      "destination": "/api/ai-tools?action=generate-image"
+    },
+    {
+      "source": "/api/chat-pdf",
+      "destination": "/api/ai-tools?action=chat-pdf"
+    },
+    {
+      "source": "/api/analyze-image",
+      "destination": "/api/ai-tools?action=analyze-image"
+    },
+    {
+      "source": "/api/transcribe-audio",
+      "destination": "/api/ai-tools?action=transcribe-audio"
+    },
+    {
+      "source": "/api/generate-speech",
+      "destination": "/api/ai-tools?action=generate-speech"
+    },
+    {
+      "source": "/api/complex-query",
+      "destination": "/api/ai-tools?action=complex-query"
     },
     {
       "source": "/((?!api/).*)",

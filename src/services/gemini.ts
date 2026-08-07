@@ -5,7 +5,7 @@
 
 export const chatWithPDF = async (pdfBase64: string, message: string, enableThinking: boolean = false): Promise<string> => {
   console.log("[Client Service] Sending chatWithPDF request to server...", { enableThinking });
-  const response = await fetch("/api/chat-pdf", {
+  const response = await fetch("/api/ai-tools?action=chat-pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pdfBase64, message, enableThinking }),
@@ -22,7 +22,7 @@ export const chatWithPDF = async (pdfBase64: string, message: string, enableThin
 
 export const analyzeImage = async (imageBase64: string, mimeType: string, prompt: string, enableThinking: boolean = false): Promise<string> => {
   console.log("[Client Service] Sending analyzeImage request to server...", { enableThinking });
-  const response = await fetch("/api/analyze-image", {
+  const response = await fetch("/api/ai-tools?action=analyze-image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ imageBase64, mimeType, prompt, enableThinking }),
@@ -44,7 +44,7 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
     throw new Error("Prompt is required for image generation.");
   }
 
-  const response = await fetch("/api/generate-image", {
+  const response = await fetch("/api/ai-tools?action=generate-image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt, aspectRatio }),
@@ -75,7 +75,7 @@ export const transcribeAudio = async (
   language: string = "auto"
 ): Promise<TranscriptionResult> => {
   console.log("[Client Service] Sending transcribeAudio request to server...");
-  const response = await fetch("/api/transcribe-audio", {
+  const response = await fetch("/api/ai-tools?action=transcribe-audio", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ audioBase64, mimeType, language }),
@@ -91,7 +91,7 @@ export const transcribeAudio = async (
 
 export const generateSpeech = async (text: string): Promise<string | undefined> => {
   console.log("[Client Service] Sending generateSpeech request to server...");
-  const response = await fetch("/api/generate-speech", {
+  const response = await fetch("/api/ai-tools?action=generate-speech", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
@@ -108,7 +108,7 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
 
 export const complexQuery = async (prompt: string): Promise<string> => {
   console.log("[Client Service] Sending complexQuery request to server...");
-  const response = await fetch("/api/complex-query", {
+  const response = await fetch("/api/ai-tools?action=complex-query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt }),

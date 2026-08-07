@@ -307,7 +307,7 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
       setManualProgress(30);
 
       // Call server endpoint
-      const response = await fetch('/api/pdf/compress', {
+      const response = await fetch('/api/pdf-tools?action=compress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,

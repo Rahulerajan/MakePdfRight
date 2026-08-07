@@ -959,7 +959,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
       const activeElement = elements.find(el => el.id === selectedId);
       const selectedText = activeElement && activeElement.type === 'text' ? activeElement.text : '';
 
-      const res = await fetch('/api/pdf-editor-ai', {
+      const res = await fetch('/api/pdf-tools?action=editor-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptType, selectedText, customPrompt, enableThinking })
@@ -983,7 +983,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
     setIsOcrLoading(true);
     try {
       const pageBase64 = pages[pageIdx].split(',')[1]; // extract base64 bytes
-      const res = await fetch('/api/pdf-editor-ocr', {
+      const res = await fetch('/api/pdf-tools?action=editor-ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: pageBase64 })
