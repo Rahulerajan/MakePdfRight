@@ -195,6 +195,8 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file, onReset }) => {
         downloadUrl={resultUrl}
         downloadFileName={`rotated_${file.name}`}
         downloadLabel="Download PDF"
+        onBack={() => setResultUrl(null)}
+        backLabel="Back to Rotation View"
         onReset={() => {
           setResultUrl(null);
           if (onReset) onReset();
@@ -213,12 +215,13 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file, onReset }) => {
       transition={{ duration: 0.25 }}
       className="flex flex-col h-full w-full bg-[#f3f4f6] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
     >
-      <LoadingOverlay isVisible={isProcessing} message="Loading document..." />
+      <LoadingOverlay isVisible={isProcessing} message="Loading document..." onCancel={() => setIsProcessing(false)} />
       <LoadingOverlay 
         isVisible={isRotating} 
-        message="Rotating pages..." 
+        message="Rotating PDF pages..." 
         error={error}
         onCloseError={() => setError(null)}
+        onCancel={() => setIsRotating(false)}
       />
 
       {/* TOP NAVBAR */}

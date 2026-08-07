@@ -121,9 +121,10 @@ export const ImageGenTool: React.FC = () => {
 
       <LoadingOverlay 
         isVisible={isGenerating} 
-        message="Creating your masterpiece..." 
+        message="Generating image with Gemini AI..." 
         error={errorMsg}
         onCloseError={() => setErrorMsg(null)}
+        onCancel={() => setIsGenerating(false)}
       />
 
       {/* MOBILE LAYOUT (md:hidden) */}

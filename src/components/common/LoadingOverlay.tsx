@@ -148,13 +148,13 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
               )}
             </motion.div>
           ) : (
-            // Loading Card (Sleek, Glass-like, Minimal)
+            // Loading Card (Polished dark modal overlay with red ring spinner & progress bar)
             <motion.div
-              initial={{ scale: 0.97, y: 10, opacity: 0 }}
+              initial={{ scale: 0.95, y: 10, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.97, y: 10, opacity: 0 }}
+              exit={{ scale: 0.95, y: 10, opacity: 0 }}
               transition={{ type: "spring", duration: 0.4 }}
-              className="w-full max-w-sm bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-slate-800/80 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] text-center space-y-6"
+              className="w-full max-w-sm bg-[#0f141c] text-white rounded-3xl border border-slate-800/90 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] text-center space-y-6"
             >
               {/* Animation Graphic Area */}
               <div className="flex justify-center relative py-2">
@@ -164,7 +164,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                       key="success"
                       initial={{ scale: 0.6, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="w-14 h-14 bg-emerald-500 dark:bg-emerald-500/20 rounded-full flex items-center justify-center text-white dark:text-emerald-400 shadow-lg shadow-emerald-500/10"
+                      className="w-14 h-14 bg-emerald-500/20 border border-emerald-500/40 rounded-full flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10"
                     >
                       <svg
                         className="w-7 h-7 stroke-current"
@@ -183,55 +183,55 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
                       </svg>
                     </motion.div>
                   ) : (
-                    <motion.div key="spinner" className="relative w-14 h-14">
-                      {/* Premium clean spinner */}
-                      <svg className="w-full h-full animate-spin text-primary" viewBox="0 0 50 50">
+                    <motion.div key="spinner" className="relative w-14 h-14 flex items-center justify-center">
+                      {/* Red ring spinner matching reference screenshot */}
+                      <svg className="w-full h-full animate-spin text-[#E5322D]" viewBox="0 0 50 50">
                         <circle
-                          className="opacity-15"
+                          className="opacity-20"
                           cx="25"
                           cy="25"
                           r="20"
                           stroke="currentColor"
-                          strokeWidth="3.5"
+                          strokeWidth="4"
                           fill="none"
                         />
                         <path
                           className="opacity-90"
                           fill="none"
                           stroke="currentColor"
-                          strokeWidth="3.5"
+                          strokeWidth="4"
                           strokeLinecap="round"
                           d="M25,5a20,20 0 0,1 20,20"
                         />
                       </svg>
-                      {/* Subtle elegant center core */}
-                      <div className="absolute inset-0 m-auto w-3.5 h-3.5 bg-primary/20 dark:bg-primary/40 rounded-full animate-pulse" />
+                      {/* Subtle center core dot */}
+                      <div className="absolute w-3 h-3 bg-[#E5322D] rounded-full shadow-[0_0_8px_rgba(229,50,45,0.8)]" />
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
               {/* Status and Description */}
-              <div className="space-y-1.5">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              <div className="space-y-2">
+                <h3 className="text-xl font-extrabold text-white tracking-tight leading-snug">
                   {showSuccess ? 'Success!' : message}
                 </h3>
-                <p className="text-xs font-semibold text-primary dark:text-primary/90 min-h-[18px] tracking-wide uppercase">
+                <p className="text-xs font-extrabold text-[#E5322D] uppercase tracking-widest min-h-[18px]">
                   {statusText}
                 </p>
               </div>
 
               {/* Progress Indicator */}
               <div className="space-y-2.5 pt-1">
-                <div className="flex justify-between items-center text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-                  <span>Progress</span>
-                  <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <div className="flex justify-between items-center text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                  <span>PROGRESS</span>
+                  <span className="font-mono text-xs font-bold text-slate-200">
                     {Math.round(currentProgress)}%
                   </span>
                 </div>
-                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-900 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-800/90 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-primary rounded-full relative"
+                    className="h-full bg-[#E5322D] rounded-full relative"
                     initial={{ width: 0 }}
                     animate={{ width: `${currentProgress}%` }}
                     transition={{ type: 'spring', stiffness: 80, damping: 15 }}
@@ -242,10 +242,10 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
               </div>
 
               {(cancelable !== false && onCancel && !showSuccess) && (
-                <div className="pt-2">
+                <div className="pt-1">
                   <button
                     onClick={onCancel}
-                    className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer"
+                    className="px-6 py-2.5 text-xs font-bold text-slate-300 hover:text-white transition-colors border border-slate-800/90 rounded-xl bg-slate-900/60 hover:bg-slate-800 cursor-pointer shadow-sm"
                   >
                     {cancelLabel}
                   </button>

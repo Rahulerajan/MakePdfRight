@@ -435,6 +435,8 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
         downloadUrl={resultUrl}
         downloadFileName={`split_${file.name}`}
         downloadLabel="Download Split PDF"
+        onBack={() => setResultUrl(null)}
+        backLabel="Back to Page Selection"
         onReset={() => {
           setResultUrl(null);
           if (onReset) onReset();
@@ -456,12 +458,13 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
       transition={{ duration: 0.25 }}
       className="flex flex-col h-full w-full bg-[#f3f4f6] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
     >
-      <LoadingOverlay isVisible={isProcessing} message="Loading document pages..." />
+      <LoadingOverlay isVisible={isProcessing} message="Loading document pages..." onCancel={() => setIsProcessing(false)} />
       <LoadingOverlay 
         isVisible={isExporting} 
-        message="Extracting pages..." 
+        message="Extracting & splitting pages..." 
         error={error}
         onCloseError={() => setError(null)}
+        onCancel={() => setIsExporting(false)}
       />
 
       {/* 1. TOP NAVBAR */}

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Lock, Cpu, Server, EyeOff, FileText, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, Lock, Cpu, Server, EyeOff, FileText } from 'lucide-react';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
+import { BackButton } from '../components/common/BackButton';
 
 export const Privacy: React.FC = () => {
   return (
@@ -13,13 +13,7 @@ export const Privacy: React.FC = () => {
         
         {/* Back Link */}
         <div>
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
-          </Link>
+          <BackButton label="Back to Home" />
         </div>
 
         {/* Header */}

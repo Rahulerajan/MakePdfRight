@@ -233,6 +233,8 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
         downloadUrl={resultUrl}
         downloadFileName="merged_document.pdf"
         downloadLabel={t('merge.download_btn')}
+        onBack={() => setResultUrl(null)}
+        backLabel="Back to Reorder PDFs"
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);
@@ -257,9 +259,10 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
     >
       <LoadingOverlay 
         isVisible={isProcessing} 
-        message={processingMessage} 
+        message={processingMessage || 'Merging your PDFs...'} 
         error={errorMsg}
         onCloseError={() => setErrorMsg(null)}
+        onCancel={() => setIsProcessing(false)}
       />
 
       {/* TOP NAVBAR */}

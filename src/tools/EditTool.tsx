@@ -40,6 +40,8 @@ import {
 import { CanvasElement } from './pdf-editor/CanvasElements';
 import { SidebarPanels } from './pdf-editor/SidebarPanels';
 import { HistoryService } from '../services/historyService';
+import { LoadingOverlay } from '../components/common/LoadingOverlay';
+import { BackButton } from '../components/common/BackButton';
 import { 
   EditorElement, 
   DrawingStroke, 
@@ -146,12 +148,13 @@ const sampleBackgroundColor = (pageUrl: string, runX: number, runY: number, runW
 
 interface EditToolProps {
   file: File;
+  onReset?: () => void;
 }
 
 // Global, reusable editor page preview cache to avoid redundant renders on navigate
 const editorPageCache = new Map<string, string>();
 
-export const EditTool: React.FC<EditToolProps> = ({ file }) => {
+export const EditTool: React.FC<EditToolProps> = ({ file, onReset }) => {
   // --- Loading / Base States ---
   const [pages, setPages] = useState<(string | null)[]>([]);
   const [pageConfigs, setPageConfigs] = useState<PageConfig[]>([]);
@@ -1380,43 +1383,14 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
         )}
       </AnimatePresence>
 
-      {/* Dynamic tactile multi-stage saving spinner sequence overlay */}
-      <AnimatePresence>
-        {isSaving && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-950/70 backdrop-blur-md z-[999] flex flex-col items-center justify-center gap-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl flex flex-col items-center gap-5 text-center border border-slate-100 dark:border-slate-800 max-w-sm"
-            >
-              <div className="relative w-12 h-12">
-                <RefreshCw className="w-12 h-12 text-primary animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-primary font-mono">
-                  PDF
-                </div>
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-slate-800 dark:text-slate-200 text-lg transition-all duration-300">
-                  {saveStatus}
-                </h3>
-                <p className="text-xs text-slate-400 max-w-[240px]">
-                  {saveStatus.includes('Preparing') && 'Aligning coordinate models...'}
-                  {saveStatus.includes('Applying') && 'Vectorizing fonts, strokes, and layouts...'}
-                  {saveStatus.includes('Generating') && 'Compiling binary PDF pages...'}
-                  {saveStatus.includes('Finalizing') && 'Optimizing web-view layers...'}
-                  {saveStatus.includes('complete') && 'Writing output file buffer...'}
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <LoadingOverlay isVisible={isProcessing} message="Loading PDF into editor..." />
+      <LoadingOverlay 
+        isVisible={isSaving} 
+        message={saveStatus || 'Saving edited PDF...'} 
+        error={error}
+        onCloseError={() => setError(null)}
+        onCancel={() => setIsSaving(false)}
+      />
 
       {/* ================= LEFT SIDEBAR: THUMBNAILS ================= */}
       <div className={`fixed lg:relative top-0 bottom-0 left-0 z-40 w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 flex flex-col h-full bg-white dark:bg-slate-900 select-none shrink-0 transition-transform duration-300 ${
@@ -1534,7 +1508,12 @@ export const EditTool: React.FC<EditToolProps> = ({ file }) => {
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200/80 dark:border-slate-800/80 p-3 flex flex-nowrap overflow-x-auto items-center justify-between gap-3 shrink-0 select-none scrollbar-none">
           
           {/* Left section: Doc Name & Search bar */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {onReset ? (
+              <BackButton onClick={onReset} label="" className="min-w-[36px] min-h-[36px] p-1.5 shrink-0" />
+            ) : (
+              <BackButton to="/" label="" className="min-w-[36px] min-h-[36px] p-1.5 shrink-0" />
+            )}
             {/* Pages Toggle Button (visible only below desktop) */}
             <button 
               onClick={() => setIsThumbnailsOpen(!isThumbnailsOpen)}

@@ -158,6 +158,8 @@ export const PDFToExcelTool: React.FC<PDFToExcelToolProps> = ({ file, onReset })
         downloadUrl={resultUrl}
         downloadFileName={`${file.name.replace('.pdf', '')}.xlsx`}
         downloadLabel="Download Excel"
+        onBack={() => setResultUrl(null)}
+        backLabel="Back to Options"
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);
@@ -181,9 +183,10 @@ export const PDFToExcelTool: React.FC<PDFToExcelToolProps> = ({ file, onReset })
     >
       <LoadingOverlay 
         isVisible={isProcessing} 
-        message="Extracting data to Excel..." 
+        message="Converting PDF to Excel (.xlsx)..." 
         error={error}
         onCloseError={() => setError(null)}
+        onCancel={() => setIsProcessing(false)}
       />
 
       {/* TOP NAVBAR */}

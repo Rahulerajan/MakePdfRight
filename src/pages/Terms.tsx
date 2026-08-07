@@ -1,8 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { FileCheck, ShieldAlert, Scale, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { FileCheck, ShieldAlert, Scale, AlertTriangle } from 'lucide-react';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
+import { BackButton } from '../components/common/BackButton';
 
 export const Terms: React.FC = () => {
   return (
@@ -12,13 +12,7 @@ export const Terms: React.FC = () => {
         
         {/* Back Link */}
         <div>
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
-          </Link>
+          <BackButton label="Back to Home" />
         </div>
 
         {/* Header */}

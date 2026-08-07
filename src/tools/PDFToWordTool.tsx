@@ -151,6 +151,8 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file, onReset }) =
         downloadUrl={resultUrl}
         downloadFileName={`${file.name.replace('.pdf', '')}.docx`}
         downloadLabel="Download Word"
+        onBack={() => setResultUrl(null)}
+        backLabel="Back to Options"
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);
@@ -174,9 +176,10 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file, onReset }) =
     >
       <LoadingOverlay 
         isVisible={isProcessing} 
-        message="Converting to Word..." 
+        message="Converting PDF to Word (.docx)..." 
         error={error}
         onCloseError={() => setError(null)}
+        onCancel={() => setIsProcessing(false)}
       />
 
       {/* TOP NAVBAR */}

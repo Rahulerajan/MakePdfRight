@@ -396,6 +396,8 @@ export const OrganiseTool: React.FC<OrganiseToolProps> = ({ file, onReset }) => 
         downloadUrl={resultUrl}
         downloadFileName={`organized_${file.name}`}
         downloadLabel="Download PDF"
+        onBack={() => setResultUrl(null)}
+        backLabel="Back to Organizer"
         onReset={() => {
           setResultUrl(null);
           if (onReset) onReset();
@@ -414,12 +416,13 @@ export const OrganiseTool: React.FC<OrganiseToolProps> = ({ file, onReset }) => 
       transition={{ duration: 0.25 }}
       className="flex flex-col h-full w-full bg-[#f8fafc] dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg"
     >
-      <LoadingOverlay isVisible={isProcessing} message="Parsing & preparing document..." />
+      <LoadingOverlay isVisible={isProcessing} message="Parsing & preparing document..." onCancel={() => setIsProcessing(false)} />
       <LoadingOverlay 
         isVisible={isSaving} 
-        message="Generating organized PDF..." 
+        message="Organizing PDF pages..." 
         error={error}
         onCloseError={() => setError(null)}
+        onCancel={() => setIsSaving(false)}
       />
 
       {/* TOP NAVBAR */}

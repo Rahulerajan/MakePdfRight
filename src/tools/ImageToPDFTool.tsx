@@ -152,6 +152,8 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles, on
         downloadUrl={resultUrl}
         downloadFileName="converted_images.pdf"
         downloadLabel="Download PDF"
+        onBack={() => setResultUrl(null)}
+        backLabel="Back to Reorder Images"
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);
@@ -176,9 +178,10 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles, on
     >
       <LoadingOverlay 
         isVisible={isProcessing} 
-        message="Converting images to PDF..." 
+        message="Converting images into PDF..." 
         error={error}
         onCloseError={() => setError(null)}
+        onCancel={() => setIsProcessing(false)}
       />
 
       {/* TOP NAVBAR */}

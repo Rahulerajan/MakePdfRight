@@ -202,6 +202,8 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
         downloadUrl={result.url}
         downloadFileName={`${file.name.replace('.pdf', '')}_images.zip`}
         downloadLabel="Download ZIP file"
+        onBack={() => setResult(null)}
+        backLabel="Back to Options"
         onReset={() => {
           if (result?.url) {
             URL.revokeObjectURL(result.url);
@@ -225,11 +227,12 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
     >
       <LoadingOverlay 
         isVisible={isProcessing} 
-        message="Converting pages to JPG..." 
+        message="Converting pages to JPG images..." 
         error={error}
         onCloseError={() => setError(null)}
+        onCancel={() => setIsProcessing(false)}
       />
-      <LoadingOverlay isVisible={isLoadingPreviews} message="Loading document..." />
+      <LoadingOverlay isVisible={isLoadingPreviews} message="Loading document..." onCancel={() => setIsLoadingPreviews(false)} />
 
       {/* TOP NAVBAR */}
       <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 sm:px-6 flex items-center justify-between shrink-0 z-10">

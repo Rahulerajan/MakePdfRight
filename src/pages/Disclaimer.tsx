@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { SEO } from '../components/common/SEO';
+import { BackButton } from '../components/common/BackButton';
 
 export const Disclaimer: React.FC = () => {
   return (
@@ -12,13 +12,7 @@ export const Disclaimer: React.FC = () => {
       />
       <div className="max-w-4xl mx-auto space-y-10">
         <div>
-          <Link 
-            to="/" 
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Home</span>
-          </Link>
+          <BackButton label="Back to Home" />
         </div>
 
         <div className="space-y-4 border-b border-slate-200 dark:border-slate-800 pb-8">
