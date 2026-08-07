@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -38,11 +37,14 @@ const MAX_PER_USER_CONCURRENT_JOBS = 5;
 const MAX_GLOBAL_CONCURRENT_JOBS = 25;
 
 export class JobService {
-  private static db: Database.Database;
+  private static db: any = null;
+  private static memoryJobs = new Map<string, Job>();
   private static onCancelMap = new Map<string, () => void>();
 
   static {
     try {
+      // Safely attempt to require better-sqlite3
+      const Database = require('better-sqlite3');
       const dbDir = path.resolve(os.tmpdir(), 'make-pdf-jobs');
       if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true, mode: 0o700 });
@@ -88,7 +90,8 @@ export class JobService {
 
       LoggingService.info(`JobService initialized with SQLite persistence at: ${dbPath}`);
     } catch (err) {
-      LoggingService.error('Failed to initialize SQLite for JobService', err);
+      LoggingService.warn('better-sqlite3 unavailable or failed to initialize. Falling back to in-memory job store for serverless environment:', err);
+      this.db = null;
     }
   }
 
@@ -97,20 +100,37 @@ export class JobService {
       throw new AppError(`Unsupported job type: '${type}'.`, 400);
     }
 
-    // Check concurrency limits
-    const globalActiveStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM jobs WHERE status IN ('pending', 'processing')");
-    const globalCount = (globalActiveStmt.get() as any)?.cnt || 0;
-    if (globalCount >= MAX_GLOBAL_CONCURRENT_JOBS) {
-      throw new AppError('Server busy: Maximum global concurrent jobs reached. Please try again shortly.', 429);
+    if (this.db) {
+      // Check concurrency limits in SQLite
+      const globalActiveStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM jobs WHERE status IN ('pending', 'processing')");
+      const globalCount = (globalActiveStmt.get() as any)?.cnt || 0;
+      if (globalCount >= MAX_GLOBAL_CONCURRENT_JOBS) {
+        throw new AppError('Server busy: Maximum global concurrent jobs reached. Please try again shortly.', 429);
+      }
+
+      const userActiveStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM jobs WHERE owner_id = ? AND status IN ('pending', 'processing')");
+      const userCount = (userActiveStmt.get(ownerId) as any)?.cnt || 0;
+      if (userCount >= MAX_PER_USER_CONCURRENT_JOBS) {
+        throw new AppError(`User limit reached: You have ${userCount} active jobs running. Please wait for them to finish.`, 429);
+      }
+    } else {
+      // Check concurrency limits in Memory
+      let globalCount = 0;
+      let userCount = 0;
+      for (const j of this.memoryJobs.values()) {
+        if (j.status === 'pending' || j.status === 'processing') {
+          globalCount++;
+          if (j.ownerId === ownerId) userCount++;
+        }
+      }
+      if (globalCount >= MAX_GLOBAL_CONCURRENT_JOBS) {
+        throw new AppError('Server busy: Maximum global concurrent jobs reached. Please try again shortly.', 429);
+      }
+      if (userCount >= MAX_PER_USER_CONCURRENT_JOBS) {
+        throw new AppError(`User limit reached: You have ${userCount} active jobs running. Please wait for them to finish.`, 429);
+      }
     }
 
-    const userActiveStmt = this.db.prepare("SELECT COUNT(*) as cnt FROM jobs WHERE owner_id = ? AND status IN ('pending', 'processing')");
-    const userCount = (userActiveStmt.get(ownerId) as any)?.cnt || 0;
-    if (userCount >= MAX_PER_USER_CONCURRENT_JOBS) {
-      throw new AppError(`User limit reached: You have ${userCount} active jobs running. Please wait for them to finish.`, 429);
-    }
-
-    // Use cryptographically secure UUID for job IDs
     const jobId = crypto.randomUUID();
     const now = new Date();
     const job: Job = {
@@ -122,15 +142,19 @@ export class JobService {
       createdAt: now
     };
 
-    try {
-      const stmt = this.db.prepare(`
-        INSERT INTO jobs (id, type, owner_id, status, progress, cancel_requested, created_at)
-        VALUES (?, ?, ?, ?, ?, 0, ?)
-      `);
-      stmt.run(job.id, job.type, job.ownerId, job.status, job.progress, now.toISOString());
-    } catch (err) {
-      LoggingService.error(`Failed to insert job ${jobId} into SQLite:`, err);
-      throw new AppError('Failed to initialize processing job.', 500);
+    if (this.db) {
+      try {
+        const stmt = this.db.prepare(`
+          INSERT INTO jobs (id, type, owner_id, status, progress, cancel_requested, created_at)
+          VALUES (?, ?, ?, ?, ?, 0, ?)
+        `);
+        stmt.run(job.id, job.type, job.ownerId, job.status, job.progress, now.toISOString());
+      } catch (err) {
+        LoggingService.error(`Failed to insert job ${jobId} into SQLite:`, err);
+        throw new AppError('Failed to initialize processing job.', 500);
+      }
+    } else {
+      this.memoryJobs.set(jobId, { ...job });
     }
 
     LoggingService.info(`Created async job: ${jobId} (type=${type}, owner=${ownerId})`);
@@ -138,6 +162,14 @@ export class JobService {
   }
 
   static getJob(id: string, ownerId: string = 'anonymous'): Job | undefined {
+    if (!this.db) {
+      const j = this.memoryJobs.get(id);
+      if (j && (j.ownerId === ownerId || ownerId === 'anonymous' || j.ownerId === 'anonymous')) {
+        return j;
+      }
+      return undefined;
+    }
+
     try {
       const stmt = this.db.prepare('SELECT * FROM jobs WHERE id = ? AND owner_id = ?');
       const row = stmt.get(id, ownerId) as any;
@@ -188,17 +220,31 @@ export class JobService {
       this.onCancelMap.set(id, updates.onCancel);
     }
 
-    const status = updates.status !== undefined ? updates.status : current.status;
-    const progress = updates.progress !== undefined ? updates.progress : current.progress;
-    const error = updates.error !== undefined ? updates.error : current.error;
-    const cancelReq = updates.cancelRequested !== undefined ? (updates.cancelRequested ? 1 : 0) : (current.cancelRequested ? 1 : 0);
+    const updatedJob: Job = {
+      ...current,
+      ...updates,
+      status: updates.status !== undefined ? updates.status : current.status,
+      progress: updates.progress !== undefined ? updates.progress : current.progress,
+      error: updates.error !== undefined ? updates.error : current.error,
+      cancelRequested: updates.cancelRequested !== undefined ? updates.cancelRequested : current.cancelRequested
+    };
+
+    if (!this.db) {
+      this.memoryJobs.set(id, updatedJob);
+      LoggingService.info(`Updated job ${id} in memory: status=${updatedJob.status}, progress=${updatedJob.progress}`);
+      return;
+    }
+
+    const status = updatedJob.status;
+    const progress = updatedJob.progress;
+    const error = updatedJob.error;
+    const cancelReq = updatedJob.cancelRequested ? 1 : 0;
 
     let resultJson: string | null = null;
     let resultFilePath: string | null = current.resultFilePath || null;
 
     if (updates.result !== undefined) {
       const jsonStr = JSON.stringify(updates.result);
-      // Store large job result (>50KB) to temporary file instead of SQLite text column
       if (jsonStr.length > 50000) {
         try {
           const writtenPath = StorageService.writeTempFile(Buffer.from(jsonStr, 'utf-8'), `job_${id}_result.json`);
@@ -235,6 +281,19 @@ export class JobService {
         return false;
       }
 
+      if (!this.db) {
+        job.status = 'cancelled';
+        job.cancelRequested = true;
+        this.memoryJobs.set(id, job);
+        const onCancel = this.onCancelMap.get(id);
+        if (onCancel) {
+          onCancel();
+          this.onCancelMap.delete(id);
+        }
+        LoggingService.info(`Cancelled job ${id} for owner ${ownerId} in memory`);
+        return true;
+      }
+
       try {
         const stmt = this.db.prepare(`
           UPDATE jobs
@@ -259,13 +318,20 @@ export class JobService {
     return false;
   }
 
-  // Auto clean up old jobs (older than 15 minutes) and associated files
   static startCleanupTimer() {
     setInterval(() => {
       try {
-        const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-        
-        // Find result files to delete
+        const cutoffTime = Date.now() - 15 * 60 * 1000;
+        if (!this.db) {
+          for (const [id, j] of this.memoryJobs.entries()) {
+            if (j.createdAt.getTime() < cutoffTime) {
+              this.memoryJobs.delete(id);
+            }
+          }
+          return;
+        }
+
+        const cutoff = new Date(cutoffTime).toISOString();
         const selectStmt = this.db.prepare("SELECT result_file_path FROM jobs WHERE created_at < ? AND result_file_path IS NOT NULL");
         const rows = selectStmt.all(cutoff) as any[];
         for (const r of rows) {
@@ -278,15 +344,14 @@ export class JobService {
         const info = deleteStmt.run(cutoff);
         if (info.changes > 0) {
           LoggingService.info(`Auto-cleaned ${info.changes} stale job(s) and associated files from SQLite database.`);
-          // Run SQLite incremental VACUUM / PRAGMA optimize
           this.db.exec('PRAGMA optimize;');
         }
       } catch (err) {
-        LoggingService.error('Error cleaning up stale jobs from SQLite:', err);
+        LoggingService.error('Error cleaning up stale jobs:', err);
       }
-    }, 60000); // Check every 60 seconds
+    }, 60000);
   }
 }
 
-// Start cleanup timer
 JobService.startCleanupTimer();
+

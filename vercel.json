@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/api/pdf/job/status/:jobId",
+      "destination": "/api/pdf/job/status?jobId=:jobId"
+    },
+    {
+      "source": "/api/pdf/job/cancel/:jobId",
+      "destination": "/api/pdf/job/cancel?jobId=:jobId"
+    },
+    {
+      "source": "/((?!api/|assets/|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
