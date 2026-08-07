@@ -201,7 +201,7 @@ export const Home = () => {
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('standard_pdf_tools_heading')}</h2>
           </div>
-          <div className="tools-grid-responsive">
+          <div className="tools-grid-responsive items-stretch">
             {localizedTools.map((tool, idx) => (
               <motion.div
                 key={tool.id}
@@ -209,25 +209,25 @@ export const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="h-full"
+                className="h-full flex flex-col"
               >
                 <Link 
                   to={tool.path}
                   className="group relative flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 transition-all duration-300 hover:border-primary/40 dark:hover:border-primary/40 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] justify-between"
                 >
-                  <div className="flex flex-col items-center text-center w-full">
+                  <div className="flex flex-col items-center text-center w-full flex-1">
                     <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 ${tool.color}`}>
                       {tool.icon}
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary transition-colors line-clamp-1 w-full text-center">
                       {tool.name}
                     </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium line-clamp-3 h-[72px] text-center w-full">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium line-clamp-3 text-center w-full">
                       {tool.description}
                     </p>
                   </div>
 
-                  <div className="w-full mt-auto pt-4">
+                  <div className="w-full mt-auto pt-5">
                     <div className="w-full py-3 px-4 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 group-hover:bg-primary group-hover:text-white text-sm font-bold rounded-2xl transition-all duration-300 flex items-center justify-center gap-1.5 border border-slate-100 dark:border-slate-800">
                       <span>{getStartedText}</span>
                     </div>

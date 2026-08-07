@@ -181,14 +181,14 @@ export const ToolSEOContent: React.FC<ToolSEOContentProps> = ({ data }) => {
             <FileText className="w-5 h-5 text-primary" />
             Explore Related PDF & AI Tools
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
             {data.relatedTools.map((rt, i) => (
               <Link 
                 key={i} 
                 to={rt.path}
-                className="group p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-primary dark:hover:border-primary rounded-2xl transition-all shadow-sm flex flex-col justify-between"
+                className="group p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-primary dark:hover:border-primary rounded-2xl transition-all shadow-sm flex flex-col h-full justify-between"
               >
-                <div>
+                <div className="flex-1">
                   <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors text-sm mb-1">
                     {rt.name}
                   </h4>
@@ -196,7 +196,7 @@ export const ToolSEOContent: React.FC<ToolSEOContentProps> = ({ data }) => {
                     {rt.desc}
                   </p>
                 </div>
-                <div className="mt-3 text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                <div className="mt-auto pt-3 text-xs font-bold text-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                   <span>Open Tool →</span>
                 </div>
               </Link>
