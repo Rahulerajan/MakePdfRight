@@ -42,6 +42,7 @@ import { SidebarPanels } from './pdf-editor/SidebarPanels';
 import { HistoryService } from '../services/historyService';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { BackButton } from '../components/common/BackButton';
+import { AdUnit } from '../components/ads/AdUnit';
 import { 
   EditorElement, 
   DrawingStroke, 
@@ -1358,6 +1359,9 @@ export const EditTool: React.FC<EditToolProps> = ({ file, onReset }) => {
           >
             ← Return to Editor Workspace
           </button>
+
+          {/* Result Screen Ad Unit */}
+          <AdUnit format="in-content" className="w-full max-w-md mx-auto mt-6" />
         </div>
       </div>
     );

@@ -96,7 +96,7 @@ export const ToolPage: React.FC<ToolPageProps> = ({
       {stage === 1 ? (
         <div className="flex-1 py-4 sm:py-6 md:py-10 px-4 md:px-6 flex flex-col justify-start md:justify-center">
           <div className="container-custom relative w-full pt-1 sm:pt-0">
-            <div className="mb-4 sm:mb-6 max-w-4xl mx-auto">
+            <div className="mb-4 sm:mb-6 max-w-6xl mx-auto">
               <BackButton label={t('back_home')} />
             </div>
 
@@ -106,26 +106,39 @@ export const ToolPage: React.FC<ToolPageProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.25 }}
-              className="space-y-6 md:space-y-8 max-w-4xl mx-auto"
+              className="w-full flex items-start justify-center gap-4 lg:gap-8 max-w-7xl mx-auto"
             >
-              <div className="text-center space-y-3">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">{displayTitle}</h1>
-                <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">{displayDesc}</p>
+              {/* Left Skyscraper Ad - Visible on lg+ screens */}
+              <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
+                <AdUnit format="skyscraper" />
               </div>
 
-              <FileUpload 
-                onFilesSelected={handleFilesSelected} 
-                multiple={multiple}
-                accept={accept}
-              />
+              {/* Main Content Column */}
+              <div className="flex-1 max-w-2xl min-w-0 space-y-6 md:space-y-8">
+                <div className="text-center space-y-3">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">{displayTitle}</h1>
+                  <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">{displayDesc}</p>
+                </div>
 
-              {/* In-Content Ad Placement Below Upload */}
-              <AdUnit format="in-content" className="max-w-3xl mx-auto" />
+                <FileUpload 
+                  onFilesSelected={handleFilesSelected} 
+                  multiple={multiple}
+                  accept={accept}
+                />
 
-              {/* Comprehensive Tool SEO Content */}
-              {toolSeoContent && (
-                <ToolSEOContent data={toolSeoContent} />
-              )}
+                {/* Thin Ad Banner directly below Upload Button/Zone */}
+                <AdUnit format="thin-banner" className="my-2" />
+
+                {/* Comprehensive Tool SEO Content */}
+                {toolSeoContent && (
+                  <ToolSEOContent data={toolSeoContent} />
+                )}
+              </div>
+
+              {/* Right Skyscraper Ad - Visible on lg+ screens */}
+              <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
+                <AdUnit format="skyscraper" />
+              </div>
             </motion.div>
           </div>
         </div>

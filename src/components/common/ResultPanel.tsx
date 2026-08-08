@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, CheckCircle2 } from 'lucide-react';
 import { BackButton } from './BackButton';
+import { AdUnit } from '../ads/AdUnit';
 
 export interface ResultDetail {
   icon?: React.ReactNode;
@@ -96,6 +97,9 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
           {resetLabel}
         </button>
       </div>
+
+      {/* Result Screen Ad Unit */}
+      <AdUnit format="in-content" className="w-full max-w-md mx-auto mt-4" />
     </div>
   );
 };

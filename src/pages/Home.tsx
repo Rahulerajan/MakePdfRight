@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../components/LanguageContext';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
-import { AdUnit } from '../components/ads/AdUnit';
 import { 
   FileStack, 
   Scissors, 
@@ -187,11 +186,6 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* Top Ad Unit Below Hero */}
-      <div className="container-custom py-2">
-        <AdUnit format="top-banner" />
-      </div>
-
       {/* PDF Tools Section */}
       <section id="tools" className="w-full pt-4 pb-12">
         <div className="container-custom">
@@ -244,11 +238,6 @@ export const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* In-Content Ad Between Grid and FAQs */}
-      <div className="container-custom py-2">
-        <AdUnit format="in-content" />
-      </div>
 
       {/* Homepage FAQ Section */}
       <section className="w-full py-12 bg-white dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">

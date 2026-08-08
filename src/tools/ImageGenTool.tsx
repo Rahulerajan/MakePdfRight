@@ -20,6 +20,7 @@ import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
 import { BackButton } from '../components/common/BackButton';
+import { AdUnit } from '../components/ads/AdUnit';
 
 interface AspectRatioOption {
   value: string;
@@ -209,6 +210,9 @@ export const ImageGenTool: React.FC = () => {
               <span>{isGenerating ? "Generating Custom Image..." : "✨ Generate Image"}</span>
             </button>
 
+            {/* Thin Ad Banner directly below Generate Button */}
+            <AdUnit format="thin-banner" className="w-full my-2" />
+
             {/* Trust Note */}
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
               <span>🔒 Images are not stored after generation</span>
@@ -266,6 +270,9 @@ export const ImageGenTool: React.FC = () => {
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
               <span>🔒 Images are not stored after generation</span>
             </div>
+
+            {/* Result Screen Ad Unit */}
+            <AdUnit format="in-content" className="w-full mt-3" />
           </div>
         )}
       </div>
@@ -279,9 +286,14 @@ export const ImageGenTool: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
+        <div className="w-full flex items-start justify-center gap-4 lg:gap-8">
+          {/* Left Skyscraper Ad - Visible on lg+ screens */}
+          <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
+            <AdUnit format="skyscraper" />
+          </div>
+
           {/* Left/Main Column: Form & Result */}
-          <div className="flex-1 space-y-8 w-full">
+          <div className="flex-1 max-w-2xl space-y-8 w-full min-w-0">
             {/* Form Card */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-8">
             
@@ -340,6 +352,11 @@ export const ImageGenTool: React.FC = () => {
             </button>
           </div>
 
+          {/* Thin Ad Banner directly below Form Card / Generate Button */}
+          {!resultUrl && (
+            <AdUnit format="thin-banner" className="w-full my-2" />
+          )}
+
           {/* Result Showcase Card */}
           <AnimatePresence>
             {resultUrl && (
@@ -385,6 +402,9 @@ export const ImageGenTool: React.FC = () => {
                 <p className="text-xs text-center text-slate-400 dark:text-slate-500 font-medium">
                   Tip: Right-click the image and click "Save Image As..." if the automated download is blocked in your iframe browser.
                 </p>
+
+                {/* Result Screen Ad Unit */}
+                <AdUnit format="in-content" className="w-full mt-4" />
               </motion.div>
             )}
           </AnimatePresence>
@@ -437,6 +457,11 @@ export const ImageGenTool: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Right Skyscraper Ad - Visible on lg+ screens */}
+        <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
+          <AdUnit format="skyscraper" />
         </div>
       </div>
     </div>

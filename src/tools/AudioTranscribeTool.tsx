@@ -23,6 +23,7 @@ import {
 import { transcribeAudio } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { FileUpload } from '../components/common/FileUpload';
+import { AdUnit } from '../components/ads/AdUnit';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
 import { useLanguage } from '../components/LanguageContext';
@@ -581,7 +582,15 @@ export const AudioTranscribeTool: React.FC = () => {
         </p>
       </div>
 
-      {/* SINGLE PANEL FLOW ACROSS ALL 4 STATES */}
+      <div className="w-full flex items-start justify-center gap-4 lg:gap-8 max-w-7xl mx-auto">
+        {/* Left Skyscraper Ad - Visible on lg+ screens */}
+        <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
+          <AdUnit format="skyscraper" />
+        </div>
+
+        {/* Center Main Content */}
+        <div className="flex-1 max-w-2xl min-w-0 w-full">
+          {/* SINGLE PANEL FLOW ACROSS ALL 4 STATES */}
       
       {/* 3. PROCESSING STATE */}
       {isProcessing ? (
@@ -904,6 +913,18 @@ export const AudioTranscribeTool: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Thin Ad Banner directly below Input Card */}
+      {!transcription && !isProcessing && (
+        <AdUnit format="thin-banner" className="my-3" />
+      )}
+        </div>
+
+        {/* Right Skyscraper Ad - Visible on lg+ screens */}
+        <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
+          <AdUnit format="skyscraper" />
+        </div>
+      </div>
     </div>
   );
 };
