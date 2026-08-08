@@ -38,14 +38,16 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   children
 }) => {
   return (
-    <div className="flex flex-col h-full w-full min-h-0">
+    <div className="flex flex-col h-full w-full max-w-4xl mx-auto min-h-0">
       {/* Top Header Navigation Bar */}
-      <div className="w-full flex items-center justify-between pb-2 mb-4 shrink-0">
-        <BackButton 
-          onClick={onBack || onReset} 
-          label={backLabel}
-        />
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+      <div className="w-full flex items-center justify-between gap-3 pb-2 mb-3 shrink-0 min-w-0">
+        <div className="min-w-0 shrink-0">
+          <BackButton 
+            onClick={onBack || onReset} 
+            label={backLabel}
+          />
+        </div>
+        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate min-w-0 text-right">
           Processing Complete
         </span>
       </div>

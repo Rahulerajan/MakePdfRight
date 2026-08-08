@@ -220,10 +220,12 @@ export const ImageGenTool: React.FC = () => {
           </div>
         ) : (
           /* Mobile Result State */
-          <div className="flex flex-col space-y-4">
-            <div className="w-full flex items-center justify-between pb-2">
-              <BackButton onClick={() => setResultUrl(null)} label="Back" />
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Image Ready</span>
+          <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-0 space-y-3">
+            <div className="w-full flex items-center justify-between gap-3 pb-2 shrink-0 min-w-0">
+              <div className="min-w-0 shrink-0">
+                <BackButton onClick={() => setResultUrl(null)} label="Back" />
+              </div>
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate min-w-0 text-right">Image Ready</span>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm space-y-3.5">
               {/* Generated Image */}
@@ -359,10 +361,12 @@ export const ImageGenTool: React.FC = () => {
           {/* Result Showcase Card */}
           <AnimatePresence>
             {resultUrl && (
-              <div className="flex flex-col space-y-4">
-                <div className="w-full flex items-center justify-between pb-2">
-                  <BackButton onClick={() => setResultUrl(null)} label="Back" />
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Image Ready</span>
+              <div className="flex flex-col h-full w-full max-w-4xl mx-auto min-h-0 space-y-3">
+                <div className="w-full flex items-center justify-between gap-3 pb-2 shrink-0 min-w-0">
+                  <div className="min-w-0 shrink-0">
+                    <BackButton onClick={() => setResultUrl(null)} label="Back" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate min-w-0 text-right">Image Ready</span>
                 </div>
                 <motion.div
                   initial={{ opacity: 0, y: 24 }}
