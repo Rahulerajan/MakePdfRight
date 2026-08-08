@@ -7,6 +7,7 @@ export interface ToolSEOData {
   toolName: string;
   category: string;
   overview: string;
+  topBody?: string[];
   howItWorks: { step: number; title: string; desc: string }[];
   benefits: { title: string; desc: string }[];
   useCases: string[];

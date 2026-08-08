@@ -54,8 +54,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Splitting multi-page invoices into separate files for accounting'
     ],
     faqs: [
-      { question: 'Can I split password-protected PDFs?', answer: 'If you know the password, you can unlock and split the file seamlessly.' },
-      { question: 'How many pages can I extract at once?', answer: 'There is no limit on page count. You can extract individual pages or whole ranges.' }
+      {
+        question: 'Can I extract just a few specific pages instead of splitting the whole file?',
+        answer: 'Yes, you can select individual pages or custom ranges to extract into a new PDF.'
+      },
+      {
+        question: 'Does splitting reduce the quality of my pages?',
+        answer: 'No, pages are extracted exactly as they appear in the original file with no re-compression.'
+      },
+      {
+        question: 'Is there a limit to how many pages I can split at once?',
+        answer: 'No — the tool handles PDFs of any page count entirely in your browser.'
+      }
     ],
     relatedTools: [
       { name: 'Merge PDF', path: '/merge', desc: 'Combine extracted pages back into a single document.' },
@@ -82,8 +92,22 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Optimizing portfolio PDFs before submitting to online job portals'
     ],
     faqs: [
-      { question: 'Will compressing my PDF affect text quality?', answer: 'No! Text vectors and fonts remain 100% sharp. Only high-resolution bitmap images are optimized.' },
-      { question: 'How much file size reduction can I expect?', answer: 'Depending on embedded image resolution, compression typically reduces file size by 30% to 80%.' }
+      {
+        question: 'How much can compression reduce my file size?',
+        answer: 'Results vary by file, but PDFs with embedded images typically shrink by 30-70%.'
+      },
+      {
+        question: 'Will compressing my PDF make the text blurry?',
+        answer: 'No, text and fonts stay crisp — compression primarily targets embedded images.'
+      },
+      {
+        question: 'Is my file uploaded to a server, or processed locally?',
+        answer: 'Files are processed securely and automatically deleted shortly after — see our privacy details on the homepage.'
+      },
+      {
+        question: 'Can I choose the compression level?',
+        answer: 'Yes, you can select a compression strength based on how much size reduction you need.'
+      }
     ],
     relatedTools: [
       { name: 'PDF to JPG', path: '/pdf-to-jpg', desc: 'Convert PDF pages directly into compressed JPG images.' },
@@ -110,7 +134,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Extracting editable quotes and clauses for legal drafting'
     ],
     faqs: [
-      { question: 'Is the converted Word document editable in Microsoft Word?', answer: 'Yes! The output is a standard .docx file editable in MS Word, Google Docs, or LibreOffice.' }
+      {
+        question: 'Will the converted Word document keep the original formatting?',
+        answer: 'Yes, text, layout, and structure are preserved as closely as possible during conversion.'
+      },
+      {
+        question: 'Can I edit the Word file after converting?',
+        answer: 'Yes, the output is a fully editable .docx file, not a locked or image-based document.'
+      },
+      {
+        question: 'Does this work with scanned PDFs?',
+        answer: 'Best results come from text-based PDFs; heavily scanned documents may need OCR for full text editability.'
+      }
     ],
     relatedTools: [
       { name: 'PDF to Excel', path: '/pdf-to-excel', desc: 'Extract financial tables and spreadsheets from PDF to XLSX.' },
@@ -136,7 +171,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Extracting scientific survey data tables into spreadsheets'
     ],
     faqs: [
-      { question: 'Does this tool support scanned table PDFs?', answer: 'Yes! Our built-in OCR engine recognizes characters inside scanned image tables.' }
+      {
+        question: 'Will tables convert accurately into Excel rows and columns?',
+        answer: 'Yes, the tool detects table structures and maps them into proper spreadsheet cells.'
+      },
+      {
+        question: 'Can I edit the spreadsheet after conversion?',
+        answer: 'Yes, the output is a standard editable .xlsx file.'
+      },
+      {
+        question: 'Does this work for PDFs without tables?',
+        answer: 'Yes, general text and data will still convert, though structured tables give the cleanest results.'
+      }
     ],
     relatedTools: [
       { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert entire document text to editable Word files.' }
@@ -160,7 +206,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Inserting PDF diagrams into PowerPoint presentations'
     ],
     faqs: [
-      { question: 'Are the images high resolution?', answer: 'Yes, images are generated at standard 300 DPI equivalent quality.' }
+      {
+        question: 'Can I convert just one page instead of the whole PDF?',
+        answer: 'Yes, you can select specific pages to convert to JPG.'
+      },
+      {
+        question: 'What image quality can I choose?',
+        answer: 'You can adjust JPG quality to balance file size and image clarity.'
+      },
+      {
+        question: 'Can I download all converted images at once?',
+        answer: 'Yes, converted JPGs can be downloaded individually or as a ZIP file.'
+      }
     ],
     relatedTools: [
       { name: 'Image to PDF', path: '/image-to-pdf', desc: 'Convert JPG or PNG images back into a unified PDF.' }
@@ -184,7 +241,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Creating digital photo portfolios or catalog PDFs from image files'
     ],
     faqs: [
-      { question: 'Can I combine multiple JPG files into one PDF?', answer: 'Yes, you can upload dozens of photos and combine them into a single PDF.' }
+      {
+        question: 'Can I combine multiple images into a single PDF?',
+        answer: 'Yes, you can upload several images and merge them into one PDF file.'
+      },
+      {
+        question: 'Can I reorder images before creating the PDF?',
+        answer: 'Yes, drag and drop to arrange images in your preferred order.'
+      },
+      {
+        question: 'What image formats are supported?',
+        answer: 'JPG, PNG, and most common image formats are supported.'
+      }
     ],
     relatedTools: [
       { name: 'PDF to JPG', path: '/pdf-to-jpg', desc: 'Extract JPG images from your PDF files.' }
@@ -208,7 +276,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Adding approval stamps, notes, or highlighting key text'
     ],
     faqs: [
-      { question: 'Can I add my signature to a PDF?', answer: 'Yes! Draw or upload your digital signature and place it anywhere on the document.' }
+      {
+        question: 'Can I add text to an existing PDF?',
+        answer: 'Yes, you can insert new text anywhere on any page.'
+      },
+      {
+        question: 'Are my edits saved permanently in the downloaded file?',
+        answer: 'Yes, all edits and annotations are baked into the final downloaded PDF.'
+      },
+      {
+        question: 'Do I need to install any software to edit my PDF?',
+        answer: 'No, editing happens entirely in your browser.'
+      }
     ],
     relatedTools: [
       { name: 'Rotate PDF', path: '/rotate', desc: 'Rotate document pages before editing.' }
@@ -230,7 +309,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Fixing sideways scanned pages or upside-down mobile document scans'
     ],
     faqs: [
-      { question: 'Can I rotate only a specific page in a large PDF?', answer: 'Yes, you can select and rotate individual pages independently.' }
+      {
+        question: 'Can I rotate just one page instead of the whole document?',
+        answer: 'Yes, you can rotate individual pages or apply rotation to the entire file.'
+      },
+      {
+        question: 'Does rotating a PDF affect its quality?',
+        answer: 'No, rotation doesn\'t re-compress or alter page content — only orientation changes.'
+      },
+      {
+        question: 'Can I fix a scanned document that\'s upside down?',
+        answer: 'Yes, this works for both digitally-created and scanned PDFs.'
+      }
     ],
     relatedTools: [
       { name: 'Organize PDF', path: '/organise', desc: 'Reorder, delete, and manage PDF pages.' }
@@ -252,7 +342,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Deleting blank pages or reordering chapters in large reports'
     ],
     faqs: [
-      { question: 'Can I delete pages from a PDF?', answer: 'Yes, simply hover over any page thumbnail and click delete.' }
+      {
+        question: 'Can I delete pages while reorganizing my PDF?',
+        answer: 'Yes, you can remove unwanted pages directly in the same visual editor.'
+      },
+      {
+        question: 'Do I need to download software to reorder pages?',
+        answer: 'No, everything happens in your browser — no installation required.'
+      },
+      {
+        question: 'Will reordering affect page quality or formatting?',
+        answer: 'No, pages keep their original formatting and quality; only their order changes.'
+      }
     ],
     relatedTools: [
       { name: 'Merge PDF', path: '/merge', desc: 'Combine multiple PDFs into one.' }
@@ -276,7 +377,18 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Creating concept artwork, avatars, and social media banners'
     ],
     faqs: [
-      { question: 'Are generated images free to use commercially?', answer: 'Yes! Images generated through our AI model can be downloaded and used freely.' }
+      {
+        question: 'Is the AI image generator really free to use?',
+        answer: 'Yes, generating images is free with no account or subscription required.'
+      },
+      {
+        question: 'Can I control the image\'s aspect ratio?',
+        answer: 'Yes, you can choose from multiple aspect ratio options before generating.'
+      },
+      {
+        question: 'Can I use generated images commercially?',
+        answer: 'Check the usage rights noted on the generation screen, as this may vary by use case.'
+      }
     ],
     relatedTools: [
       { name: 'Audio Transcription', path: '/transcribe', desc: 'Convert audio recordings to text with AI.' }
@@ -298,10 +410,121 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Transcribing recorded interviews, podcasts, meeting notes, and lectures'
     ],
     faqs: [
-      { question: 'What audio formats are supported?', answer: 'We support MP3, WAV, M4A, AAC, WEBP, and OGG audio recordings.' }
+      {
+        question: 'What audio formats are supported?',
+        answer: 'Most common formats including MP3, WAV, and M4A are supported.'
+      },
+      {
+        question: 'Can I transcribe audio in languages other than English?',
+        answer: 'Yes, multiple languages are supported — select yours before transcribing.'
+      },
+      {
+        question: 'How accurate is the transcription?',
+        answer: 'Accuracy is high for clear audio; background noise or overlapping speech may reduce accuracy.'
+      }
     ],
     relatedTools: [
       { name: 'AI Image Generator', path: '/generate-image', desc: 'Generate images from text prompts.' }
+    ]
+  },
+  '/compress-pdf-to-100kb': {
+    toolName: 'Compress PDF to 100KB',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight 100KB PDF Compressor helps you reduce document size to fit strict 100KB upload limits required by government forms, university portals, and job applications without losing legibility.',
+    topBody: [
+      'Many official job portals, university admissions systems, government visa applications, and tax filing platforms strictly enforce a maximum PDF upload limit of 100KB. Attempting to submit files larger than 100KB often results in immediate upload errors or rejected applications. MakePDFRight provides an instant, free online solution designed specifically to compress PDF files down to 100KB while preserving legibility and key visual details.',
+      'Our browser-first compression engine analyzes your PDF document structure, optimizing stream data, removing unnecessary embedded metadata, and intelligently downsampling images to achieve maximum size reduction. Because processing happens locally in your browser context, your sensitive personal documents—such as passports, diplomas, tax forms, and financial statements—remain completely private and secured.',
+      'Whether you need to reduce a multi-page scanned document or an image-heavy resume, our PDF compressor lets you fine-tune compression levels to reach your targeted 100KB threshold effortlessly without needing complex software installation.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Your PDF', desc: 'Drag and drop or choose your PDF file needing compression to 100KB.' },
+      { step: 2, title: 'Select Compression', desc: 'Choose high compression settings optimized for strict 100KB file caps.' },
+      { step: 3, title: 'Download < 100KB PDF', desc: 'Save your compressed PDF immediately with exact file size display.' }
+    ],
+    benefits: [
+      { title: 'Pass Strict Upload Limits', desc: 'Guarantees compliance with 100KB caps on official web forms and portals.' },
+      { title: 'Preserves Readability', desc: 'Vector text and fonts remain sharp while reducing background image data.' },
+      { title: 'Private & Secure', desc: 'Files process safely in temporary memory and are deleted automatically.' },
+      { title: 'Works on All Devices', desc: 'Compress PDFs to 100KB on mobile, tablet, Windows, Mac, or Linux.' }
+    ],
+    useCases: [
+      'Uploading ID proofs, certificates, and resumes to government job portals',
+      'Submitting passport scans and visas on embassy application forms',
+      'Attaching transcripts to university admissions portals with 100KB file caps',
+      'Sending receipts and tax documents via restricted email webmasters'
+    ],
+    faqs: [
+      {
+        question: 'How do I compress a PDF file to 100KB or less?',
+        answer: 'Simply upload your PDF document to MakePDFRight\'s 100KB PDF compressor. Our automated algorithm downsamples images, cleans redundant data streams, and optimizes file compression so your document fits under the 100KB threshold while keeping text sharp and readable.'
+      },
+      {
+        question: 'Is it safe to compress confidential documents like passports to 100KB here?',
+        answer: 'Yes! MakePDFRight processes your documents using client-side in-browser web technology and encrypted secure connections. Your sensitive files are never permanently stored or shared, ensuring 100% privacy for government forms and personal IDs.'
+      },
+      {
+        question: 'Will compressing my PDF to 100KB ruin the text quality?',
+        answer: 'No, text fonts and vector shapes are kept intact and rendered with crisp vector accuracy. Compression primarily optimizes high-resolution bitmap images and metadata, so your document remains clean and fully legible.'
+      },
+      {
+        question: 'What should I do if my PDF is still larger than 100KB after compression?',
+        answer: 'If a document contains dozens of high-res color scans, try removing unnecessary pages using our Split PDF tool or selecting extreme compression mode to reduce image resolution further to hit the 100KB limit.'
+      }
+    ],
+    relatedTools: [
+      { name: 'Compress PDF', path: '/compress', desc: 'General PDF compressor for reducing overall document sizes.' },
+      { name: 'Split PDF', path: '/split', desc: 'Remove unnecessary pages to help reach strict file size limits.' },
+      { name: 'PDF to JPG', path: '/pdf-to-jpg', desc: 'Convert PDF pages into compressed JPG graphics.' }
+    ]
+  },
+  '/merge-pdf-without-losing-quality': {
+    toolName: 'Merge PDF Without Losing Quality',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Lossless PDF Merger allows you to join multiple PDF documents into a single file without re-encoding images, altering fonts, or degrading vector graphics.',
+    topBody: [
+      'Combining multiple PDF documents often runs the risk of degrading image clarity, flattening interactive forms, or distorting crisp vector typography. MakePDFRight\'s Lossless PDF Merger is built specifically to combine separate PDF files into a single master document while guaranteeing 100% fidelity to the original source files.',
+      'By directly joining PDF object streams and structure trees rather than re-encoding or re-rasterizing document pages, our engine preserves exact font encodings, embedded vector artwork, high-resolution photography, and original color profiles. This ensures that architectural blueprints, legal contracts, graphic design portfolios, and medical records maintain print-ready perfection.',
+      'You can freely drag and reorder your document pages or entire PDF files before merging. With no software downloads or subscription fees required, you get professional-grade, lossless PDF consolidation directly inside your web browser.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF Files', desc: 'Select or drag & drop multiple PDF files you want to combine lossless.' },
+      { step: 2, title: 'Arrange Sequence', desc: 'Drag file cards into your exact desired sequence with live page previews.' },
+      { step: 3, title: 'Merge Lossless', desc: 'Click "Merge PDF" to combine streams without any re-compression artifacts.' }
+    ],
+    benefits: [
+      { title: '100% Original Resolution', desc: 'Vectors, fonts, and photos remain identical to the original uploads.' },
+      { title: 'Zero Re-Compression', desc: 'Does not alter DPI or introduce compression artifacts into images.' },
+      { title: 'Preserves Layout & Scale', desc: 'Maintains portrait and landscape orientation mix seamlessly.' },
+      { title: 'Fast & Encrypted', desc: 'High-speed browser-based stream merging with instant auto-purge security.' }
+    ],
+    useCases: [
+      'Combining graphic design portfolios and photography catalogs for client presentation',
+      'Merging architectural drawings and CAD blueprints for high-precision printing',
+      'Consolidating multi-part legal contracts and sworn affidavits into one binding document',
+      'Bundling academic research chapters into a publication-ready manuscript'
+    ],
+    faqs: [
+      {
+        question: 'How does MakePDFRight merge PDFs without losing quality?',
+        answer: 'Unlike basic tools that re-compress or rasterize PDF pages into low-res images, MakePDFRight directly merges the underlying PDF object streams, preserving original fonts, vector graphics, and image DPI without any re-compression artifacts.'
+      },
+      {
+        question: 'Can I merge PDF files with different page orientations or sizes without losing quality?',
+        answer: 'Yes! Our merger preserves individual page dimensions, margins, and orientations (portrait or landscape). Each page retains its original layout and scale in the final combined PDF.'
+      },
+      {
+        question: 'Are interactive form fields and bookmarks preserved when merging lossless PDFs?',
+        answer: 'Yes, standard vector text, annotations, and page contents are preserved seamlessly during the lossless merge process so your final consolidated document remains clean and professional.'
+      },
+      {
+        question: 'Is there a file size limit or fee for merging PDFs without quality loss?',
+        answer: 'No, MakePDFRight\'s Lossless PDF Merger is 100% free with no file limits, no hidden fees, and no mandatory registration.'
+      }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or remove pages before merging.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract specific page ranges from merged documents.' }
     ]
   }
 };

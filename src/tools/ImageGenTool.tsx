@@ -19,6 +19,7 @@ import { generateImage } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
+import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
 import { BackButton } from '../components/common/BackButton';
 import { AdUnit } from '../components/ads/AdUnit';
 
@@ -114,7 +115,12 @@ export const ImageGenTool: React.FC = () => {
 
   return (
     <div className="relative">
-      <SEO title={SEO_DATA['/generate-image'].title} description={SEO_DATA['/generate-image'].description} />
+      <SEO 
+        title={SEO_DATA['/generate-image'].title} 
+        description={SEO_DATA['/generate-image'].description}
+        toolName="AI Image Generator"
+        faqs={TOOL_SEO_CONTENT_MAP['/generate-image']?.faqs}
+      />
       {/* Navigation Header */}
       <div className="mb-6">
         <BackButton label="Back to Home" />
@@ -132,7 +138,7 @@ export const ImageGenTool: React.FC = () => {
       <div className="block md:hidden space-y-4">
         <div className="space-y-1 mb-2">
           <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Image Generator</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Create high-quality custom visual assets for your PDFs instantly.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Describe an image and generate it instantly with AI.</p>
         </div>
 
         {!resultUrl ? (

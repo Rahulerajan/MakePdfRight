@@ -80,11 +80,20 @@ export default function App() {
                   {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
                 </ToolPage>
               } />
+              <Route path="/merge-pdf-without-losing-quality" element={
+                <ToolPage 
+                  title="Merge PDF Without Losing Quality" 
+                  description="Combine multiple PDFs into a single document while preserving exact fonts, vector graphics, high-resolution images, and original page layouts."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
 
               <Route path="/split" element={
                 <ToolPage 
                   title="Split PDF" 
-                  description="Extract pages from your PDF or split it into multiple files."
+                  description="Break one PDF into separate files, or pull out just the pages you need."
                 >
                   {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
@@ -92,7 +101,7 @@ export default function App() {
               <Route path="/split-pdf" element={
                 <ToolPage 
                   title="Split PDF" 
-                  description="Extract pages from your PDF or split it into multiple files."
+                  description="Break one PDF into separate files, or pull out just the pages you need."
                 >
                   {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
@@ -101,7 +110,7 @@ export default function App() {
               <Route path="/compress" element={
                 <ToolPage 
                   title="Compress PDF" 
-                  description="Reduce the size of your PDF while maintaining quality."
+                  description="Reduce your PDF's file size while keeping text sharp and legible."
                   multiple
                 >
                   {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
@@ -110,7 +119,16 @@ export default function App() {
               <Route path="/compress-pdf" element={
                 <ToolPage 
                   title="Compress PDF" 
-                  description="Reduce the size of your PDF while maintaining quality."
+                  description="Reduce your PDF's file size while keeping text sharp and legible."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-pdf-to-100kb" element={
+                <ToolPage 
+                  title="Compress PDF to 100KB" 
+                  description="Shrink large PDF documents to under 100KB easily for online submissions, email attachments, and government portals."
                   multiple
                 >
                   {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
@@ -120,7 +138,7 @@ export default function App() {
               <Route path="/pdf-to-jpg" element={
                 <ToolPage 
                   title="PDF to JPG" 
-                  description="Convert PDF pages into high-quality JPG images."
+                  description="Convert each page of your PDF into a downloadable JPG image."
                 >
                   {(files, onReset) => <PDFToJPGTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
@@ -129,7 +147,7 @@ export default function App() {
               <Route path="/image-to-pdf" element={
                 <ToolPage 
                   title="Image to PDF" 
-                  description="Convert JPG and PNG images to PDF in seconds."
+                  description="Combine multiple images into one organized PDF document."
                   multiple
                   accept={{ 'image/*': ['.jpg', '.jpeg', '.png'] }}
                 >
@@ -139,7 +157,7 @@ export default function App() {
               <Route path="/word-to-pdf" element={
                 <ToolPage 
                   title="Image to PDF" 
-                  description="Convert Word and image documents to PDF in seconds."
+                  description="Combine multiple images into one organized PDF document."
                   multiple
                   accept={{ 'image/*': ['.jpg', '.jpeg', '.png'] }}
                 >
@@ -150,7 +168,7 @@ export default function App() {
               <Route path="/pdf-to-word" element={
                 <ToolPage 
                   title="PDF to Word" 
-                  description="Convert your PDF to an editable Word document."
+                  description="Convert your PDF into an editable Word (.docx) document."
                 >
                   {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
@@ -159,7 +177,7 @@ export default function App() {
               <Route path="/pdf-to-excel" element={
                 <ToolPage 
                   title="PDF to Excel" 
-                  description="Extract tables and data from PDF to Excel spreadsheets."
+                  description="Convert PDF tables and data into an editable Excel (.xlsx) file."
                 >
                   {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
@@ -168,7 +186,7 @@ export default function App() {
               <Route path="/edit" element={
                 <ToolPage 
                   title="Edit PDF" 
-                  description="Modify text and add images to your PDF document."
+                  description="Edit text, add annotations, and make changes directly in your PDF."
                 >
                   {(files) => <EditTool file={files[0]} />}
                 </ToolPage>
@@ -176,7 +194,7 @@ export default function App() {
               <Route path="/edit-pdf" element={
                 <ToolPage 
                   title="Edit PDF" 
-                  description="Modify text and add images to your PDF document."
+                  description="Edit text, add annotations, and make changes directly in your PDF."
                 >
                   {(files) => <EditTool file={files[0]} />}
                 </ToolPage>
@@ -185,7 +203,7 @@ export default function App() {
               <Route path="/rotate" element={
                 <ToolPage 
                   title="Rotate PDF" 
-                  description="Rotate your PDF pages and save them permanently."
+                  description="Fix incorrectly oriented pages — rotate individually or all at once."
                 >
                   {(files, onReset) => <RotateTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
@@ -193,7 +211,7 @@ export default function App() {
               <Route path="/rotate-pdf" element={
                 <ToolPage 
                   title="Rotate PDF" 
-                  description="Rotate your PDF pages and save them permanently."
+                  description="Fix incorrectly oriented pages — rotate individually or all at once."
                 >
                   {(files, onReset) => <RotateTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
@@ -202,7 +220,7 @@ export default function App() {
               <Route path="/organise" element={
                 <ToolPage 
                   title="Organize PDF" 
-                  description="Reorder, rotate, and delete pages from your PDF."
+                  description="Drag and drop to reorder, remove, or rearrange pages in your PDF."
                 >
                   {(files, onReset) => <OrganiseTool file={files[0]} onReset={onReset} />}
                 </ToolPage>

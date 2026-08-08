@@ -26,6 +26,7 @@ import { FileUpload } from '../components/common/FileUpload';
 import { AdUnit } from '../components/ads/AdUnit';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
+import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
 import { useLanguage } from '../components/LanguageContext';
 import { BackButton } from '../components/common/BackButton';
 import { ResultPanel } from '../components/common/ResultPanel';
@@ -559,7 +560,12 @@ export const AudioTranscribeTool: React.FC = () => {
 
   return (
     <div className="relative space-y-6">
-      <SEO title={SEO_DATA['/transcribe'].title} description={SEO_DATA['/transcribe'].description} />
+      <SEO 
+        title={SEO_DATA['/transcribe'].title} 
+        description={SEO_DATA['/transcribe'].description}
+        toolName="Audio Transcribe"
+        faqs={TOOL_SEO_CONTENT_MAP['/transcribe']?.faqs}
+      />
       <div className="mb-3">
         <BackButton label={t('back_home')} />
       </div>
@@ -578,7 +584,7 @@ export const AudioTranscribeTool: React.FC = () => {
           {t('ai.transcribe_title')}
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          {t('ai.transcribe_subtitle')}
+          Turn audio recordings into accurate, downloadable text transcripts.
         </p>
       </div>
 

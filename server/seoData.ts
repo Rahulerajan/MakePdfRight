@@ -9,12 +9,16 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     description: 'MakePDFRight is your all-in-one suite of online PDF and media tools. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate images, and transcribe audio securely in your browser.'
   },
   '/compress': {
-    title: 'Compress PDF – Reduce PDF File Size Online Free | MakePDFRight',
-    description: 'Compress your PDF files online for free while maintaining original document quality. Reduce PDF file size quickly and securely with automatic file deletion.'
+    title: 'Compress PDF Online Free – Reduce File Size | MakePDFRight',
+    description: 'Shrink large PDF files for email, uploads, or storage without losing readability. Free, fast, and works directly in your browser.'
   },
   '/compress-pdf': {
-    title: 'Compress PDF – Reduce PDF File Size Online Free | MakePDFRight',
-    description: 'Compress your PDF files online for free while maintaining original document quality. Reduce PDF file size quickly and securely with automatic file deletion.'
+    title: 'Compress PDF Online Free – Reduce File Size | MakePDFRight',
+    description: 'Shrink large PDF files for email, uploads, or storage without losing readability. Free, fast, and works directly in your browser.'
+  },
+  '/compress-pdf-to-100kb': {
+    title: 'Compress PDF to 100KB Online Free – Reduce File Size | MakePDFRight',
+    description: 'Compress PDF files down to 100KB online for free without losing essential quality or readability. Fast, private, browser-based compression with instant download.'
   },
   '/merge': {
     title: 'Merge PDF Files Online Free | MakePDFRight',
@@ -24,65 +28,69 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Merge PDF Files Online Free | MakePDFRight',
     description: 'Combine multiple PDF files into a single organized document in seconds. Easy, fast, and free online PDF merger with no account required.'
   },
+  '/merge-pdf-without-losing-quality': {
+    title: 'Merge PDF Without Losing Quality Free – High-Fidelity PDF Merger | MakePDFRight',
+    description: 'Combine multiple PDF files into one high-fidelity document without quality loss. Preserve original vector graphics, crisp text, images, and formatting for free online.'
+  },
   '/split': {
-    title: 'Split PDF – Extract Pages Online Free | MakePDFRight',
-    description: 'Split PDF files or extract selected pages into new PDF documents online for free. Fast, private, and secure page extraction.'
+    title: 'Split PDF Files Online Free – Extract Pages | MakePDFRight',
+    description: 'Extract pages or split a PDF into multiple files in seconds. Choose exact page ranges, no software or signup required.'
   },
   '/split-pdf': {
-    title: 'Split PDF – Extract Pages Online Free | MakePDFRight',
-    description: 'Split PDF files or extract selected pages into new PDF documents online for free. Fast, private, and secure page extraction.'
+    title: 'Split PDF Files Online Free – Extract Pages | MakePDFRight',
+    description: 'Extract pages or split a PDF into multiple files in seconds. Choose exact page ranges, no software or signup required.'
   },
   '/pdf-to-jpg': {
-    title: 'PDF to JPG – Convert PDF Pages to Images Online Free | MakePDFRight',
-    description: 'Convert PDF document pages into high-resolution JPG image files in seconds. Free online PDF to image converter with instant download.'
+    title: 'Convert PDF to JPG Online Free – High Quality | MakePDFRight',
+    description: 'Turn PDF pages into JPG images instantly. Choose image quality and download individually or as a batch — free, no signup.'
   },
   '/image-to-pdf': {
-    title: 'Image to PDF – Convert JPG & PNG to PDF Online Free | MakePDFRight',
-    description: 'Turn your JPG, PNG, and WebP images into a clean, formatted PDF document. Fast, free online image to PDF converter.'
+    title: 'Convert Images to PDF Online Free – JPG, PNG & More | MakePDFRight',
+    description: 'Combine JPG, PNG, or other images into a single PDF file. Arrange order, free and instant, no account needed.'
   },
   '/word-to-pdf': {
-    title: 'Word to PDF – Convert DOCX & Images to PDF Online Free | MakePDFRight',
-    description: 'Convert Microsoft Word documents and images to clean, formatted PDF files online for free.'
+    title: 'Convert Images to PDF Online Free – JPG, PNG & More | MakePDFRight',
+    description: 'Combine JPG, PNG, or other images into a single PDF file. Arrange order, free and instant, no account needed.'
   },
   '/pdf-to-word': {
-    title: 'PDF to Word – Convert PDF to Editable DOCX Online Free | MakePDFRight',
-    description: 'Convert your PDF files into editable Word documents (DOCX) instantly. Retain layout and text formatting for free.'
+    title: 'Convert PDF to Word Online Free – Editable DOCX | MakePDFRight',
+    description: 'Turn PDF files into fully editable Word documents in seconds. Preserves formatting, free and no software needed.'
   },
   '/pdf-to-excel': {
-    title: 'PDF to Excel – Extract PDF Tables to XLSX Online Free | MakePDFRight',
-    description: 'Extract tables, data, and financial statements from PDF files directly into editable Excel spreadsheets.'
+    title: 'Convert PDF to Excel Online Free – Editable XLSX | MakePDFRight',
+    description: 'Extract tables and data from PDF into an editable Excel spreadsheet. Free, fast, and accurate — no signup required.'
   },
   '/edit': {
-    title: 'Edit PDF – Add Text, Images & Annotations Online Free | MakePDFRight',
-    description: 'Edit PDF documents online for free. Add custom text, signatures, shapes, and annotations directly in your web browser.'
+    title: 'Edit PDF Online Free – Text, Annotations & More | MakePDFRight',
+    description: 'Add text, annotations, and edits directly to your PDF in an interactive editor. Free, no installation required.'
   },
   '/edit-pdf': {
-    title: 'Edit PDF – Add Text, Images & Annotations Online Free | MakePDFRight',
-    description: 'Edit PDF documents online for free. Add custom text, signatures, shapes, and annotations directly in your web browser.'
+    title: 'Edit PDF Online Free – Text, Annotations & More | MakePDFRight',
+    description: 'Add text, annotations, and edits directly to your PDF in an interactive editor. Free, no installation required.'
   },
   '/rotate': {
-    title: 'Rotate PDF – Rotate Pages Permanently Online Free | MakePDFRight',
-    description: 'Rotate individual or all pages in your PDF document clockwise or counter-clockwise and save them permanently.'
+    title: 'Rotate PDF Pages Online Free – Fix Orientation | MakePDFRight',
+    description: 'Rotate one page or an entire PDF to fix sideways or upside-down scans. Free and instant, no account needed.'
   },
   '/rotate-pdf': {
-    title: 'Rotate PDF – Rotate Pages Permanently Online Free | MakePDFRight',
-    description: 'Rotate individual or all pages in your PDF document clockwise or counter-clockwise and save them permanently.'
+    title: 'Rotate PDF Pages Online Free – Fix Orientation | MakePDFRight',
+    description: 'Rotate one page or an entire PDF to fix sideways or upside-down scans. Free and instant, no account needed.'
   },
   '/organise': {
-    title: 'Organize PDF – Reorder, Delete & Rearrange Pages Free | MakePDFRight',
-    description: 'Rearrange, delete, and reorder pages within your PDF document with drag-and-drop simplicity.'
+    title: 'Organize & Reorder PDF Pages Online Free | MakePDFRight',
+    description: 'Rearrange, delete, or reorder pages in your PDF with a simple drag-and-drop grid. Free, no installation needed.'
   },
   '/ocr': {
-    title: 'OCR PDF – Optical Character Recognition Online Free | MakePDFRight',
-    description: 'Recognize text in scanned PDF files and extract editable text using MakePDFRight free OCR engine.'
+    title: 'Convert PDF to Word Online Free – Editable DOCX | MakePDFRight',
+    description: 'Turn PDF files into fully editable Word documents in seconds. Preserves formatting, free and no software needed.'
   },
   '/generate-image': {
-    title: 'Image Generator – Create Images from Text Online Free | MakePDFRight',
-    description: 'Generate unique high-quality images from text prompts using advanced models online.'
+    title: 'Free AI Image Generator Online | MakePDFRight',
+    description: 'Generate custom images from text prompts using AI. Free, fast, and adjustable aspect ratios — no signup required.'
   },
   '/transcribe': {
-    title: 'Audio Transcribe – Speech-to-Text Transcription Online Free | MakePDFRight',
-    description: 'Transcribe audio and voice recordings into clean text instantly with high-accuracy speech recognition.'
+    title: 'Transcribe Audio to Text Online Free | MakePDFRight',
+    description: 'Convert voice recordings or audio files into accurate text transcripts. Free, fast, supports multiple languages.'
   },
   '/about': {
     title: 'About Us – Mission & Technology | MakePDFRight',
