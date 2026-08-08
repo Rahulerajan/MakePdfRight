@@ -38,26 +38,22 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   children
 }) => {
   return (
-    <div className="flex flex-col h-full w-full max-w-4xl mx-auto min-h-0">
-      {/* Top Header Navigation Bar */}
-      <div className="w-full flex items-center justify-between gap-3 pb-2 mb-3 shrink-0 min-w-0">
-        <div className="min-w-0 shrink-0">
-          <BackButton 
-            onClick={onBack || onReset} 
-            label={backLabel}
-          />
-        </div>
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate min-w-0 text-right">
+    <div className="relative h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 flex flex-col items-center text-center space-y-6 overflow-y-auto">
+      {/* Top Header Navigation Bar inside Card */}
+      <div className="w-full flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80 -mt-2 sm:-mt-4">
+        <BackButton 
+          onClick={onBack || onReset} 
+          label={backLabel}
+        />
+        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
           Processing Complete
         </span>
       </div>
 
-      {/* Result Card */}
-      <div className="relative flex-1 min-h-0 overflow-y-auto w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-6">
-        {/* Icon Badge */}
-        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 shrink-0">
-          {icon || <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />}
-        </div>
+      {/* Icon Badge */}
+      <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 shrink-0">
+        {icon || <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />}
+      </div>
 
       {/* Title & Subtitle */}
       <div className="space-y-2 max-w-md">
@@ -108,7 +104,6 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
 
       {/* Result Screen Ad Unit */}
       <AdUnit format="in-content" className="w-full max-w-md mx-auto mt-4" />
-      </div>
     </div>
   );
 };

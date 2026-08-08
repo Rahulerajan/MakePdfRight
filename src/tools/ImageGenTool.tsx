@@ -220,15 +220,12 @@ export const ImageGenTool: React.FC = () => {
           </div>
         ) : (
           /* Mobile Result State */
-          <div className="flex flex-col h-full w-full max-w-2xl mx-auto min-h-0 space-y-3">
-            <div className="w-full flex items-center justify-between gap-3 pb-2 shrink-0 min-w-0">
-              <div className="min-w-0 shrink-0">
-                <BackButton onClick={() => setResultUrl(null)} label="Back" />
-              </div>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate min-w-0 text-right">Image Ready</span>
+          <div className="relative h-full w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm space-y-3.5 overflow-y-auto">
+            <div className="w-full flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+              <BackButton onClick={() => setResultUrl(null)} label="Back" />
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Image Ready</span>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm space-y-3.5">
-              {/* Generated Image */}
+            {/* Generated Image */}
               <div className="rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-700 max-h-[380px]">
                 <img 
                   src={resultUrl} 
@@ -262,24 +259,23 @@ export const ImageGenTool: React.FC = () => {
                   <span>Regenerate</span>
                 </button>
               </div>
+
+              {/* Start a new image button */}
+              <button
+                onClick={() => setResultUrl(null)}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3.5 px-4 rounded-xl text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
+              >
+                Start a new image
+              </button>
+
+              {/* Trust Note */}
+              <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
+                <span>🔒 Images are not stored after generation</span>
+              </div>
+
+              {/* Result Screen Ad Unit */}
+              <AdUnit format="in-content" className="w-full mt-3" />
             </div>
-
-            {/* Start a new image button */}
-            <button
-              onClick={() => setResultUrl(null)}
-              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3.5 px-4 rounded-xl text-xs hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all cursor-pointer shadow-xs"
-            >
-              Start a new image
-            </button>
-
-            {/* Trust Note */}
-            <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
-              <span>🔒 Images are not stored after generation</span>
-            </div>
-
-            {/* Result Screen Ad Unit */}
-            <AdUnit format="in-content" className="w-full mt-3" />
-          </div>
         )}
       </div>
 
@@ -361,25 +357,19 @@ export const ImageGenTool: React.FC = () => {
           {/* Result Showcase Card */}
           <AnimatePresence>
             {resultUrl && (
-              <div className="flex flex-col h-full w-full max-w-4xl mx-auto min-h-0 space-y-3">
-                <div className="w-full flex items-center justify-between gap-3 pb-2 shrink-0 min-w-0">
-                  <div className="min-w-0 shrink-0">
-                    <BackButton onClick={() => setResultUrl(null)} label="Back" />
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 24 }}
+                className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-6"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80">
+                  <BackButton onClick={() => setResultUrl(null)} label="Back" />
+                  <div className="flex items-center gap-2.5 text-emerald-500">
+                    <CheckCircle2 className="w-5.5 h-5.5 fill-emerald-500/10" />
+                    <h4 className="text-lg font-extrabold text-slate-800 dark:text-white">Image Ready!</h4>
                   </div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate min-w-0 text-right">Image Ready</span>
-                </div>
-                <motion.div
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 24 }}
-                  className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-6"
-                >
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80">
-                    <div className="flex items-center gap-2.5 text-emerald-500">
-                      <CheckCircle2 className="w-5.5 h-5.5 fill-emerald-500/10" />
-                      <h4 className="text-lg font-extrabold text-slate-800 dark:text-white">Image Ready!</h4>
-                    </div>
-                    <div className="flex gap-2.5">
+                  <div className="flex gap-2.5">
                     <button 
                       onClick={triggerDownload}
                       className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
@@ -414,8 +404,7 @@ export const ImageGenTool: React.FC = () => {
                 {/* Result Screen Ad Unit */}
                 <AdUnit format="in-content" className="w-full mt-4" />
               </motion.div>
-            </div>
-          )}
+            )}
           </AnimatePresence>
         </div>
 

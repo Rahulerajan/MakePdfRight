@@ -1312,77 +1312,72 @@ export const EditTool: React.FC<EditToolProps> = ({ file, onReset }) => {
 
   if (resultUrl) {
     return (
-      <div className="flex flex-col h-full w-full max-w-[700px] mx-auto min-h-0">
-        {/* Top Header Navigation Bar */}
-        <div className="w-full flex items-center justify-between gap-3 pb-2 mb-3 shrink-0 min-w-0">
-          <div className="min-w-0 shrink-0">
-            <BackButton 
-              onClick={() => {
-                if (resultUrl) {
-                  URL.revokeObjectURL(resultUrl);
-                }
-                setResultUrl(null);
-              }} 
-              label="Back"
-            />
-          </div>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider truncate min-w-0 text-right">
+      <div className="relative h-full w-full max-w-[700px] mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 flex flex-col items-center text-center space-y-6 overflow-y-auto">
+        {/* Top Header Navigation Bar inside Card */}
+        <div className="w-full flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80 -mt-2 sm:-mt-4">
+          <BackButton 
+            onClick={() => {
+              if (resultUrl) {
+                URL.revokeObjectURL(resultUrl);
+              }
+              setResultUrl(null);
+            }} 
+            label="Back"
+          />
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
             Export Complete
           </span>
         </div>
 
-        {/* Result Card */}
-        <div className="relative flex-1 min-h-0 overflow-y-auto w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-6">
-          <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-emerald-500/20 shrink-0">
-            <CheckCircle2 className="w-12 h-12" />
-          </div>
-          <div className="space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">PDF Exported Successfully!</h2>
-            <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 font-medium">
-              Your high-fidelity vector PDF has been compiled with text, drawings, and forms.
-            </p>
-          </div>
+        <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-emerald-500/20 shrink-0">
+          <CheckCircle2 className="w-12 h-12" />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">PDF Exported Successfully!</h2>
+          <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 font-medium">
+            Your high-fidelity vector PDF has been compiled with text, drawings, and forms.
+          </p>
+        </div>
+        
+        <div className="flex flex-col gap-4 w-full max-w-md mx-auto">
+          <a 
+            href={resultUrl} 
+            download={`edited_${file.name}`}
+            className="btn-primary text-lg py-4 flex items-center justify-center gap-3 shadow-lg shadow-primary/25"
+          >
+            <Download className="w-5 h-5 shrink-0" />
+            <span>Download Compiled PDF</span>
+          </a>
           
-          <div className="flex flex-col gap-4 w-full max-w-md mx-auto">
-            <a 
-              href={resultUrl} 
-              download={`edited_${file.name}`}
-              className="btn-primary text-lg py-4 flex items-center justify-center gap-3 shadow-lg shadow-primary/25"
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button
+              onClick={() => handleExportAs('docx')}
+              className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 cursor-pointer"
             >
-              <Download className="w-5 h-5 shrink-0" />
-              <span>Download Compiled PDF</span>
-            </a>
-            
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <button
-                onClick={() => handleExportAs('docx')}
-                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 cursor-pointer"
-              >
-                Export as Word (.docx)
-              </button>
-              <button
-                onClick={() => handleExportAs('txt')}
-                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 cursor-pointer"
-              >
-                Export as Text (.txt)
-              </button>
-            </div>
-
-            <button 
-              onClick={() => {
-                if (resultUrl) {
-                  URL.revokeObjectURL(resultUrl);
-                }
-                setResultUrl(null);
-              }}
-              className="text-slate-400 hover:text-primary dark:hover:text-primary font-bold text-sm transition-colors mt-4 cursor-pointer"
-            >
-              ← Return to Editor Workspace
+              Export as Word (.docx)
             </button>
-
-            {/* Result Screen Ad Unit */}
-            <AdUnit format="in-content" className="w-full max-w-md mx-auto mt-6" />
+            <button
+              onClick={() => handleExportAs('txt')}
+              className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 cursor-pointer"
+            >
+              Export as Text (.txt)
+            </button>
           </div>
+
+          <button 
+            onClick={() => {
+              if (resultUrl) {
+                URL.revokeObjectURL(resultUrl);
+              }
+              setResultUrl(null);
+            }}
+            className="text-slate-400 hover:text-primary dark:hover:text-primary font-bold text-sm transition-colors mt-4 cursor-pointer"
+          >
+            ← Return to Editor Workspace
+          </button>
+
+          {/* Result Screen Ad Unit */}
+          <AdUnit format="in-content" className="w-full max-w-md mx-auto mt-6" />
         </div>
       </div>
     );
