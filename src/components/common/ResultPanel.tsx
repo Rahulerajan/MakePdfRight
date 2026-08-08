@@ -38,9 +38,9 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   children
 }) => {
   return (
-    <div className="relative h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-6">
+    <div className="flex flex-col h-full w-full min-h-0">
       {/* Top Header Navigation Bar */}
-      <div className="w-full flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80 -mt-2">
+      <div className="w-full flex items-center justify-between pb-2 mb-4 shrink-0">
         <BackButton 
           onClick={onBack || onReset} 
           label={backLabel}
@@ -50,10 +50,12 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
         </span>
       </div>
 
-      {/* Icon Badge */}
-      <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 shrink-0">
-        {icon || <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />}
-      </div>
+      {/* Result Card */}
+      <div className="relative flex-1 min-h-0 overflow-y-auto w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 flex flex-col items-center justify-center text-center space-y-6">
+        {/* Icon Badge */}
+        <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 shrink-0">
+          {icon || <CheckCircle2 className="w-10 h-10 md:w-12 md:h-12" />}
+        </div>
 
       {/* Title & Subtitle */}
       <div className="space-y-2 max-w-md">
@@ -104,6 +106,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
 
       {/* Result Screen Ad Unit */}
       <AdUnit format="in-content" className="w-full max-w-md mx-auto mt-4" />
+      </div>
     </div>
   );
 };
