@@ -286,14 +286,9 @@ export const ImageGenTool: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-full flex items-start justify-center gap-4 lg:gap-8">
-          {/* Left Skyscraper Ad - Visible on lg+ screens */}
-          <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
-            <AdUnit format="skyscraper" />
-          </div>
-
+        <div className="flex flex-col lg:flex-row gap-12 items-start">
           {/* Left/Main Column: Form & Result */}
-          <div className="flex-1 max-w-2xl space-y-8 w-full min-w-0">
+          <div className="flex-1 space-y-8 w-full">
             {/* Form Card */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-8">
             
@@ -457,11 +452,6 @@ export const ImageGenTool: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Right Skyscraper Ad - Visible on lg+ screens */}
-        <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
-          <AdUnit format="skyscraper" />
         </div>
       </div>
     </div>

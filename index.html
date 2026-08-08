@@ -44,6 +44,86 @@
     <meta name="twitter:description" content="Merge, split, compress, convert, edit, and AI-enhance your PDFs securely in your browser. All files auto-deleted shortly after processing." />
     <meta name="twitter:image" content="/og-image.png" />
 
+    <!-- Critical Above-The-Fold CSS -->
+    <style id="critical-css">
+      :root {
+        --color-primary: #e5322d;
+        --color-primary-hover: #c42b27;
+        --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        --slate-50: #f8fafc;
+        --slate-100: #f1f5f9;
+        --slate-200: #e2e8f0;
+        --slate-300: #cbd5e1;
+        --slate-400: #94a3b8;
+        --slate-500: #64748b;
+        --slate-600: #475569;
+        --slate-700: #334155;
+        --slate-800: #1e293b;
+        --slate-900: #0f172a;
+        --slate-950: #020617;
+      }
+      .dark, [data-theme="dark"] {
+        --slate-950: #0f1115;
+        --slate-900: #171a21;
+        --slate-850: #1e222b;
+        --slate-800: #1e222b;
+        --slate-700: #2b3240;
+        --slate-600: #8a93a5;
+        --slate-300: #b0b7c3;
+        --slate-100: #f3f4f6;
+      }
+      *, ::before, ::after {
+        box-sizing: border-box;
+        border-width: 0;
+        border-style: solid;
+        border-color: var(--slate-200);
+      }
+      html {
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        background-color: var(--slate-50);
+        color: var(--slate-900);
+      }
+      html.dark, html[data-theme="dark"] {
+        background-color: var(--slate-950);
+        color: var(--slate-100);
+      }
+      body {
+        margin: 0;
+        line-height: inherit;
+        background-color: var(--slate-50);
+        color: var(--slate-900);
+        min-height: 100vh;
+      }
+      .dark body, [data-theme="dark"] body {
+        background-color: var(--slate-950);
+        color: var(--slate-100);
+      }
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .container-custom {
+        width: min(1440px, 96%);
+        max-width: 1440px;
+        margin-inline: auto;
+        padding-inline: clamp(16px, 2vw, 32px);
+      }
+      .text-primary { color: var(--color-primary); }
+      .bg-primary { background-color: var(--color-primary); }
+      .tools-grid-responsive {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 16px;
+        width: 100%;
+      }
+      @media (min-width: 600px) { .tools-grid-responsive { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; } }
+      @media (min-width: 912px) { .tools-grid-responsive { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; } }
+      @media (min-width: 1200px) { .tools-grid-responsive { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+      @media (min-width: 1600px) { .tools-grid-responsive { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; } }
+    </style>
+
     <script>
       (function() {
         try {

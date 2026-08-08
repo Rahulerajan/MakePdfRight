@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useLanguage } from '../components/LanguageContext';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
@@ -167,22 +166,12 @@ export const Home = () => {
         }}
       >
         <div className="container-custom text-center space-y-2 md:space-y-3">
-          <motion.h1 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-white tracking-tight leading-[1.1]"
-          >
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-white tracking-tight leading-[1.1] animate-fade-in-up">
             {t('hero_title_1')}<span className="text-primary">{t('hero_title_2')}</span>{t('hero_title_3')}
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="text-base sm:text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed font-medium"
-          >
+          </h1>
+          <p className="text-base sm:text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed font-medium animate-fade-in-up-delay-1">
             {t('hero_desc')}
-          </motion.p>
+          </p>
         </div>
       </section>
 
@@ -196,13 +185,9 @@ export const Home = () => {
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('standard_pdf_tools_heading')}</h2>
           </div>
           <div className="tools-grid-responsive">
-            {localizedTools.map((tool, idx) => (
-              <motion.div
+            {localizedTools.map((tool) => (
+              <div
                 key={tool.id}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
                 className="h-full"
               >
                 <Link 
@@ -233,7 +218,7 @@ export const Home = () => {
                     </div>
                   )}
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
