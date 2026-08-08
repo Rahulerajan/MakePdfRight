@@ -152,8 +152,6 @@ export const ImageToPDFTool: React.FC<ImageToPDFToolProps> = ({ initialFiles, on
         downloadUrl={resultUrl}
         downloadFileName="converted_images.pdf"
         downloadLabel="Download PDF"
-        onBack={() => setResultUrl(null)}
-        backLabel="Back to Reorder Images"
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);

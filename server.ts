@@ -1099,6 +1099,64 @@ async function startServer() {
     }
   });
 
+  // Contact Us Email Submission Endpoint via Resend
+  app.post("/api/contact", async (req, res, next) => {
+    const { name, email, message, honeypot } = req.body || {};
+
+    if (honeypot) {
+      return res.status(200).json({ success: true, message: "Message sent successfully" });
+    }
+
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ error: "Name is required." });
+    }
+
+    if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ error: "Valid email address is required." });
+    }
+
+    if (!message || typeof message !== "string" || !message.trim()) {
+      return res.status(400).json({ error: "Message is required." });
+    }
+
+    const resendKey = process.env.RESEND_API_KEY;
+    if (!resendKey) {
+      LoggingService.warn("[Contact] RESEND_API_KEY environment variable is not set.");
+      return res.status(500).json({ error: "Email service is not configured on the server." });
+    }
+
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendKey);
+
+      const response = await resend.emails.send({
+        from: "MakePDFRight Contact <onboarding@resend.dev>",
+        to: ["makepdfright@gmail.com"],
+        replyTo: email.trim(),
+        subject: `New Contact Form Submission from ${name.trim()}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
+            <h2 style="color: #e5322d; margin-top: 0; font-size: 20px;">New Message from MakePDFRight</h2>
+            <p style="margin: 8px 0;"><strong>Sender Name:</strong> ${name.trim()}</p>
+            <p style="margin: 8px 0;"><strong>Sender Email:</strong> <a href="mailto:${email.trim()}">${email.trim()}</a></p>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+            <p style="font-weight: bold; margin-bottom: 8px;">Message:</p>
+            <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; border: 1px solid #cbd5e1;">${message.trim()}</div>
+          </div>
+        `,
+      });
+
+      if (response.error) {
+        LoggingService.error(`[Contact] Resend API error: ${response.error.message}`);
+        return res.status(500).json({ error: response.error.message || "Failed to send email." });
+      }
+
+      res.json({ success: true, id: response.data?.id });
+    } catch (error: any) {
+      next(error);
+    }
+  });
+
   // 17. PDF Editor OCR Vision (Page Text Extraction to Overlays, AI rate limited)
   app.post("/api/pdf-editor-ocr", aiLimiter, async (req, res, next) => {
     const { imageBase64 } = req.body;

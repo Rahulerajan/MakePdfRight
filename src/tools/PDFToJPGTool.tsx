@@ -202,8 +202,6 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
         downloadUrl={result.url}
         downloadFileName={`${file.name.replace('.pdf', '')}_images.zip`}
         downloadLabel="Download ZIP file"
-        onBack={() => setResult(null)}
-        backLabel="Back to Options"
         onReset={() => {
           if (result?.url) {
             URL.revokeObjectURL(result.url);

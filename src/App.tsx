@@ -9,10 +9,10 @@ import { ThemeProvider } from './components/ThemeContext';
 import { LanguageProvider } from './components/LanguageContext';
 import { Header, Footer } from './components/layout/Layout';
 import { Home } from './pages/Home';
-import { ToolPage } from './components/common/ToolPage';
 import { ScrollToTop } from './components/common/ScrollToTop';
 
-// Lazy load tools to optimize initial bundle size and loading speed
+// Lazy load tools and ToolPage container to optimize initial bundle size and loading speed
+const ToolPage = lazy(() => import('./components/common/ToolPage').then(m => ({ default: m.ToolPage })));
 const MergeTool = lazy(() => import('./tools/MergeTool').then(m => ({ default: m.MergeTool })));
 const SplitTool = lazy(() => import('./tools/SplitTool').then(m => ({ default: m.SplitTool })));
 const CompressTool = lazy(() => import('./tools/CompressTool').then(m => ({ default: m.CompressTool })));

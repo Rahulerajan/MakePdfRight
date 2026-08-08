@@ -514,12 +514,6 @@ export const Footer = () => {
           <div>
             © {new Date().getFullYear()} MakePDFRight. All rights reserved. Built for Privacy & Speed.
           </div>
-
-          <div className="flex items-center gap-4">
-            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400">
-              v2.4.0 Production
-            </span>
-          </div>
         </div>
 
       </div>
