@@ -18,6 +18,8 @@ export interface ResultPanelProps {
   downloadLabel?: string;
   onReset: () => void;
   resetLabel: string;
+  onBack?: () => void;
+  backLabel?: string;
   children?: React.ReactNode;
 }
 
@@ -31,6 +33,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   downloadLabel = 'Download',
   onReset,
   resetLabel,
+  onBack,
+  backLabel = 'Back',
   children
 }) => {
   return (
@@ -38,8 +42,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
       {/* Top Header Navigation Bar */}
       <div className="w-full flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80 -mt-2">
         <BackButton 
-          onClick={onReset} 
-          label="Back"
+          onClick={onBack || onReset} 
+          label={backLabel}
         />
         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
           Processing Complete

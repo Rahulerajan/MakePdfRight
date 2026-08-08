@@ -623,6 +623,10 @@ export const AudioTranscribeTool: React.FC = () => {
             downloadUrl={downloadUrl}
             downloadFileName={`${uploadedFile ? uploadedFile.name.split('.')[0] : 'transcription'}.txt`}
             downloadLabel="Download (.txt)"
+            onBack={() => {
+              setTranscription('');
+              setIsProcessing(false);
+            }}
             onReset={clearAll}
             resetLabel="Transcribe another recording"
           >

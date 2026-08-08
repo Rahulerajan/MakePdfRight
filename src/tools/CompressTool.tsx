@@ -523,6 +523,12 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
               fileItems.length === 1 ? `compressed_${fileItems[0].name}` : 'compressed_documents.pdf'
             }
             downloadLabel="Download Compressed PDF"
+            onBack={() => {
+              if (result?.url) {
+                URL.revokeObjectURL(result.url);
+              }
+              setResult(null);
+            }}
             onReset={() => {
               if (result?.url) {
                 URL.revokeObjectURL(result.url);

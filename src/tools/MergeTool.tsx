@@ -233,6 +233,12 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
         downloadUrl={resultUrl}
         downloadFileName="merged_document.pdf"
         downloadLabel={t('merge.download_btn')}
+        onBack={() => {
+          if (resultUrl) {
+            URL.revokeObjectURL(resultUrl);
+          }
+          setResultUrl(null);
+        }}
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);

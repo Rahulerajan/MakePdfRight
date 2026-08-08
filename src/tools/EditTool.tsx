@@ -1312,7 +1312,23 @@ export const EditTool: React.FC<EditToolProps> = ({ file, onReset }) => {
 
   if (resultUrl) {
     return (
-      <div className="max-w-[700px] mx-auto text-center space-y-12 py-16 px-6">
+      <div className="max-w-[700px] mx-auto text-center space-y-8 py-10 px-6">
+        {/* Top Header Navigation Bar */}
+        <div className="w-full flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80 -mt-2">
+          <BackButton 
+            onClick={() => {
+              if (resultUrl) {
+                URL.revokeObjectURL(resultUrl);
+              }
+              setResultUrl(null);
+            }} 
+            label="Back"
+          />
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Export Complete
+          </span>
+        </div>
+
         <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-emerald-500/20">
           <CheckCircle2 className="w-12 h-12" />
         </div>

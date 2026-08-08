@@ -195,6 +195,9 @@ export const RotateTool: React.FC<RotateToolProps> = ({ file, onReset }) => {
         downloadUrl={resultUrl}
         downloadFileName={`rotated_${file.name}`}
         downloadLabel="Download PDF"
+        onBack={() => {
+          setResultUrl(null);
+        }}
         onReset={() => {
           setResultUrl(null);
           if (onReset) onReset();

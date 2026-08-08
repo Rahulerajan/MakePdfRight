@@ -151,6 +151,12 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file, onReset }) =
         downloadUrl={resultUrl}
         downloadFileName={`${file.name.replace('.pdf', '')}.docx`}
         downloadLabel="Download Word"
+        onBack={() => {
+          if (resultUrl) {
+            URL.revokeObjectURL(resultUrl);
+          }
+          setResultUrl(null);
+        }}
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);

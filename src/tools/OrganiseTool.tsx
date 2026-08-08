@@ -396,6 +396,9 @@ export const OrganiseTool: React.FC<OrganiseToolProps> = ({ file, onReset }) => 
         downloadUrl={resultUrl}
         downloadFileName={`organized_${file.name}`}
         downloadLabel="Download PDF"
+        onBack={() => {
+          setResultUrl(null);
+        }}
         onReset={() => {
           setResultUrl(null);
           if (onReset) onReset();

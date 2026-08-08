@@ -435,6 +435,9 @@ export const SplitTool: React.FC<SplitToolProps> = ({ file, onReset }) => {
         downloadUrl={resultUrl}
         downloadFileName={`split_${file.name}`}
         downloadLabel="Download Split PDF"
+        onBack={() => {
+          setResultUrl(null);
+        }}
         onReset={() => {
           setResultUrl(null);
           if (onReset) onReset();

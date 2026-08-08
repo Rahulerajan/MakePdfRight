@@ -158,6 +158,12 @@ export const PDFToExcelTool: React.FC<PDFToExcelToolProps> = ({ file, onReset })
         downloadUrl={resultUrl}
         downloadFileName={`${file.name.replace('.pdf', '')}.xlsx`}
         downloadLabel="Download Excel"
+        onBack={() => {
+          if (resultUrl) {
+            URL.revokeObjectURL(resultUrl);
+          }
+          setResultUrl(null);
+        }}
         onReset={() => {
           if (resultUrl) {
             URL.revokeObjectURL(resultUrl);
