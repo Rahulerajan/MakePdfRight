@@ -56,6 +56,16 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://ais-dev-6nbau2whjsxxhig2ah2r2r-301942702851.asia-southeast1.run.app/compress-pdf-under-2mb</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ais-dev-6nbau2whjsxxhig2ah2r2r-301942702851.asia-southeast1.run.app/reduce-pdf-size-for-email</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://ais-dev-6nbau2whjsxxhig2ah2r2r-301942702851.asia-southeast1.run.app/merge</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

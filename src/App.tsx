@@ -197,6 +197,24 @@ export default function App() {
                   {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
                 </ToolPage>
               } />
+              <Route path="/compress-pdf-under-2mb" element={
+                <ToolPage 
+                  title="Compress PDF Under 2MB" 
+                  description="Shrink your PDF to under 2MB for email attachments, portal submissions, and job applications."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/reduce-pdf-size-for-email" element={
+                <ToolPage 
+                  title="Reduce PDF Size for Email" 
+                  description="Shrink large PDF documents so they send smoothly as email attachments without bounce-backs."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
 
               <Route path="/pdf-to-jpg" element={
                 <ToolPage 
@@ -321,6 +339,7 @@ export default function App() {
               <Route path="/terms" element={<Terms />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/disclaimer" element={<Disclaimer />} />
+              <Route path="*" element={<Home />} />
             </Routes>
           </Suspense>
         </main>

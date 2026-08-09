@@ -957,6 +957,76 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       { name: 'Image to PDF', path: '/image-to-pdf', desc: 'Convert photos on iPhone into PDF documents.' }
     ]
   },
+  '/compress-pdf-under-2mb': {
+    toolName: 'Compress PDF Under 2MB',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight 2MB PDF Compressor helps you shrink heavy documents under 2MB to meet online submission limits and email attachment caps.',
+    topBody: [
+      'Many university application systems, government forms, and job portals strictly limit uploaded PDF files to under 2MB. MakePDFRight optimizes image streams and cleans document metadata so your PDF fits cleanly under the 2MB limit.',
+      'Process your files directly in your browser with zero signups or software installations required.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF', desc: 'Select or drag & drop the PDF file you need under 2MB.' },
+      { step: 2, title: 'Optimize Size', desc: 'Choose a compression level tailored for 2MB file size targets.' },
+      { step: 3, title: 'Download < 2MB PDF', desc: 'Save your compressed PDF immediately.' }
+    ],
+    benefits: [
+      { title: 'Hits 2MB Target', desc: 'Ensures compliance with strict portal size caps.' },
+      { title: 'Crisp Typography', desc: 'Vector text and fonts remain 100% sharp and readable.' },
+      { title: 'Free & Private', desc: 'No account registration, no watermarks, and auto-deleted temporary memory.' },
+      { title: 'Cross-Platform', desc: 'Works seamlessly on Mac, Windows, iPhone, and Android.' }
+    ],
+    useCases: [
+      'Shrinking PDF resumes and portfolios for job portals with 2MB upload caps',
+      'Uploading student homework or thesis papers to university portals',
+      'Attaching official documents to web email forms'
+    ],
+    faqs: [
+      { question: 'Can any PDF be reduced under 2MB?', answer: 'Most text-based and multi-page PDFs can easily be compressed under 2MB; extremely high-res scanned documents may need strong compression.' },
+      { question: 'Will reducing size under 2MB blur text?', answer: 'No, text typography remains vector-crisp and fully readable.' },
+      { question: 'Is there a file size cap before uploading?', answer: 'You can upload PDFs of any size to compress them down under 2MB.' }
+    ],
+    relatedTools: [
+      { name: 'Compress to 500KB', path: '/compress-pdf-to-500kb', desc: 'Compress PDFs for 500KB caps.' },
+      { name: 'Compress to 1MB', path: '/compress-pdf-to-1mb', desc: 'Compress PDFs for 1MB caps.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'General PDF compression tool.' }
+    ]
+  },
+  '/reduce-pdf-size-for-email': {
+    toolName: 'Reduce PDF Size for Email',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Email PDF Size Reducer optimizes heavy PDF files so you can attach and send them quickly without hitting inbox attachment limits.',
+    topBody: [
+      'Email providers like Gmail, Outlook, and Yahoo bounce emails with attachments larger than 10MB–25MB. MakePDFRight shrinks your PDF files so they attach effortlessly and reach recipients without delivery errors.',
+      'All compression happens in secure temporary browser memory with complete privacy and instant download.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF for Email', desc: 'Select or drag & drop the heavy PDF file you need to send via email.' },
+      { step: 2, title: 'Compress for Email', desc: 'Our engine optimizes stream structures to fit email attachment limits.' },
+      { step: 3, title: 'Download & Email', desc: 'Download your compressed PDF and attach it to your email message.' }
+    ],
+    benefits: [
+      { title: 'Avoid Email Bounces', desc: 'Fits strict Gmail, Outlook, and Yahoo attachment size caps.' },
+      { title: 'Fast Transmission', desc: 'Smaller files send and download much faster for your email recipients.' },
+      { title: '100% Free & Unlimited', desc: 'No daily limits or subscription fees.' },
+      { title: 'Secure & Confidential', desc: 'Automatic file deletion protects your private messages.' }
+    ],
+    useCases: [
+      'Shrinking large financial reports and balance sheets for client emails',
+      'Attaching multi-page PDF presentations without bouncing back',
+      'Sending signed contracts and legal agreements safely via email'
+    ],
+    faqs: [
+      { question: 'What is the maximum PDF size for email?', answer: 'Most major email services cap attachments at 20MB–25MB, though many corporate servers limit attachments to 10MB.' },
+      { question: 'Will the recipient be able to view and print the PDF?', answer: 'Yes, formatting, text, and layout stay completely preserved for viewing and printing.' },
+      { question: 'Can I compress multiple files for email at once?', answer: 'Yes, you can upload and compress multiple files simultaneously.' }
+    ],
+    relatedTools: [
+      { name: 'Compress Multiple PDFs', path: '/compress-multiple-pdf-files', desc: 'Batch compress several files at once.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'General PDF compressor.' },
+      { name: 'Compress to 1MB', path: '/compress-pdf-to-1mb', desc: 'Targeted compression for 1MB limits.' }
+    ]
+  },
   '/merge-pdf-without-losing-quality': {
     toolName: 'Merge PDF Without Losing Quality',
     category: 'PDF Tools',

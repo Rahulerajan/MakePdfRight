@@ -48,6 +48,14 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Compress PDF on iPhone Free – No App Needed | MakePDFRight',
     description: 'Shrink PDF file size directly in Safari on your iPhone. No app download required.'
   },
+  '/compress-pdf-under-2mb': {
+    title: 'Compress PDF Under 2MB Free Online | MakePDFRight',
+    description: 'Shrink your PDF to under 2MB for email attachments, portal submissions, and job applications. Free and fast.'
+  },
+  '/reduce-pdf-size-for-email': {
+    title: 'Reduce PDF Size for Email Attachments Free | MakePDFRight',
+    description: 'Shrink large PDF documents so they send smoothly as email attachments without bounce-backs or size limit errors.'
+  },
   '/merge': {
     title: 'Merge PDF Online Free – Combine PDF Files | MakePDFRight',
     description: 'Combine PDF files online for free without watermarks or formatting loss. Learn how to join multiple PDFs into one unified file in seconds.'
