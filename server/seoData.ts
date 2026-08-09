@@ -20,6 +20,34 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Compress PDF to 100KB Online Free – Reduce File Size | MakePDFRight',
     description: 'Compress PDF files down to 100KB online for free without losing essential quality or readability. Fast, private, browser-based compression with instant download.'
   },
+  '/compress-pdf-to-500kb': {
+    title: 'Compress PDF to 500KB Online Free | MakePDFRight',
+    description: 'Shrink your PDF to 500KB for forms and uploads with mid-size limits. Free, instant, no signup.'
+  },
+  '/compress-pdf-to-1mb': {
+    title: 'Compress PDF to 1MB Online Free | MakePDFRight',
+    description: 'Shrink your PDF to 1MB or smaller for uploads, forms, and email. Free, instant, no signup required.'
+  },
+  '/compress-pdf-without-losing-quality': {
+    title: 'Compress PDF Without Losing Quality | MakePDFRight',
+    description: 'Reduce file size while keeping text and images sharp. Smart compression, not blind quality loss. Free and instant.'
+  },
+  '/compress-pdf-for-whatsapp': {
+    title: 'Compress PDF for WhatsApp Free | MakePDFRight',
+    description: 'Shrink your PDF to send smoothly over WhatsApp without failed uploads. Free and instant.'
+  },
+  '/compress-pdf-for-job-application': {
+    title: 'Compress PDF for Job Applications Free | MakePDFRight',
+    description: 'Get your resume or portfolio PDF under application portal size limits without losing quality. Free and instant.'
+  },
+  '/compress-multiple-pdf-files': {
+    title: 'Compress Multiple PDF Files at Once Free | MakePDFRight',
+    description: 'Batch compress several PDFs in one go — free, fast, no software needed.'
+  },
+  '/compress-pdf-on-iphone': {
+    title: 'Compress PDF on iPhone Free – No App Needed | MakePDFRight',
+    description: 'Shrink PDF file size directly in Safari on your iPhone. No app download required.'
+  },
   '/merge': {
     title: 'Merge PDF Online Free – Combine PDF Files | MakePDFRight',
     description: 'Combine PDF files online for free without watermarks or formatting loss. Learn how to join multiple PDFs into one unified file in seconds.'

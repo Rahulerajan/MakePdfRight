@@ -712,6 +712,251 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       { name: 'PDF to JPG', path: '/pdf-to-jpg', desc: 'Convert PDF pages into compressed JPG graphics.' }
     ]
   },
+  '/compress-pdf-to-500kb': {
+    toolName: 'Compress PDF to 500KB',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight 500KB PDF Compressor helps you shrink PDF document sizes to hit strict 500KB upload limits on application portals, government websites, and email systems.',
+    topBody: [
+      'Many job portals, state forms, and corporate upload systems require PDFs to be under 500KB before submission. MakePDFRight optimizes image streams and cleans document metadata so your PDF fits under the 500KB limit.',
+      'Your files are processed securely in your browser with zero long-term storage, keeping sensitive personal data private.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Your PDF', desc: 'Select or drag & drop the PDF file you need to compress under 500KB.' },
+      { step: 2, title: 'Select Compression', desc: 'Choose a compression level tailored for 500KB file size targets.' },
+      { step: 3, title: 'Download 500KB PDF', desc: 'Save your shrunk PDF instantly with clear size reduction metrics.' }
+    ],
+    benefits: [
+      { title: 'Hits 500KB Limits', desc: 'Ensures compliance with strict mid-size upload caps.' },
+      { title: 'Crisp Vector Text', desc: 'Preserves fonts and typography while optimizing heavy embedded images.' },
+      { title: '100% Free & Private', desc: 'No account registration, no watermarks, and auto-purged temporary memory.' },
+      { title: 'Cross-Platform', desc: 'Compress PDFs to 500KB on Windows, Mac, Android, or iOS.' }
+    ],
+    useCases: [
+      'Submitting job applications and resumes to portals with 500KB limits',
+      'Uploading tax forms and state documents to government sites',
+      'Attaching multi-page PDF documents to web email forms'
+    ],
+    faqs: [
+      { question: 'Can any file reach 500KB?', answer: 'Most text-based PDFs can easily reach under 500KB; image-heavy or multi-page scanned files may require stronger compression settings.' },
+      { question: 'Will 500KB affect readability?', answer: 'No, text and vector fonts stay sharp while embedded images scale intelligently to hit the target size.' },
+      { question: 'Is there a page limit?', answer: 'No, there is no page limit. You can compress PDFs of any page count to reach 500KB.' }
+    ],
+    relatedTools: [
+      { name: 'Compress to 100KB', path: '/compress-pdf-to-100kb', desc: 'Compress PDFs for strict 100KB upload limits.' },
+      { name: 'Compress to 1MB', path: '/compress-pdf-to-1mb', desc: 'Shrink PDFs for 1MB portal limits.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'General PDF compression tool.' }
+    ]
+  },
+  '/compress-pdf-to-1mb': {
+    toolName: 'Compress PDF to 1MB',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight 1MB PDF Compressor helps you shrink oversized documents to 1MB or smaller for smooth email attachments, online forms, and portal uploads.',
+    topBody: [
+      'A 1MB file size limit is common for online portals, job application systems, and messaging apps. MakePDFRight intelligently compresses your PDF down to 1MB or smaller without blurring your document\'s text.',
+      'Process your files in seconds for free with complete privacy and zero installation required.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Your PDF', desc: 'Select or drag & drop the PDF file you want to compress under 1MB.' },
+      { step: 2, title: 'Optimize Size', desc: 'Choose a compression level designed to reach a 1MB file size.' },
+      { step: 3, title: 'Download < 1MB PDF', desc: 'Get your compressed PDF immediately with exact space saved metrics.' }
+    ],
+    benefits: [
+      { title: 'Fit 1MB Portal Caps', desc: 'Seamlessly upload files to systems with strict 1MB size caps.' },
+      { title: 'Maintains Quality', desc: 'Keeps text and vector graphics crisp while optimizing background image stream data.' },
+      { title: 'No Registration Required', desc: 'Free instant browser tool without signup or subscriptions.' },
+      { title: 'Private & Secure', desc: 'Files process in temporary memory and auto-delete shortly after.' }
+    ],
+    useCases: [
+      'Sending documents over email systems with 1MB attachment restrictions',
+      'Uploading student homework or thesis chapters to university submission portals',
+      'Optimizing PDF portfolios for fast web viewing and download'
+    ],
+    faqs: [
+      { question: 'Can any PDF be compressed to 1MB?', answer: 'Most text-based and lightly-imaged PDFs can easily compress under 1MB — heavily scanned files with many pages may need stronger compression.' },
+      { question: 'Will 1MB compression affect text clarity?', answer: 'No, text and fonts stay sharp; only embedded background images are optimized to save space.' },
+      { question: 'What\'s a typical use case for a 1MB limit?', answer: 'A 1MB cap is common for job portal uploads, university application forms, and email systems with stricter size caps.' }
+    ],
+    relatedTools: [
+      { name: 'Compress to 500KB', path: '/compress-pdf-to-500kb', desc: 'Targeted compression for 500KB caps.' },
+      { name: 'Compress to 100KB', path: '/compress-pdf-to-100kb', desc: 'Targeted compression for strict 100KB caps.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'General PDF compressor.' }
+    ]
+  },
+  '/compress-pdf-without-losing-quality': {
+    toolName: 'Compress PDF Without Losing Quality',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Smart PDF Compressor reduces file size while preserving high visual quality, sharp typography, and clean embedded artwork.',
+    topBody: [
+      'Reducing PDF file size doesn\'t have to mean sacrificing crisp text or clear graphics. MakePDFRight uses smart stream optimization to shrink files while preserving vector typography and original image clarity.',
+      'Keep your contracts, portfolios, and reports looking professional without unnecessary file bloat.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF', desc: 'Drop the PDF file you want to compress without quality loss.' },
+      { step: 2, title: 'Smart Compression', desc: 'Our engine optimizes stream structures while preserving original typography and resolution.' },
+      { step: 3, title: 'Download Sharp PDF', desc: 'Save your compressed PDF with uncompromised visual fidelity.' }
+    ],
+    benefits: [
+      { title: 'Smart Stream Re-encoding', desc: 'Strips metadata and redundant objects without aggressive pixel downscaling.' },
+      { title: 'Sharp Vector Fonts', desc: 'Text remains 100% vector-sharp and crystal clear.' },
+      { title: 'Instant Online Processing', desc: 'Fast, free, and works on all web browsers.' },
+      { title: 'Zero File Retention', desc: 'Automatic file deletion protects your confidential documents.' }
+    ],
+    useCases: [
+      'Shrinking design portfolios and photo books for clients without degrading image quality',
+      'Compressing legal contracts and official documents without blurring fine print',
+      'Optimizing marketing collateral and eBooks for fast digital distribution'
+    ],
+    faqs: [
+      { question: 'How is this different from regular compression?', answer: 'It balances size reduction against visual quality instead of maxing out compression and degrading images.' },
+      { question: 'Will text ever blur?', answer: 'No, text is never rasterized or blurred; vector font structures remain untouched.' },
+      { question: 'What about images?', answer: 'Images are optimized intelligently using advanced re-encoding rather than aggressive downscaling.' }
+    ],
+    relatedTools: [
+      { name: 'Merge Lossless', path: '/merge-pdf-without-losing-quality', desc: 'Combine PDFs without quality loss.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Standard PDF compression tool.' },
+      { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert PDFs to editable DOCX.' }
+    ]
+  },
+  '/compress-pdf-for-whatsapp': {
+    toolName: 'Compress PDF for WhatsApp',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight WhatsApp PDF Compressor shrinks heavy documents so you can send them instantly through WhatsApp messages without failed transfers or high mobile data usage.',
+    topBody: [
+      'Large PDF files can fail or take forever to upload when sending documents on WhatsApp. MakePDFRight shrinks your PDF file size so you can share contracts, e-books, and presentations instantly over mobile data or slow connections.',
+      'Send documents smoothly with fast, secure browser compression directly on your mobile device or desktop.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Select PDF', desc: 'Choose or drag & drop the PDF you wish to share on WhatsApp.' },
+      { step: 2, title: 'Compress File', desc: 'Our compressor reduces file size for quick messaging delivery.' },
+      { step: 3, title: 'Download & Share', desc: 'Save the compact PDF and share it directly via WhatsApp.' }
+    ],
+    benefits: [
+      { title: 'Fast WhatsApp Uploads', desc: 'Smaller files send instantly without transfer errors.' },
+      { title: 'Saves Mobile Data', desc: 'Reduces bandwidth consumption when sharing files over cellular networks.' },
+      { title: 'Mobile Friendly', desc: 'Works smoothly in Safari, Chrome, and all mobile browsers.' },
+      { title: 'Private & Secure', desc: 'Documents process in temporary memory and delete automatically.' }
+    ],
+    useCases: [
+      'Sharing business invoices, contracts, and receipts via WhatsApp chat',
+      'Sending study materials, notes, and PDFs to WhatsApp student groups',
+      'Transferring ticket bookings and event passes quickly on mobile'
+    ],
+    faqs: [
+      { question: 'Does WhatsApp have a file size limit?', answer: 'Yes, WhatsApp has document upload limits, but smaller compressed files send much faster and consume less mobile data.' },
+      { question: 'Will compression affect how it opens on mobile?', answer: 'No, it opens identically on iOS and Android devices, just loads and displays faster.' },
+      { question: 'Is it safe to compress private files for WhatsApp?', answer: 'Yes, all processing takes place securely in your browser session with automated temporary file deletion.' }
+    ],
+    relatedTools: [
+      { name: 'Compress on iPhone', path: '/compress-pdf-on-iphone', desc: 'Compress PDFs on iOS Safari without apps.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'General PDF compressor.' },
+      { name: 'PDF to JPG', path: '/pdf-to-jpg', desc: 'Convert PDF pages into shareable JPG images.' }
+    ]
+  },
+  '/compress-pdf-for-job-application': {
+    toolName: 'Compress PDF for Job Applications',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Resume & Portfolio Compressor shrinks your CV, resume, and application documents to pass online applicant tracking systems (ATS) and job portal size caps.',
+    topBody: [
+      'Job application portals often reject resumes and portfolios that exceed strict size limits like 2MB or 5MB. MakePDFRight optimizes your CV and design portfolio so it passes ATS uploads cleanly without losing high-resolution formatting.',
+      'Ensure your application gets submitted without technical delays or rejected upload errors.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Resume/Portfolio', desc: 'Select your resume, CV, or portfolio PDF file.' },
+      { step: 2, title: 'Optimize for Uploads', desc: 'Select compression settings tuned for ATS and job portal limits.' },
+      { step: 3, title: 'Download Compact CV', desc: 'Get your application-ready PDF immediately.' }
+    ],
+    benefits: [
+      { title: 'Passes ATS Upload Caps', desc: 'Fits strict 2MB - 5MB resume limits on Workday, Taleo, and LinkedIn.' },
+      { title: 'Professional Formatting', desc: 'Font hierarchy and text clarity stay 100% crisp and readable.' },
+      { title: 'Free & Instant', desc: 'No signup, subscriptions, or watermarks added.' },
+      { title: 'Private & Confidential', desc: 'Your personal career history and contact details remain private.' }
+    ],
+    useCases: [
+      'Shrinking multi-page graphic design or architecture portfolios for job submissions',
+      'Compressing scanned diplomas, recommendation letters, and resumes for job applications',
+      'Fitting application packages into recruiter email attachment caps'
+    ],
+    faqs: [
+      { question: 'Will my resume still look professional?', answer: 'Yes, formatting, font styling, and text alignment stay fully intact.' },
+      { question: 'What size do most portals require?', answer: 'Most applicant tracking systems require PDFs under 2MB to 5MB — this tool targets that range automatically.' },
+      { question: 'Does it work with multi-page portfolios?', answer: 'Yes, multi-page CVs and visual portfolios compress efficiently while keeping embedded photos clear.' }
+    ],
+    relatedTools: [
+      { name: 'Compress to 500KB', path: '/compress-pdf-to-500kb', desc: 'Targeted compression for 500KB portal caps.' },
+      { name: 'Compress to 1MB', path: '/compress-pdf-to-1mb', desc: 'Targeted compression for 1MB portal caps.' },
+      { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert resumes to editable Word files.' }
+    ]
+  },
+  '/compress-multiple-pdf-files': {
+    toolName: 'Compress Multiple PDF Files at Once',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Batch PDF Compressor lets you upload and shrink multiple PDF documents simultaneously in one fast, free browser session.',
+    topBody: [
+      'Compressing PDF files one by one can be time-consuming when dealing with large archives or project folders. MakePDFRight allows you to batch compress multiple PDF documents simultaneously right inside your browser.',
+      'Save time and storage space with fast, secure batch processing without installing heavy software.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Multiple PDFs', desc: 'Drag & drop several PDF files into the batch upload area.' },
+      { step: 2, title: 'Batch Compression', desc: 'Apply unified compression settings across all uploaded files.' },
+      { step: 3, title: 'Download All Files', desc: 'Download your compressed PDFs instantly.' }
+    ],
+    benefits: [
+      { title: 'Batch Efficiency', desc: 'Process multiple PDF files at once without waiting for individual uploads.' },
+      { title: 'Uniform Quality', desc: 'Applies consistent compression algorithms across your document batch.' },
+      { title: 'No File Number Limits', desc: 'Batch compress as many documents as needed for free.' },
+      { title: 'Private & Encrypted', desc: 'Files process in temporary memory and purge automatically.' }
+    ],
+    useCases: [
+      'Compressing entire folders of monthly invoices and receipts for accounting',
+      'Bulk shrinking scanned student assignments or exam papers for online grading',
+      'Optimizing multi-file project archives before cloud storage backups'
+    ],
+    faqs: [
+      { question: 'How many files can I compress at once?', answer: 'There is no hard limit — you can upload and batch compress as many files as you need.' },
+      { question: 'Do all files get the same compression level?', answer: 'Yes, your selected compression setting is applied uniformly across your entire batch of PDFs.' },
+      { question: 'Can I download all compressed files together?', answer: 'Yes, you can download each compressed PDF or grab all processed files instantly.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Combine multiple PDFs into a single file.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Standard single or batch PDF compressor.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Rearrange, rotate, or delete pages across files.' }
+    ]
+  },
+  '/compress-pdf-on-iphone': {
+    toolName: 'Compress PDF on iPhone',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight iPhone PDF Compressor allows you to shrink PDF file sizes directly in Mobile Safari or Chrome on iOS and iPadOS without downloading any apps.',
+    topBody: [
+      'Shrinking PDF sizes on iOS shouldn\'t require downloading paid third-party App Store apps or starting free trials. MakePDFRight works directly inside Safari or Chrome on your iPhone or iPad to reduce document sizes instantly.',
+      'Select files straight from your iPhone Files app or iCloud Drive and download compressed PDFs in seconds.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Select File on iPhone', desc: 'Tap upload and choose a PDF from your iPhone Files app or iCloud Drive.' },
+      { step: 2, title: 'Compress in Safari', desc: 'Compress the PDF directly inside your iOS browser.' },
+      { step: 3, title: 'Save to Files', desc: 'Download and save the compressed PDF directly back to your Files app.' }
+    ],
+    benefits: [
+      { title: 'No App Download Needed', desc: 'Runs 100% inside Safari, Chrome, or Firefox on iOS.' },
+      { title: 'Native iOS Files Integration', desc: 'Pick files from iCloud Drive, On My iPhone, or Downloads.' },
+      { title: 'Fast Mobile Performance', desc: 'Optimized for mobile processors and touch interfaces.' },
+      { title: 'Complete Privacy', desc: 'Encrypted browser processing with zero persistent document storage.' }
+    ],
+    useCases: [
+      'Shrinking PDFs on iPhone before attaching them in Mail or Outlook iOS apps',
+      'Compressing scanned documents created with the iOS Notes scanner app',
+      'Reducing PDF file size for fast uploading on mobile safari forms'
+    ],
+    faqs: [
+      { question: 'Do I need to install an app?', answer: 'No, it works entirely in your iPhone\'s Safari or mobile browser without any downloads.' },
+      { question: 'Can I save the compressed file to Files app?', answer: 'Yes, you can download and save the compressed PDF directly to your iPhone\'s Files app or iCloud Drive.' },
+      { question: 'Does it work on iPad and Mac too?', answer: 'Yes, it is fully compatible with iOS, iPadOS, macOS, and all modern mobile devices.' }
+    ],
+    relatedTools: [
+      { name: 'Compress for WhatsApp', path: '/compress-pdf-for-whatsapp', desc: 'Compress PDFs for sharing on WhatsApp.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'General PDF compression tool.' },
+      { name: 'Image to PDF', path: '/image-to-pdf', desc: 'Convert photos on iPhone into PDF documents.' }
+    ]
+  },
   '/merge-pdf-without-losing-quality': {
     toolName: 'Merge PDF Without Losing Quality',
     category: 'PDF Tools',

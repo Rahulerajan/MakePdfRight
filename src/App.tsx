@@ -134,6 +134,69 @@ export default function App() {
                   {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
                 </ToolPage>
               } />
+              <Route path="/compress-pdf-to-500kb" element={
+                <ToolPage 
+                  title="Compress PDF to 500KB" 
+                  description="Shrink your PDF to 500KB for forms and uploads with mid-size limits."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-pdf-to-1mb" element={
+                <ToolPage 
+                  title="Compress PDF to 1MB" 
+                  description="Shrink your PDF to 1MB or smaller for uploads, forms, and email."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-pdf-without-losing-quality" element={
+                <ToolPage 
+                  title="Compress PDF Without Losing Quality" 
+                  description="Reduce file size while keeping text and images sharp."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-pdf-for-whatsapp" element={
+                <ToolPage 
+                  title="Compress PDF for WhatsApp" 
+                  description="Shrink your PDF to send smoothly over WhatsApp without failed uploads."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-pdf-for-job-application" element={
+                <ToolPage 
+                  title="Compress PDF for Job Applications" 
+                  description="Get your resume or portfolio PDF under application portal size limits without losing quality."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-multiple-pdf-files" element={
+                <ToolPage 
+                  title="Compress Multiple PDF Files at Once" 
+                  description="Batch compress several PDFs in one go — free, fast, no software needed."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/compress-pdf-on-iphone" element={
+                <ToolPage 
+                  title="Compress PDF on iPhone" 
+                  description="Shrink PDF file size directly in Safari on your iPhone. No app download required."
+                  multiple
+                >
+                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
 
               <Route path="/pdf-to-jpg" element={
                 <ToolPage 
