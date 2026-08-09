@@ -119,14 +119,6 @@ export const ToolPage: React.FC<ToolPageProps> = ({
                 <div className="text-center space-y-3">
                   <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">{displayTitle}</h1>
                   <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">{displayDesc}</p>
-                  
-                  {toolSeoContent?.topBody && (
-                    <div className="mt-6 text-left bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-3.5 text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed shadow-xs">
-                      {toolSeoContent.topBody.map((paragraph, idx) => (
-                        <p key={idx}>{paragraph}</p>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 <FileUpload 

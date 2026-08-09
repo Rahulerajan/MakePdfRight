@@ -43,6 +43,14 @@ export const ToolSEOContent: React.FC<ToolSEOContentProps> = ({ data }) => {
           {data.overview}
         </p>
 
+        {data.topBody && data.topBody.length > 0 && (
+          <div className="mt-4 space-y-3.5 text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed">
+            {data.topBody.map((paragraph, idx) => (
+              <p key={idx}>{paragraph}</p>
+            ))}
+          </div>
+        )}
+
         <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="flex items-center gap-3 text-xs font-semibold text-slate-600 dark:text-slate-400">
             <Lock className="w-4 h-4 text-emerald-500 shrink-0" />
