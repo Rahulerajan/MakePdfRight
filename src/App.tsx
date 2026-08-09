@@ -228,7 +228,7 @@ export default function App() {
 
               <Route path="/ocr" element={
                 <ToolPage 
-                  title="PDF to Word" 
+                  title="OCR PDF" 
                   description="Perform OCR text recognition on scanned PDF files."
                 >
                   {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}

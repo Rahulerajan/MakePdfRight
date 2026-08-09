@@ -72,7 +72,8 @@ export const ToolPage: React.FC<ToolPageProps> = ({
     'PDF to Excel': 'pdf_to_excel',
     'Edit PDF': 'edit',
     'Rotate PDF': 'rotate',
-    'Organize PDF': 'organise'
+    'Organize PDF': 'organise',
+    'OCR PDF': 'ocr'
   };
   const baseKey = keyMap[title];
   const displayTitle = baseKey ? t(`tool.${baseKey}.title`) : title;

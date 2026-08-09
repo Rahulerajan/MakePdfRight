@@ -27,6 +27,7 @@ import { AdUnit } from '../components/ads/AdUnit';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
 import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
+import { ToolSEOContent } from '../components/seo/ToolSEOContent';
 import { useLanguage } from '../components/LanguageContext';
 import { BackButton } from '../components/common/BackButton';
 import { ResultPanel } from '../components/common/ResultPanel';
@@ -921,6 +922,11 @@ export const AudioTranscribeTool: React.FC = () => {
       {!transcription && !isProcessing && (
         <AdUnit format="thin-banner" className="my-3" />
       )}
+
+      {/* SEO Content Section */}
+      <div className="mt-12">
+        <ToolSEOContent data={TOOL_SEO_CONTENT_MAP['/transcribe']} />
+      </div>
       </div>
     </div>
   );

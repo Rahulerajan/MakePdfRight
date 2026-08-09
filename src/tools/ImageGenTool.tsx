@@ -20,6 +20,7 @@ import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
 import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
+import { ToolSEOContent } from '../components/seo/ToolSEOContent';
 import { BackButton } from '../components/common/BackButton';
 import { AdUnit } from '../components/ads/AdUnit';
 
@@ -462,6 +463,11 @@ export const ImageGenTool: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* SEO Content Section */}
+      <div className="mt-12">
+        <ToolSEOContent data={TOOL_SEO_CONTENT_MAP['/generate-image']} />
       </div>
     </div>
   </div>
