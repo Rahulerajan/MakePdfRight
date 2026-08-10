@@ -23,6 +23,8 @@ import { useLanguage } from '../components/LanguageContext';
 import { HistoryService } from '../services/historyService';
 import { BackButton } from '../components/common/BackButton';
 import { ResultPanel } from '../components/common/ResultPanel';
+import { uploadFileForProcessing } from '../utils/fileUpload';
+import { JobClient } from '../utils/jobClient';
 
 interface CompressToolProps {
   file?: File;
@@ -278,9 +280,9 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
         throw new Error('No valid PDF files selected.');
       }
 
-      let pdfToProcess: Uint8Array;
+      let uploadTargetFile: File;
       if (validItems.length === 1) {
-        pdfToProcess = new Uint8Array(await validItems[0].file.arrayBuffer());
+        uploadTargetFile = validItems[0].file;
       } else {
         // Merge multiple files before sending to server compression service
         const mergedDoc = await PDFDocument.create();
@@ -291,65 +293,70 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
           const copiedPages = await mergedDoc.copyPages(doc, doc.getPageIndices());
           copiedPages.forEach(p => mergedDoc.addPage(p));
         }
-        pdfToProcess = await mergedDoc.save();
+        const mergedBytes = await mergedDoc.save();
+        uploadTargetFile = new File([mergedBytes], 'merged_input.pdf', { type: 'application/pdf' });
       }
 
       if (isCancelledRef.current) return;
 
-      // Convert PDF to Base64
-      let binaryStr = '';
-      const len = pdfToProcess.byteLength;
-      for (let i = 0; i < len; i++) {
-        binaryStr += String.fromCharCode(pdfToProcess[i]);
-      }
-      const pdfBase64 = btoa(binaryStr);
+      setManualProgress(10);
 
-      setManualProgress(30);
-
-      // Call server endpoint
-      const response = await fetch('/api/pdf-tools?action=compress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          pdfBase64,
-          level
-        })
+      // Direct upload to storage with progress tracking
+      const uploadResult = await uploadFileForProcessing(uploadTargetFile, (percent) => {
+        setManualProgress(Math.min(40, Math.round(10 + (percent * 0.30))));
       });
 
       if (isCancelledRef.current) return;
 
-      if (response.ok) {
-        const data = await response.json();
-        if (isCancelledRef.current) return;
-        if (data.success && data.pdfBase64) {
-          setManualProgress(100);
-          const endTime = performance.now();
-          const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
-
-          HistoryService.addHistoryItem({
-            toolId: 'compress',
-            toolName: 'Compress PDF',
-            fileName: fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf',
-            fileSize: data.originalSize,
-            outputSize: data.compressedSize,
-            resultUrl: data.pdfBase64,
-            status: 'completed',
-            details: `Reduced size by ${data.percentage}% (${((data.spaceSaved || 0) / (1024 * 1024)).toFixed(2)} MB saved)`
-          });
-
-          setResult({
-            url: data.pdfBase64,
-            size: data.compressedSize,
-            originalSize: data.originalSize,
-            savedSize: data.spaceSaved,
-            percentage: data.percentage,
-            totalPages: data.pages || 1,
-            timeSeconds: data.processingTime || elapsedSeconds,
-            optimizationSummary: data.optimizationSummary
-          });
-          return;
+      // Submit job and poll via JobClient
+      const jobRes = await JobClient.executeJob({
+        type: 'compress',
+        payload: {
+          inputObjectKey: uploadResult.objectKey,
+          level
+        },
+        sessionStorageKey: 'compress_active_job',
+        signal: controller.signal,
+        onProgress: (progress, status) => {
+          if (!isCancelledRef.current) {
+            setManualProgress(Math.min(95, Math.round(40 + (progress * 0.55))));
+          }
         }
+      });
+
+      if (isCancelledRef.current) return;
+
+      const outputData = jobRes.result?.output || {};
+      const downloadUrl = outputData.downloadUrl || jobRes.result?.downloadUrl;
+      const resResult = jobRes.result || {};
+
+      if (downloadUrl) {
+        setManualProgress(100);
+        const endTime = performance.now();
+        const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
+
+        HistoryService.addHistoryItem({
+          toolId: 'compress',
+          toolName: 'Compress PDF',
+          fileName: fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf',
+          fileSize: resResult.originalSize || uploadTargetFile.size,
+          outputSize: resResult.compressedSize || outputData.size || uploadTargetFile.size,
+          resultUrl: downloadUrl,
+          status: 'completed',
+          details: `Reduced size by ${resResult.percentage || 0}% (${((resResult.spaceSaved || 0) / (1024 * 1024)).toFixed(2)} MB saved)`
+        });
+
+        setResult({
+          url: downloadUrl,
+          size: resResult.compressedSize || outputData.size,
+          originalSize: resResult.originalSize || uploadTargetFile.size,
+          savedSize: resResult.spaceSaved || 0,
+          percentage: resResult.percentage || 0,
+          totalPages: resResult.pages || 1,
+          timeSeconds: resResult.processingTime || elapsedSeconds,
+          optimizationSummary: resResult.optimizationSummary
+        });
+        return;
       }
 
       console.warn('Server compression endpoint returned non-success, falling back to client-side rendering...');

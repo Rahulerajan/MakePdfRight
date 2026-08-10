@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "clean": "node -e \"fs.rmSync('dist', {recursive: true, force: true})\"",
     "lint": "tsc --noEmit",
-    "test": "tsx tests/security.test.ts"
+    "test": "tsx tests/security.test.ts && tsx tests/jobSystem.test.ts && tsx tests/workerConcurrency.test.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

@@ -3,25 +3,89 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import { LoggingService } from './LoggingService.js';
+import { IStorageProvider } from '../storage/IStorageProvider.js';
+import { LocalStorageProvider } from '../storage/LocalStorageProvider.js';
+import { GCSStorageProvider } from '../storage/GCSStorageProvider.js';
+import { AppError } from './ErrorHandler.js';
 
 export class StorageService {
   private static tempDir = path.resolve(os.tmpdir(), 'make-pdf-right');
+  private static providerInstance: IStorageProvider;
 
   static {
     try {
-      // Ensure temp directory exists with restrictive directory permissions (0o700)
       if (!fs.existsSync(this.tempDir)) {
         fs.mkdirSync(this.tempDir, { recursive: true, mode: 0o700 });
       } else {
         this.cleanupAll();
       }
       this.startScheduledCleanup();
+
+      // Instantiate active storage provider based on environment config
+      const providerType = process.env.STORAGE_PROVIDER || 'local';
+      if (providerType === 'gcs') {
+        this.providerInstance = new GCSStorageProvider();
+      } else {
+        this.providerInstance = new LocalStorageProvider();
+      }
+      LoggingService.info(`[StorageService] Initialized with provider: ${providerType}`);
     } catch (err) {
-      LoggingService.error('Failed to initialize StorageService directory:', err);
+      LoggingService.error('Failed to initialize StorageService:', err);
     }
   }
 
-  // Robust path containment check using path.resolve and path.relative comparison
+  /**
+   * Return the active StorageProvider instance.
+   */
+  static getStorageProvider(): IStorageProvider {
+    if (!this.providerInstance) {
+      this.providerInstance = new LocalStorageProvider();
+    }
+    return this.providerInstance;
+  }
+
+  /**
+   * Generate a secure private object key.
+   * Path structure: users/{ownerId}/{type}/{uuid}.pdf
+   */
+  static generateObjectKey(ownerId: string, type: 'uploads' | 'outputs' = 'uploads', extension: string = '.pdf'): string {
+    const sanitizedOwner = (ownerId || 'anonymous').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const randomId = crypto.randomUUID();
+    const cleanExt = extension.startsWith('.') ? extension : `.${extension}`;
+    return `users/${sanitizedOwner}/${type}/${randomId}${cleanExt}`;
+  }
+
+  /**
+   * Verify file ownership and existence to prevent IDOR attacks.
+   */
+  static async verifyObjectOwnership(objectKey: string, ownerId: string): Promise<void> {
+    if (!objectKey || typeof objectKey !== 'string') {
+      throw new AppError('Invalid object key.', 400);
+    }
+
+    const provider = this.getStorageProvider();
+    const exists = await provider.exists(objectKey);
+    if (!exists) {
+      throw new AppError(`Object not found: ${objectKey}`, 404);
+    }
+
+    // Verify key path owner ID matches or check metadata ownerId
+    const keyParts = objectKey.split('/');
+    const keyOwner = keyParts.length >= 2 && keyParts[0] === 'users' ? keyParts[1] : null;
+
+    if (keyOwner && keyOwner !== ownerId && ownerId !== 'admin') {
+      LoggingService.warn(`[Security Alert] IDOR attempt blocked. Key owner ${keyOwner} != ${ownerId}`);
+      throw new AppError('Access denied: You do not have permission to access this storage object.', 403);
+    }
+
+    const metadata = await provider.getMetadata(objectKey);
+    if (metadata?.ownerId && metadata.ownerId !== ownerId && ownerId !== 'admin') {
+      throw new AppError('Access denied: Ownership verification failed.', 403);
+    }
+  }
+
+  // --- Legacy / Direct Temp File Utilities ---
+
   static isPathContained(targetPath: string, parentDir: string = this.tempDir): boolean {
     if (!targetPath || typeof targetPath !== 'string') return false;
     const resolvedTarget = path.resolve(targetPath);
@@ -39,7 +103,6 @@ export class StorageService {
       throw new Error('Security Error: Path traversal attempt detected.');
     }
 
-    // Write file with restrictive permissions (0o600)
     fs.writeFileSync(filePath, buffer, { mode: 0o600 });
     LoggingService.info(`Wrote temporary file securely: ${filePath}`);
     return filePath;
@@ -73,7 +136,7 @@ export class StorageService {
       const files = fs.readdirSync(this.tempDir);
       for (const file of files) {
         if (file.endsWith('.db') || file.endsWith('.db-journal') || file.endsWith('.db-wal')) {
-          continue; // Preserve database files
+          continue;
         }
         const fullPath = path.resolve(this.tempDir, file);
         if (this.isPathContained(fullPath)) {

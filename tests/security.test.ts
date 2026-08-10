@@ -44,24 +44,24 @@ async function runSecurityTests() {
   const user1 = 'usr_owner_111';
   const user2 = 'usr_owner_222';
 
-  const job1 = JobService.createJob('compress', user1);
+  const job1 = await JobService.createJob('compress', user1);
   assert.ok(job1.id.length >= 32, 'Job ID must be a secure UUID');
   
   // User 1 should retrieve job 1
-  const retrievedByUser1 = JobService.getJob(job1.id, user1);
+  const retrievedByUser1 = await JobService.getJob(job1.id, user1);
   assert.ok(retrievedByUser1, 'Owner 1 must be able to retrieve their own job');
   assert.strictEqual(retrievedByUser1.id, job1.id);
 
   // User 2 should NOT retrieve job 1
-  const retrievedByUser2 = JobService.getJob(job1.id, user2);
-  assert.strictEqual(retrievedByUser2, undefined, 'Owner 2 MUST NOT be able to retrieve Owner 1 job');
+  const retrievedByUser2 = await JobService.getJob(job1.id, user2);
+  assert.strictEqual(retrievedByUser2, null, 'Owner 2 MUST NOT be able to retrieve Owner 1 job');
 
   // User 2 cannot cancel User 1 job
-  const cancelResult = JobService.cancelJob(job1.id, user2);
+  const cancelResult = await JobService.cancelJob(job1.id, user2);
   assert.strictEqual(cancelResult, false, 'Owner 2 MUST NOT be able to cancel Owner 1 job');
 
   // User 1 cancels job 1
-  const validCancel = JobService.cancelJob(job1.id, user1);
+  const validCancel = await JobService.cancelJob(job1.id, user1);
   assert.strictEqual(validCancel, true, 'Owner 1 must be able to cancel their job');
 
   console.log('✅ Test 3 Passed: Job ownership isolation and security verified.');
@@ -83,6 +83,7 @@ async function runSecurityTests() {
   console.log('✅ Test 4 Passed: Input boundary payload validation works as expected.');
 
   console.log('\n🎉 ALL SECURITY UNIT TESTS PASSED SUCCESSFULLY! 🎉\n');
+  process.exit(0);
 }
 
 runSecurityTests().catch((err) => {
