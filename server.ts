@@ -1280,14 +1280,40 @@ async function startServer() {
       cleanPath = cleanPath.slice(0, -1);
     }
 
-    const routeSeo: RouteSEO = SEO_DATA[cleanPath] || SEO_DATA['/'];
+    const routeSeo: RouteSEO = SEO_DATA[cleanPath] || SEO_DATA['/404'] || SEO_DATA['/'];
     
     // Calculate canonical origin
     const appUrl = 'https://www.makepdfright.com';
     const canonicalUrl = `${appUrl}${cleanPath === '/' ? '' : cleanPath}`;
+    
+    const rawOgImage = routeSeo.ogImage || '/og-image.png';
+    const ogImageUrl = rawOgImage.startsWith('http') 
+      ? rawOgImage 
+      : `${appUrl}${rawOgImage.startsWith('/') ? '' : '/'}${rawOgImage}`;
 
     const titleText = routeSeo.title;
     const descText = routeSeo.description;
+
+    // Helper functions for meta tags
+    const setMetaProperty = (property: string, content: string) => {
+      const regex = new RegExp(`<meta\\s+property="${property}"\\s+content=".*?"\\s*\\/?>`, 'i');
+      const tag = `<meta property="${property}" content="${escapeHtml(content)}" />`;
+      if (regex.test(html)) {
+        html = html.replace(regex, tag);
+      } else {
+        html = html.replace('</head>', `  ${tag}\n</head>`);
+      }
+    };
+
+    const setMetaName = (name: string, content: string) => {
+      const regex = new RegExp(`<meta\\s+name="${name}"\\s+content=".*?"\\s*\\/?>`, 'i');
+      const tag = `<meta name="${name}" content="${escapeHtml(content)}" />`;
+      if (regex.test(html)) {
+        html = html.replace(regex, tag);
+      } else {
+        html = html.replace('</head>', `  ${tag}\n</head>`);
+      }
+    };
 
     // 1. Title
     if (/<title>.*?<\/title>/i.test(html)) {
@@ -1296,42 +1322,25 @@ async function startServer() {
       html = html.replace('</head>', `  <title>${escapeHtml(titleText)}</title>\n</head>`);
     }
 
-    // 2. Meta description
-    if (/<meta\s+name="description"\s+content=".*?"\s*\/?>/i.test(html)) {
-      html = html.replace(/<meta\s+name="description"\s+content=".*?"\s*\/?>/i, `<meta name="description" content="${escapeHtml(descText)}" />`);
-    } else {
-      html = html.replace('</head>', `  <meta name="description" content="${escapeHtml(descText)}" />\n</head>`);
-    }
+    // 2. Meta description & robots
+    setMetaName('description', descText);
+    setMetaName('robots', 'index, follow, max-image-preview:large');
 
-    // 3. OpenGraph Title
-    if (/<meta\s+property="og:title"\s+content=".*?"\s*\/?>/i.test(html)) {
-      html = html.replace(/<meta\s+property="og:title"\s+content=".*?"\s*\/?>/i, `<meta property="og:title" content="${escapeHtml(titleText)}" />`);
-    } else {
-      html = html.replace('</head>', `  <meta property="og:title" content="${escapeHtml(titleText)}" />\n</head>`);
-    }
+    // 3. OpenGraph tags
+    setMetaProperty('og:site_name', 'MakePDFRight');
+    setMetaProperty('og:type', 'website');
+    setMetaProperty('og:title', titleText);
+    setMetaProperty('og:description', descText);
+    setMetaProperty('og:url', canonicalUrl);
+    setMetaProperty('og:image', ogImageUrl);
 
-    // 4. OpenGraph Description
-    if (/<meta\s+property="og:description"\s+content=".*?"\s*\/?>/i.test(html)) {
-      html = html.replace(/<meta\s+property="og:description"\s+content=".*?"\s*\/?>/i, `<meta property="og:description" content="${escapeHtml(descText)}" />`);
-    } else {
-      html = html.replace('</head>', `  <meta property="og:description" content="${escapeHtml(descText)}" />\n</head>`);
-    }
+    // 4. Twitter Card tags
+    setMetaName('twitter:card', 'summary_large_image');
+    setMetaName('twitter:title', titleText);
+    setMetaName('twitter:description', descText);
+    setMetaName('twitter:image', ogImageUrl);
 
-    // 5. Twitter Title
-    if (/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/i.test(html)) {
-      html = html.replace(/<meta\s+name="twitter:title"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:title" content="${escapeHtml(titleText)}" />`);
-    } else {
-      html = html.replace('</head>', `  <meta name="twitter:title" content="${escapeHtml(titleText)}" />\n</head>`);
-    }
-
-    // 6. Twitter Description
-    if (/<meta\s+name="twitter:description"\s+content=".*?"\s*\/?>/i.test(html)) {
-      html = html.replace(/<meta\s+name="twitter:description"\s+content=".*?"\s*\/?>/i, `<meta name="twitter:description" content="${escapeHtml(descText)}" />`);
-    } else {
-      html = html.replace('</head>', `  <meta name="twitter:description" content="${escapeHtml(descText)}" />\n</head>`);
-    }
-
-    // 7. Canonical link
+    // 5. Canonical link
     const canonicalTag = `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`;
     if (/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/i.test(html)) {
       html = html.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/i, canonicalTag);
@@ -1401,11 +1410,18 @@ async function startServer() {
         return next();
       }
       try {
+        let cleanPath = req.path.split('?')[0];
+        if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
+          cleanPath = cleanPath.slice(0, -1);
+        }
+        const isKnownRoute = Boolean(SEO_DATA[cleanPath]) || cleanPath === '/';
+        const statusCode = isKnownRoute ? 200 : 404;
+
         const url = req.originalUrl;
         const rawHtml = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf-8");
         const template = await vite.transformIndexHtml(url, rawHtml);
         const seoHtml = injectSEOMetadata(template, req.path, req);
-        res.status(200).set({ "Content-Type": "text/html" }).end(seoHtml);
+        res.status(statusCode).set({ "Content-Type": "text/html" }).end(seoHtml);
       } catch (e) {
         vite.ssrFixStacktrace(e as Error);
         next(e);
@@ -1424,11 +1440,18 @@ async function startServer() {
         return next();
       }
       try {
+        let cleanPath = req.path.split('?')[0];
+        if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
+          cleanPath = cleanPath.slice(0, -1);
+        }
+        const isKnownRoute = Boolean(SEO_DATA[cleanPath]) || cleanPath === '/';
+        const statusCode = isKnownRoute ? 200 : 404;
+
         if (!cachedIndexHtml) {
           cachedIndexHtml = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
         }
         const seoHtml = injectSEOMetadata(cachedIndexHtml, req.path, req);
-        res.status(200).set({ "Content-Type": "text/html" }).end(seoHtml);
+        res.status(statusCode).set({ "Content-Type": "text/html" }).end(seoHtml);
       } catch (e) {
         next(e);
       }

@@ -69,7 +69,7 @@
       "destination": "/api/ai-tools?action=complex-query"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/:path(compress|compress-.*|reduce-.*|merge|merge-.*|split|split-.*|extract-.*|delete-.*|how-to-.*|pdf-.*|image-.*|word-.*|edit|edit-.*|rotate|rotate-.*|organise|organize|ocr|generate-image|image-generator|transcribe|audio-.*|about|contact|privacy|terms|cookie-policy|disclaimer)",
       "destination": "/index.html"
     }
   ]

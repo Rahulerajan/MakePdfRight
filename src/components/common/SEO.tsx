@@ -29,7 +29,11 @@ export const SEO: React.FC<SEOProps> = ({
     document.title = title;
 
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    const fullCanonical = canonicalUrl || `https://www.makepdfright.com${currentPath}`;
+    const appUrl = 'https://www.makepdfright.com';
+    const fullCanonical = canonicalUrl || `${appUrl}${currentPath === '/' ? '' : currentPath}`;
+    const fullOgImage = ogImage.startsWith('http') 
+      ? ogImage 
+      : `${appUrl}${ogImage.startsWith('/') ? '' : '/'}${ogImage}`;
 
     // 2. Helper to set/update meta tag
     const updateMeta = (selector: string, attrName: string, attrVal: string, content: string) => {
@@ -52,13 +56,13 @@ export const SEO: React.FC<SEOProps> = ({
     updateMeta('meta[property="og:title"]', 'property', 'og:title', title);
     updateMeta('meta[property="og:description"]', 'property', 'og:description', description);
     updateMeta('meta[property="og:url"]', 'property', 'og:url', fullCanonical);
-    updateMeta('meta[property="og:image"]', 'property', 'og:image', ogImage);
+    updateMeta('meta[property="og:image"]', 'property', 'og:image', fullOgImage);
 
     // Twitter Cards
     updateMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
     updateMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
     updateMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
-    updateMeta('meta[name="twitter:image"]', 'name', 'twitter:image', ogImage);
+    updateMeta('meta[name="twitter:image"]', 'name', 'twitter:image', fullOgImage);
 
     // Canonical Link
     let link: HTMLLinkElement | null = document.querySelector('link[rel="canonical"]');

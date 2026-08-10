@@ -1,64 +1,79 @@
 export interface RouteSEO {
   title: string;
   description: string;
+  ogImage?: string;
 }
 
 export const SEO_DATA: Record<string, RouteSEO> = {
   '/': {
     title: 'MakePDFRight – Fast, Private & Free Online PDF & Media Tools',
-    description: 'MakePDFRight is your all-in-one suite of online PDF and media tools. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate images, and transcribe audio securely in your browser.'
+    description: 'MakePDFRight is your all-in-one suite of online PDF and media tools. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate images, and transcribe audio securely in your browser.',
+    ogImage: '/og-image.png'
   },
   '/compress': {
     title: 'Compress PDF Online Free – Reduce PDF File Size | MakePDFRight',
-    description: 'Reduce PDF file size online for free. Learn how to shrink PDF files for email attachments without losing text clarity or visual quality.'
+    description: 'Reduce PDF file size online for free. Learn how to shrink PDF files for email attachments without losing text clarity or visual quality.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-to-100kb': {
     title: 'Compress PDF to 100KB Online Free – Reduce File Size | MakePDFRight',
-    description: 'Compress PDF files down to 100KB online for free without losing essential quality or readability. Fast, private, browser-based compression with instant download.'
+    description: 'Compress PDF files down to 100KB online for free without losing essential quality or readability. Fast, private, browser-based compression with instant download.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-to-500kb': {
     title: 'Compress PDF to 500KB Online Free | MakePDFRight',
-    description: 'Shrink your PDF to 500KB for forms and uploads with mid-size limits. Free, instant, no signup.'
+    description: 'Shrink your PDF to 500KB for forms and uploads with mid-size limits. Free, instant, no signup.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-to-1mb': {
     title: 'Compress PDF to 1MB Online Free | MakePDFRight',
-    description: 'Shrink your PDF to 1MB or smaller for uploads, forms, and email. Free, instant, no signup required.'
+    description: 'Shrink your PDF to 1MB or smaller for uploads, forms, and email. Free, instant, no signup required.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-without-losing-quality': {
     title: 'Compress PDF Without Losing Quality | MakePDFRight',
-    description: 'Reduce file size while keeping text and images sharp. Smart compression, not blind quality loss. Free and instant.'
+    description: 'Reduce file size while keeping text and images sharp. Smart compression, not blind quality loss. Free and instant.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-for-whatsapp': {
     title: 'Compress PDF for WhatsApp Free | MakePDFRight',
-    description: 'Shrink your PDF to send smoothly over WhatsApp without failed uploads. Free and instant.'
+    description: 'Shrink your PDF to send smoothly over WhatsApp without failed uploads. Free and instant.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-for-job-application': {
     title: 'Compress PDF for Job Applications Free | MakePDFRight',
-    description: 'Get your resume or portfolio PDF under application portal size limits without losing quality. Free and instant.'
+    description: 'Get your resume or portfolio PDF under application portal size limits without losing quality. Free and instant.',
+    ogImage: '/og-compress.png'
   },
   '/compress-multiple-pdf-files': {
     title: 'Compress Multiple PDF Files at Once Free | MakePDFRight',
-    description: 'Batch compress several PDFs in one go — free, fast, no software needed.'
+    description: 'Batch compress several PDFs in one go — free, fast, no software needed.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-on-iphone': {
     title: 'Compress PDF on iPhone Free – No App Needed | MakePDFRight',
-    description: 'Shrink PDF file size directly in Safari on your iPhone. No app download required.'
+    description: 'Shrink PDF file size directly in Safari on your iPhone. No app download required.',
+    ogImage: '/og-compress.png'
   },
   '/compress-pdf-under-2mb': {
     title: 'Compress PDF Under 2MB Free Online | MakePDFRight',
-    description: 'Shrink your PDF to under 2MB for email attachments, portal submissions, and job applications. Free and fast.'
+    description: 'Shrink your PDF to under 2MB for email attachments, portal submissions, and job applications. Free and fast.',
+    ogImage: '/og-compress.png'
   },
   '/reduce-pdf-size-for-email': {
     title: 'Reduce PDF Size for Email Attachments Free | MakePDFRight',
-    description: 'Shrink large PDF documents so they send smoothly as email attachments without bounce-backs or size limit errors.'
+    description: 'Shrink large PDF documents so they send smoothly as email attachments without bounce-backs or size limit errors.',
+    ogImage: '/og-compress.png'
   },
   '/merge': {
     title: 'Merge PDF Online Free – Combine PDF Files | MakePDFRight',
-    description: 'Combine PDF files online for free without watermarks or formatting loss. Learn how to join multiple PDFs into one unified file in seconds.'
+    description: 'Combine PDF files online for free without watermarks or formatting loss. Learn how to join multiple PDFs into one unified file in seconds.',
+    ogImage: '/og-merge.png'
   },
   '/merge-pdf-without-losing-quality': {
     title: 'Merge PDF Without Losing Quality Free – High-Fidelity PDF Merger | MakePDFRight',
-    description: 'Combine multiple PDF files into one high-fidelity document without quality loss. Preserve original vector graphics, crisp text, images, and formatting for free online.'
+    description: 'Combine multiple PDF files into one high-fidelity document without quality loss. Preserve original vector graphics, crisp text, images, and formatting for free online.',
+    ogImage: '/og-merge.png'
   },
   '/split': {
     title: 'Split PDF Online Free – Extract PDF Pages | MakePDFRight',
@@ -175,6 +190,10 @@ export const SEO_DATA: Record<string, RouteSEO> = {
   '/disclaimer': {
     title: 'Disclaimer | MakePDFRight',
     description: 'Review legal disclaimers, document safety notices, and terms of service for MakePDFRight.'
+  },
+  '/404': {
+    title: 'Page Not Found (404) | MakePDFRight',
+    description: 'The page you requested could not be found. Explore our free PDF tools including Merge PDF, Split PDF, Compress PDF, and PDF Editor.'
   }
 };
 
