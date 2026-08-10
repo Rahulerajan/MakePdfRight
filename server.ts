@@ -1224,6 +1224,10 @@ async function startServer() {
     '/edit-pdf': '/edit',
     '/rotate-pdf': '/rotate',
     '/word-to-pdf': '/image-to-pdf',
+    '/organize': '/organise',
+    '/audio-transcribe': '/transcribe',
+    '/image-generator': '/generate-image',
+    '/pdf-editor': '/edit',
   };
 
   Object.entries(REDIRECTS).forEach(([oldPath, newPath]) => {

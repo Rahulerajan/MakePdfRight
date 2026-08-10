@@ -241,6 +241,7 @@ export default function App() {
                 </ToolPage>
               } />
               <Route path="/edit-pdf" element={<Navigate to="/edit" replace />} />
+              <Route path="/pdf-editor" element={<Navigate to="/edit" replace />} />
 
               <Route path="/rotate" element={
                 <ToolPage 
@@ -260,6 +261,7 @@ export default function App() {
                   {(files, onReset) => <OrganiseTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
               } />
+              <Route path="/organize" element={<Navigate to="/organise" replace />} />
 
               <Route path="/ocr" element={
                 <ToolPage 
@@ -277,6 +279,7 @@ export default function App() {
                   </div>
                 </div>
               } />
+              <Route path="/image-generator" element={<Navigate to="/generate-image" replace />} />
 
               <Route path="/transcribe" element={
                 <div className="flex-1 flex flex-col justify-start bg-slate-50 dark:bg-slate-900/50 transition-colors py-4 md:py-8 px-4 md:px-8">
@@ -285,6 +288,7 @@ export default function App() {
                   </div>
                 </div>
               } />
+              <Route path="/audio-transcribe" element={<Navigate to="/transcribe" replace />} />
 
               {/* Informational & Legal Pages */}
               <Route path="/about" element={<About />} />
