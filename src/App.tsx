@@ -91,6 +91,102 @@ export default function App() {
                 </ToolPage>
               } />
               <Route path="/split-pdf" element={<Navigate to="/split" replace />} />
+              <Route path="/split-pdf-by-page-number" element={
+                <ToolPage 
+                  title="Split PDF by Page Number" 
+                  description="Specify exact page numbers or custom page ranges (e.g., 1-5, 8, 10-12) to split and extract pages from your PDF instantly for free."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/extract-pages-from-pdf" element={
+                <ToolPage 
+                  title="Extract Pages from PDF" 
+                  description="Pull out and save individual pages or page groups from your PDF document for free."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-into-single-pages" element={
+                <ToolPage 
+                  title="Split PDF into Single Pages" 
+                  description="Separate every page of your PDF file into standalone individual PDF documents in one click."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/delete-pages-from-pdf" element={
+                <ToolPage 
+                  title="Delete Pages from PDF" 
+                  description="Remove blank, duplicate, or unwanted pages from your PDF document online for free."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-in-half" element={
+                <ToolPage 
+                  title="Split PDF in Half" 
+                  description="Divide any PDF document into two separate halves quickly and easily."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-every-n-pages" element={
+                <ToolPage 
+                  title="Split PDF Every N Pages" 
+                  description="Automatically split large PDF documents into equal parts every N pages."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-large-pdf-file" element={
+                <ToolPage 
+                  title="Split Large PDF File" 
+                  description="Break giant PDF files and heavy multi-gigabyte documents into smaller, lightweight PDFs."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-odd-even-pages" element={
+                <ToolPage 
+                  title="Split PDF Odd and Even Pages" 
+                  description="Separate odd-numbered and even-numbered pages from your PDF document for duplex printing."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-on-iphone" element={
+                <ToolPage 
+                  title="Split PDF on iPhone" 
+                  description="Split and extract PDF pages on your iPhone or iPad directly in Safari with no app downloads."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-without-losing-quality" element={
+                <ToolPage 
+                  title="Split PDF Without Losing Quality" 
+                  description="Split PDF files without quality loss. Preserve 100% vector text, original image resolution, and page layouts."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-without-acrobat" element={
+                <ToolPage 
+                  title="Split PDF Without Acrobat" 
+                  description="Split PDF files online for free without Adobe Acrobat or paid software."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/how-to-split-a-pdf" element={
+                <ToolPage 
+                  title="How to Split a PDF" 
+                  description="Learn how to split a PDF file into separate pages or ranges online for free in 3 easy steps."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
 
               <Route path="/compress" element={
                 <ToolPage 

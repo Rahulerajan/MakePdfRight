@@ -64,6 +64,54 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Split PDF Online Free – Extract PDF Pages | MakePDFRight',
     description: 'Split PDF into pages or extract page ranges online for free. Learn how to split large PDF files without losing quality or installing Acrobat.'
   },
+  '/split-pdf-by-page-number': {
+    title: 'Split PDF by Page Number Free Online | MakePDFRight',
+    description: 'Specify exact page numbers or custom page ranges (e.g., 1-5, 8, 10-12) to split and extract pages from your PDF instantly for free.'
+  },
+  '/extract-pages-from-pdf': {
+    title: 'Extract Pages from PDF Online Free | MakePDFRight',
+    description: 'Pull out and save individual pages or page groups from your PDF document for free. No software installation needed.'
+  },
+  '/split-pdf-into-single-pages': {
+    title: 'Split PDF into Single Pages Free Online | MakePDFRight',
+    description: 'Separate every page of your PDF file into standalone individual PDF documents in one click. Free, fast, and secure.'
+  },
+  '/delete-pages-from-pdf': {
+    title: 'Delete Pages from PDF Online Free | MakePDFRight',
+    description: 'Remove blank, duplicate, or unwanted pages from your PDF document online for free and download the cleaned file.'
+  },
+  '/split-pdf-in-half': {
+    title: 'Split PDF in Half Free Online | MakePDFRight',
+    description: 'Divide any PDF document into two separate halves quickly and easily. Free, browser-based, no signups required.'
+  },
+  '/split-pdf-every-n-pages': {
+    title: 'Split PDF Every N Pages Free Online | MakePDFRight',
+    description: 'Automatically split large PDF documents into equal parts every N pages. Perfect for batch processing and chapter splitting.'
+  },
+  '/split-large-pdf-file': {
+    title: 'Split Large PDF File Free Online | MakePDFRight',
+    description: 'Break giant PDF files and heavy multi-gigabyte documents into smaller, lightweight PDFs. Free, fast, with zero file caps.'
+  },
+  '/split-pdf-odd-even-pages': {
+    title: 'Split PDF Odd and Even Pages Online Free | MakePDFRight',
+    description: 'Separate odd-numbered and even-numbered pages from your PDF document for duplex printing and booklet assembly.'
+  },
+  '/split-pdf-on-iphone': {
+    title: 'Split PDF on iPhone Free – No App Needed | MakePDFRight',
+    description: 'Split and extract PDF pages on your iPhone or iPad directly in Safari. No app downloads, no watermarks, completely free.'
+  },
+  '/split-pdf-without-losing-quality': {
+    title: 'Split PDF Without Losing Quality Free | MakePDFRight',
+    description: 'Split PDF files without quality loss. Preserve 100% vector text, original image resolution, and page layouts.'
+  },
+  '/split-pdf-without-acrobat': {
+    title: 'Split PDF Without Acrobat Free Online | MakePDFRight',
+    description: 'Split PDF files online for free without Adobe Acrobat or paid software. Quick, private, browser-based PDF page extractor.'
+  },
+  '/how-to-split-a-pdf': {
+    title: 'How to Split a PDF Online Free Step-by-Step | MakePDFRight',
+    description: 'Learn how to split a PDF file into separate pages or ranges online for free in 3 easy steps. Works on any device.'
+  },
   '/pdf-to-jpg': {
     title: 'Convert PDF to JPG High Quality – Image Converter | MakePDFRight',
     description: 'Convert PDF pages to high quality JPG images online for free. Turn document pages into sharp graphics ready for presentations and web sharing.'
