@@ -6,8 +6,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).send('Method not allowed');
   }
 
-  const defaultDomain = 'https://www.makepdfright.com';
-  const baseUrl = (process.env.APP_URL || defaultDomain).replace(/\/$/, '');
+  const baseUrl = 'https://www.makepdfright.com';
 
   const urls = Object.keys(SEO_DATA).map((route) => {
     const loc = `${baseUrl}${route === '/' ? '' : route}`;

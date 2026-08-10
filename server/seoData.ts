@@ -12,10 +12,6 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Compress PDF Online Free – Reduce PDF File Size | MakePDFRight',
     description: 'Reduce PDF file size online for free. Learn how to shrink PDF files for email attachments without losing text clarity or visual quality.'
   },
-  '/compress-pdf': {
-    title: 'Compress PDF Online Free – Reduce PDF File Size | MakePDFRight',
-    description: 'Reduce PDF file size online for free. Learn how to shrink PDF files for email attachments without losing text clarity or visual quality.'
-  },
   '/compress-pdf-to-100kb': {
     title: 'Compress PDF to 100KB Online Free – Reduce File Size | MakePDFRight',
     description: 'Compress PDF files down to 100KB online for free without losing essential quality or readability. Fast, private, browser-based compression with instant download.'
@@ -60,10 +56,6 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Merge PDF Online Free – Combine PDF Files | MakePDFRight',
     description: 'Combine PDF files online for free without watermarks or formatting loss. Learn how to join multiple PDFs into one unified file in seconds.'
   },
-  '/merge-pdf': {
-    title: 'Merge PDF Online Free – Combine PDF Files | MakePDFRight',
-    description: 'Combine PDF files online for free without watermarks or formatting loss. Learn how to join multiple PDFs into one unified file in seconds.'
-  },
   '/merge-pdf-without-losing-quality': {
     title: 'Merge PDF Without Losing Quality Free – High-Fidelity PDF Merger | MakePDFRight',
     description: 'Combine multiple PDF files into one high-fidelity document without quality loss. Preserve original vector graphics, crisp text, images, and formatting for free online.'
@@ -72,19 +64,11 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Split PDF Online Free – Extract PDF Pages | MakePDFRight',
     description: 'Split PDF into pages or extract page ranges online for free. Learn how to split large PDF files without losing quality or installing Acrobat.'
   },
-  '/split-pdf': {
-    title: 'Split PDF Online Free – Extract PDF Pages | MakePDFRight',
-    description: 'Split PDF into pages or extract page ranges online for free. Learn how to split large PDF files without losing quality or installing Acrobat.'
-  },
   '/pdf-to-jpg': {
     title: 'Convert PDF to JPG High Quality – Image Converter | MakePDFRight',
     description: 'Convert PDF pages to high quality JPG images online for free. Turn document pages into sharp graphics ready for presentations and web sharing.'
   },
   '/image-to-pdf': {
-    title: 'Convert JPG to PDF Online – Combine Images | MakePDFRight',
-    description: 'Convert JPG, PNG, and photos to PDF online for free. Learn how to combine multiple images into one organized, printable PDF document.'
-  },
-  '/word-to-pdf': {
     title: 'Convert JPG to PDF Online – Combine Images | MakePDFRight',
     description: 'Convert JPG, PNG, and photos to PDF online for free. Learn how to combine multiple images into one organized, printable PDF document.'
   },
@@ -100,15 +84,7 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Edit PDF Online Free – Add Signature & Text | MakePDFRight',
     description: 'Edit PDF files online for free. Add signatures, fill out forms, insert text boxes, and annotate documents directly in your web browser.'
   },
-  '/edit-pdf': {
-    title: 'Edit PDF Online Free – Add Signature & Text | MakePDFRight',
-    description: 'Edit PDF files online for free. Add signatures, fill out forms, insert text boxes, and annotate documents directly in your web browser.'
-  },
   '/rotate': {
-    title: 'Rotate PDF Online Free – Fix Sideways PDF Pages | MakePDFRight',
-    description: 'Rotate PDF pages permanently online for free. Fix upside-down or sideways PDF scans in seconds with no software installation.'
-  },
-  '/rotate-pdf': {
     title: 'Rotate PDF Online Free – Fix Sideways PDF Pages | MakePDFRight',
     description: 'Rotate PDF pages permanently online for free. Fix upside-down or sideways PDF scans in seconds with no software installation.'
   },

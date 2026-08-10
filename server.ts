@@ -1216,12 +1216,25 @@ async function startServer() {
     }
   });
 
+  // 301 Permanent Redirects for redundant duplicate routes to canonical URLs
+  const REDIRECTS: Record<string, string> = {
+    '/compress-pdf': '/compress',
+    '/merge-pdf': '/merge',
+    '/split-pdf': '/split',
+    '/edit-pdf': '/edit',
+    '/rotate-pdf': '/rotate',
+    '/word-to-pdf': '/image-to-pdf',
+  };
+
+  Object.entries(REDIRECTS).forEach(([oldPath, newPath]) => {
+    app.get(oldPath, (req, res) => {
+      res.redirect(301, newPath);
+    });
+  });
+
   // Dynamic sitemap route
   app.get("/sitemap.xml", (req, res) => {
-    const host = req.get('host') || 'localhost:3000';
-    const protocol = req.protocol || 'http';
-    const defaultOrigin = `${protocol}://${host}`;
-    const baseUrl = (process.env.APP_URL || defaultOrigin).replace(/\/$/, '');
+    const baseUrl = 'https://www.makepdfright.com';
 
     const urls = Object.keys(SEO_DATA).map((route) => {
       const loc = `${baseUrl}${route === '/' ? '' : route}`;
@@ -1266,10 +1279,7 @@ async function startServer() {
     const routeSeo: RouteSEO = SEO_DATA[cleanPath] || SEO_DATA['/'];
     
     // Calculate canonical origin
-    const host = req.get('host') || 'localhost:3000';
-    const protocol = req.protocol || 'http';
-    const defaultOrigin = `${protocol}://${host}`;
-    const appUrl = (process.env.APP_URL || defaultOrigin).replace(/\/$/, '');
+    const appUrl = 'https://www.makepdfright.com';
     const canonicalUrl = `${appUrl}${cleanPath === '/' ? '' : cleanPath}`;
 
     const titleText = routeSeo.title;

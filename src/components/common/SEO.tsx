@@ -29,7 +29,7 @@ export const SEO: React.FC<SEOProps> = ({
     document.title = title;
 
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    const fullCanonical = canonicalUrl || `https://makepdfright.com${currentPath}`;
+    const fullCanonical = canonicalUrl || `https://www.makepdfright.com${currentPath}`;
 
     // 2. Helper to set/update meta tag
     const updateMeta = (selector: string, attrName: string, attrVal: string, content: string) => {

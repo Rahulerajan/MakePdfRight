@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://makepdfright.com/sitemap.xml
+Sitemap: https://www.makepdfright.com/sitemap.xml

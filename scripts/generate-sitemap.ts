@@ -3,7 +3,7 @@ import path from 'path';
 import { SEO_DATA } from '../src/constants/seoData';
 
 function generateSitemap() {
-  const baseUrl = (process.env.APP_URL || 'https://makepdfright.com').replace(/\/$/, '');
+  const baseUrl = 'https://www.makepdfright.com';
 
   const urls = Object.keys(SEO_DATA).map((route) => {
     const loc = `${baseUrl}${route === '/' ? '' : route}`;

@@ -4,7 +4,7 @@
  */
 
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeContext';
 import { LanguageProvider } from './components/LanguageContext';
 import { Header, Footer } from './components/layout/Layout';
@@ -71,15 +71,7 @@ export default function App() {
                   {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
                 </ToolPage>
               } />
-              <Route path="/merge-pdf" element={
-                <ToolPage 
-                  title="Merge PDF" 
-                  description="Combine multiple PDF files into one document in seconds."
-                  multiple
-                >
-                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
-                </ToolPage>
-              } />
+              <Route path="/merge-pdf" element={<Navigate to="/merge" replace />} />
               <Route path="/merge-pdf-without-losing-quality" element={
                 <ToolPage 
                   title="Merge PDF Without Losing Quality" 
@@ -98,14 +90,7 @@ export default function App() {
                   {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
               } />
-              <Route path="/split-pdf" element={
-                <ToolPage 
-                  title="Split PDF" 
-                  description="Break one PDF into separate files, or pull out just the pages you need."
-                >
-                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
-                </ToolPage>
-              } />
+              <Route path="/split-pdf" element={<Navigate to="/split" replace />} />
 
               <Route path="/compress" element={
                 <ToolPage 
@@ -116,15 +101,7 @@ export default function App() {
                   {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
                 </ToolPage>
               } />
-              <Route path="/compress-pdf" element={
-                <ToolPage 
-                  title="Compress PDF" 
-                  description="Reduce your PDF's file size while keeping text sharp and legible."
-                  multiple
-                >
-                  {(files, onReset) => <CompressTool file={files[0]} initialFiles={files} onReset={onReset} />}
-                </ToolPage>
-              } />
+              <Route path="/compress-pdf" element={<Navigate to="/compress" replace />} />
               <Route path="/compress-pdf-to-100kb" element={
                 <ToolPage 
                   title="Compress PDF to 100KB" 
@@ -235,16 +212,7 @@ export default function App() {
                   {(files, onReset) => <ImageToPDFTool initialFiles={files} onReset={onReset} />}
                 </ToolPage>
               } />
-              <Route path="/word-to-pdf" element={
-                <ToolPage 
-                  title="Image to PDF" 
-                  description="Combine multiple images into one organized PDF document."
-                  multiple
-                  accept={{ 'image/*': ['.jpg', '.jpeg', '.png'] }}
-                >
-                  {(files, onReset) => <ImageToPDFTool initialFiles={files} onReset={onReset} />}
-                </ToolPage>
-              } />
+              <Route path="/word-to-pdf" element={<Navigate to="/image-to-pdf" replace />} />
 
               <Route path="/pdf-to-word" element={
                 <ToolPage 
@@ -272,14 +240,7 @@ export default function App() {
                   {(files) => <EditTool file={files[0]} />}
                 </ToolPage>
               } />
-              <Route path="/edit-pdf" element={
-                <ToolPage 
-                  title="Edit PDF" 
-                  description="Edit text, add annotations, and make changes directly in your PDF."
-                >
-                  {(files) => <EditTool file={files[0]} />}
-                </ToolPage>
-              } />
+              <Route path="/edit-pdf" element={<Navigate to="/edit" replace />} />
 
               <Route path="/rotate" element={
                 <ToolPage 
@@ -289,14 +250,7 @@ export default function App() {
                   {(files, onReset) => <RotateTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
               } />
-              <Route path="/rotate-pdf" element={
-                <ToolPage 
-                  title="Rotate PDF" 
-                  description="Fix incorrectly oriented pages — rotate individually or all at once."
-                >
-                  {(files, onReset) => <RotateTool file={files[0]} onReset={onReset} />}
-                </ToolPage>
-              } />
+              <Route path="/rotate-pdf" element={<Navigate to="/rotate" replace />} />
 
               <Route path="/organise" element={
                 <ToolPage 
