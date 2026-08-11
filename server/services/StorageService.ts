@@ -45,6 +45,13 @@ export class StorageService {
   }
 
   /**
+   * Override or set active StorageProvider (useful for testing or configuration)
+   */
+  static setStorageProvider(provider: IStorageProvider): void {
+    this.providerInstance = provider;
+  }
+
+  /**
    * Generate a secure private object key.
    * Path structure: users/{ownerId}/{type}/{uuid}.pdf
    */

@@ -1,53 +1,166 @@
 import { Readable } from 'stream';
-import { IStorageProvider, StorageObjectMetadata } from './IStorageProvider.js';
+import { Storage as GCSClient } from '@google-cloud/storage';
+import { IStorageProvider, StorageObjectMetadata, StorageConditionalOptions } from './IStorageProvider.js';
 import { LocalStorageProvider } from './LocalStorageProvider.js';
 import { LoggingService } from '../services/LoggingService.js';
+import { AppError } from '../services/ErrorHandler.js';
 
 /**
  * GCS Storage Provider implementation.
- * Falls back safely to LocalStorageProvider if GCS credentials/bucket are not configured.
+ * Uses native object generation preconditions (ifGenerationMatch) for atomic conditional writes across distributed instances.
+ * Falls back safely to LocalStorageProvider in non-production local environments.
  */
 export class GCSStorageProvider implements IStorageProvider {
-  private fallback: LocalStorageProvider;
+  private fallback?: LocalStorageProvider;
+  private gcsStorage?: GCSClient;
   private bucketName?: string;
 
   constructor() {
-    this.fallback = new LocalStorageProvider();
     this.bucketName = process.env.GCS_BUCKET_NAME;
-    if (!this.bucketName) {
-      LoggingService.info('[GCSStorageProvider] GCS_BUCKET_NAME not set. Using LocalStorageProvider fallback.');
+    if (this.bucketName) {
+      try {
+        this.gcsStorage = new GCSClient();
+        LoggingService.info(`[GCSStorageProvider] Initialized GCS Storage Provider with bucket: ${this.bucketName}`);
+      } catch (err) {
+        LoggingService.error('[GCSStorageProvider] Failed to initialize GCS client:', err);
+      }
+    }
+
+    if (!this.gcsStorage) {
+      if (process.env.NODE_ENV === 'production') {
+        LoggingService.warn('[GCSStorageProvider] GCS_BUCKET_NAME is not configured in production environment.');
+      } else {
+        this.fallback = new LocalStorageProvider();
+        LoggingService.info('[GCSStorageProvider] Using LocalStorageProvider fallback for local development.');
+      }
     }
   }
 
-  async upload(key: string, data: Buffer | Readable, metadata?: Record<string, string>): Promise<string> {
-    return this.fallback.upload(key, data, metadata);
+  supportsConditionalWrites(): boolean {
+    if (this.gcsStorage) return true;
+    if (this.fallback) return this.fallback.supportsConditionalWrites();
+    return false; // Fail closed if no provider is active in production
+  }
+
+  async upload(
+    key: string,
+    data: Buffer | Readable,
+    metadata?: Record<string, string>,
+    conditionalOpts?: StorageConditionalOptions
+  ): Promise<string> {
+    if (this.gcsStorage && this.bucketName) {
+      try {
+        const bucket = this.gcsStorage.bucket(this.bucketName);
+        const file = bucket.file(key);
+
+        const options: any = {
+          metadata: {
+            contentType: metadata?.contentType || 'application/json',
+            metadata: metadata || {}
+          }
+        };
+
+        if (conditionalOpts?.ifDoesNotExist) {
+          options.preconditionOpts = { ifGenerationMatch: 0 };
+        } else if (conditionalOpts?.ifMatchVersion !== undefined) {
+          options.preconditionOpts = { ifGenerationMatch: conditionalOpts.ifMatchVersion };
+        }
+
+        const buffer = Buffer.isBuffer(data)
+          ? data
+          : await new Promise<Buffer>((resolve, reject) => {
+              const chunks: Buffer[] = [];
+              data.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+              data.on('end', () => resolve(Buffer.concat(chunks)));
+              data.on('error', reject);
+            });
+
+        await file.save(buffer, options);
+        LoggingService.info(`[GCSStorageProvider] Uploaded object to GCS key ${key} with precondition check`);
+        return key;
+      } catch (err: any) {
+        if (err.code === 412 || err.status === 412 || err.message?.includes('precondition')) {
+          throw new AppError(`GCS conditional write failed for key ${key}: Precondition failed (generation mismatch).`, 412);
+        }
+        LoggingService.error(`[GCSStorageProvider] Upload failed for key ${key}:`, err);
+        throw err;
+      }
+    }
+
+    if (this.fallback) {
+      return this.fallback.upload(key, data, metadata, conditionalOpts);
+    }
+
+    throw new AppError(
+      'Configuration Error: Production distributed job claiming requires a storage provider with atomic conditional write support (GCS_BUCKET_NAME must be set).',
+      500
+    );
   }
 
   async download(key: string): Promise<Buffer> {
-    return this.fallback.download(key);
+    if (this.gcsStorage && this.bucketName) {
+      const bucket = this.gcsStorage.bucket(this.bucketName);
+      const [contents] = await bucket.file(key).download();
+      return contents;
+    }
+    if (this.fallback) return this.fallback.download(key);
+    throw new AppError('Storage provider unconfigured.', 500);
   }
 
   async readStream(key: string): Promise<Readable> {
-    return this.fallback.readStream(key);
+    if (this.gcsStorage && this.bucketName) {
+      const bucket = this.gcsStorage.bucket(this.bucketName);
+      return bucket.file(key).createReadStream();
+    }
+    if (this.fallback) return this.fallback.readStream(key);
+    throw new AppError('Storage provider unconfigured.', 500);
   }
 
   async delete(key: string): Promise<void> {
-    return this.fallback.delete(key);
+    if (this.gcsStorage && this.bucketName) {
+      const bucket = this.gcsStorage.bucket(this.bucketName);
+      await bucket.file(key).delete({ ignoreNotFound: true }).catch(() => {});
+      return;
+    }
+    if (this.fallback) return this.fallback.delete(key);
   }
 
   async exists(key: string): Promise<boolean> {
-    return this.fallback.exists(key);
+    if (this.gcsStorage && this.bucketName) {
+      const bucket = this.gcsStorage.bucket(this.bucketName);
+      const [exists] = await bucket.file(key).exists();
+      return exists;
+    }
+    if (this.fallback) return this.fallback.exists(key);
+    return false;
   }
 
   async getMetadata(key: string): Promise<StorageObjectMetadata | null> {
-    return this.fallback.getMetadata(key);
+    if (this.gcsStorage && this.bucketName) {
+      try {
+        const bucket = this.gcsStorage.bucket(this.bucketName);
+        const [meta] = await bucket.file(key).getMetadata();
+        return {
+          size: Number(meta.size) || 0,
+          contentType: meta.contentType || 'application/pdf',
+          createdAt: new Date(meta.timeCreated || Date.now()),
+          version: Number(meta.generation) || 1
+        };
+      } catch {
+        return null;
+      }
+    }
+    if (this.fallback) return this.fallback.getMetadata(key);
+    return null;
   }
 
-  async createSignedUploadUrl(key: string, contentType: string, expiresInSeconds?: number): Promise<string> {
-    return this.fallback.createSignedUploadUrl(key, contentType, expiresInSeconds);
+  async createSignedUploadUrl(key: string, contentType: string, expiresInSeconds: number = 900): Promise<string> {
+    if (this.fallback) return this.fallback.createSignedUploadUrl(key, contentType, expiresInSeconds);
+    return `/api/files/upload?key=${encodeURIComponent(key)}`;
   }
 
-  async createSignedDownloadUrl(key: string, expiresInSeconds?: number): Promise<string> {
-    return this.fallback.createSignedDownloadUrl(key, expiresInSeconds);
+  async createSignedDownloadUrl(key: string, expiresInSeconds: number = 900): Promise<string> {
+    if (this.fallback) return this.fallback.createSignedDownloadUrl(key, expiresInSeconds);
+    return `/api/files/download?key=${encodeURIComponent(key)}`;
   }
 }

@@ -23,6 +23,7 @@ export interface Job {
   workerId?: string;
   leaseAcquiredAt?: string;
   leaseExpiresAt?: string;
+  version?: number; // Monotonically increasing version counter for atomic conditional writes
 }
 
 export interface ClaimResult {

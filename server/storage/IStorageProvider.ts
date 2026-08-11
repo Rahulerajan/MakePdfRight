@@ -6,13 +6,29 @@ export interface StorageObjectMetadata {
   createdAt: Date;
   ownerId?: string;
   originalFilename?: string;
+  version?: number;
+}
+
+export interface StorageConditionalOptions {
+  ifMatchVersion?: number;
+  ifDoesNotExist?: boolean;
 }
 
 export interface IStorageProvider {
   /**
-   * Write binary data to storage at specified key.
+   * Check if the storage provider supports atomic conditional write operations.
    */
-  upload(key: string, data: Buffer | Readable, metadata?: Record<string, string>): Promise<string>;
+  supportsConditionalWrites(): boolean;
+
+  /**
+   * Write binary data to storage at specified key with optional conditional options.
+   */
+  upload(
+    key: string,
+    data: Buffer | Readable,
+    metadata?: Record<string, string>,
+    conditionalOpts?: StorageConditionalOptions
+  ): Promise<string>;
 
   /**
    * Download object bytes from storage.

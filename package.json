@@ -13,9 +13,10 @@
     "preview": "vite preview",
     "clean": "node -e \"fs.rmSync('dist', {recursive: true, force: true})\"",
     "lint": "tsc --noEmit",
-    "test": "tsx tests/security.test.ts && tsx tests/jobSystem.test.ts && tsx tests/workerConcurrency.test.ts"
+    "test": "tsx tests/security.test.ts && tsx tests/jobSystem.test.ts && tsx tests/workerConcurrency.test.ts && tsx tests/distributedConcurrency.test.ts"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.22.0",
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/better-sqlite3": "^7.6.13",

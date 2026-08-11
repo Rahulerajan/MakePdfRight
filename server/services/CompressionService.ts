@@ -3,6 +3,8 @@ import sharp, { SharpOptions } from 'sharp';
 import fs from 'fs';
 import zlib from 'zlib';
 import { LoggingService } from './LoggingService.js';
+import { ValidationService } from './ValidationService.js';
+import { AppError } from './ErrorHandler.js';
 
 function getDictNumber(dict: PDFDict, name: string): number {
   try {
@@ -55,8 +57,18 @@ export class CompressionService {
 
     LoggingService.info(`Starting compression for ${filePath} (${originalSize} bytes) with level: ${level}`);
 
+    // Pre-processing integrity & encryption check
+    const { pageCount } = await ValidationService.checkEncryptionAndIntegrity(originalBytes);
+
     const pdfDoc = await PDFDocument.load(originalBytes, { ignoreEncryption: true });
-    const pageCount = pdfDoc.getPageCount();
+
+    // Detect digital signatures
+    let isSigned = false;
+    const pdfRawStr = originalBytes.toString('binary');
+    if (pdfRawStr.includes('/ByteRange') || pdfRawStr.includes('/Sig')) {
+      isSigned = true;
+      LoggingService.info(`Digital signature detected in PDF ${filePath}`);
+    }
 
     // Determine target dimensions and quality based on compression level
     let targetMaxDim = 1200;
@@ -114,6 +126,7 @@ export class CompressionService {
             const filterObj = lookupObj(pdfDoc, dict.get(PDFName.of('Filter')));
             const colorSpaceObj = lookupObj(pdfDoc, dict.get(PDFName.of('ColorSpace')));
             const decodeParmsObj = lookupObj(pdfDoc, dict.get(PDFName.of('DecodeParms')));
+            const sMaskObj = dict.get(PDFName.of('SMask'));
             const filterStr = filterObj ? filterObj.toString() : '';
 
             const originalImageBytes = rawStream.contents;
@@ -192,11 +205,16 @@ export class CompressionService {
               try {
                 pipeline = sharp(imageInput, sharpOptions);
                 if (sharpOptions?.raw?.channels === 4) {
-                  pipeline = pipeline.toColorspace('srgb');
+                  pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
                 }
               } catch (initErr) {
                 // Fallback without raw sharpOptions if raw metadata mismatch
                 pipeline = sharp(imageInput);
+              }
+
+              // Preserve transparency by flattening if converting transparent image to JPEG
+              if (sMaskObj) {
+                pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
               }
 
               const meta = await pipeline.metadata().catch(() => null);
@@ -245,17 +263,8 @@ export class CompressionService {
               const newWidth = newMeta?.width || (isResized ? Math.min(currentWidth, targetMaxDim) : currentWidth);
               const newHeight = newMeta?.height || (isResized ? Math.min(currentHeight, targetMaxDim) : currentHeight);
 
-              // Decision heuristic:
-              // 1. compressedJpeg is smaller than original image stream
-              // 2. Original filter was FlateDecode / uncompressed / non-JPEG (converting lossless/raw to JPEG)
-              // 3. Image dimensions were downsampled (reduced pixel count)
-              // 4. Level is 'extreme' AND image is large (> 500px in either dimension)
-              const shouldReplace = 
-                compressedJpeg.length < originalImageBytes.length ||
-                filterStr.includes('/FlateDecode') ||
-                filterStr === '' ||
-                isResized ||
-                (level === 'extreme' && isLargeImage);
+              // Decision heuristic: replace ONLY if compressed image stream is smaller than original
+              const shouldReplace = compressedJpeg.length < originalImageBytes.length || isResized;
 
               if (shouldReplace) {
                 dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
@@ -314,7 +323,18 @@ export class CompressionService {
     // Save using packed object streams
     const compressedBytes = await pdfDoc.save({ useObjectStreams: true });
     let finalBytes = Buffer.from(compressedBytes);
+
+    // Validate generated output before returning
+    await ValidationService.validateCompressedOutput(finalBytes, pageCount);
+
     let compressedSize = finalBytes.length;
+
+    // Actual Size Reduction Policy: If output >= input, preserve original file
+    if (compressedSize >= originalSize) {
+      LoggingService.info(`Compression produced output (${compressedSize} B) >= input (${originalSize} B). Reverting to original buffer.`);
+      finalBytes = Buffer.from(originalBytes);
+      compressedSize = originalSize;
+    }
 
     const spaceSaved = Math.max(0, originalSize - compressedSize);
     const percentage = originalSize > 0 && spaceSaved > 0
@@ -325,12 +345,8 @@ export class CompressionService {
 
     // Generate accurate optimization summary reflecting ACTUAL processing
     let summary = '';
-    if (imagesOptimized === 0 && spaceSaved <= 0) {
-      if (imageCount > 0) {
-        summary = `Analyzed ${imageCount} image stream(s) and document structure. The embedded images were already in an optimal compressed state; further downsampling was skipped to preserve visual fidelity.`;
-      } else {
-        summary = `This PDF contains no high-resolution images or redundant metadata streams. Document structure is already fully optimized.`;
-      }
+    if (spaceSaved === 0) {
+      summary = `This PDF is already in an optimal compressed state. Original document preserved (${originalSize} bytes).`;
     } else {
       const imgDetail = imagesOptimized > 0
         ? `Re-encoded and downsampled ${imagesOptimized} of ${imageCount} embedded image stream(s) (target max dimension: ${targetMaxDim}px, JPEG quality: ${targetQuality}%).`
@@ -338,9 +354,10 @@ export class CompressionService {
       
       const metaDetail = metadataRemoved ? ' Purged metadata headers.' : '';
       const thumbDetail = thumbnailsRemoved > 0 ? ` Stripped ${thumbnailsRemoved} thumbnail preview(s).` : '';
+      const sigDetail = isSigned ? ' Note: Document contains a digital signature.' : '';
       const kbSaved = Math.max(1, Math.round(spaceSaved / 1024));
 
-      summary = `${imgDetail}${metaDetail}${thumbDetail} Re-indexed ${fontCount} font map(s) into packed object streams to save ${kbSaved} KB (${percentage}% reduction).`;
+      summary = `${imgDetail}${metaDetail}${thumbDetail} Re-indexed ${fontCount} font map(s) into packed object streams to save ${kbSaved} KB (${percentage}% reduction).${sigDetail}`;
     }
 
     return {

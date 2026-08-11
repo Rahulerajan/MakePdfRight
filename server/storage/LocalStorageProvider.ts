@@ -2,9 +2,10 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { Readable } from 'stream';
-import { IStorageProvider, StorageObjectMetadata } from './IStorageProvider.js';
+import { IStorageProvider, StorageObjectMetadata, StorageConditionalOptions } from './IStorageProvider.js';
 import { FileTokenService } from '../services/FileTokenService.js';
 import { LoggingService } from '../services/LoggingService.js';
+import { AppError } from '../services/ErrorHandler.js';
 
 export class LocalStorageProvider implements IStorageProvider {
   private baseDir: string;
@@ -14,6 +15,11 @@ export class LocalStorageProvider implements IStorageProvider {
     if (!fs.existsSync(this.baseDir)) {
       fs.mkdirSync(this.baseDir, { recursive: true, mode: 0o700 });
     }
+  }
+
+  supportsConditionalWrites(): boolean {
+    // Note: LocalStorageProvider supports version-checked atomic file replacement for local development testing.
+    return true;
   }
 
   private resolveKeyPath(key: string): string {
@@ -33,7 +39,12 @@ export class LocalStorageProvider implements IStorageProvider {
     return `${this.resolveKeyPath(key)}.meta.json`;
   }
 
-  async upload(key: string, data: Buffer | Readable, metadata?: Record<string, string>): Promise<string> {
+  async upload(
+    key: string,
+    data: Buffer | Readable,
+    metadata?: Record<string, string>,
+    conditionalOpts?: StorageConditionalOptions
+  ): Promise<string> {
     const filePath = this.resolveKeyPath(key);
     const metaPath = this.resolveMetaPath(key);
 
@@ -42,10 +53,41 @@ export class LocalStorageProvider implements IStorageProvider {
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
 
+    // Check preconditions if specified
+    let currentVersion = 0;
+    if (fs.existsSync(metaPath)) {
+      try {
+        const rawMeta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        currentVersion = rawMeta.version || 1;
+      } catch {
+        currentVersion = 1;
+      }
+    } else if (fs.existsSync(filePath)) {
+      currentVersion = 1;
+    }
+
+    if (conditionalOpts?.ifDoesNotExist && fs.existsSync(filePath)) {
+      throw new AppError(`Conditional write failed: Object ${key} already exists.`, 412);
+    }
+
+    if (conditionalOpts?.ifMatchVersion !== undefined) {
+      if (currentVersion !== conditionalOpts.ifMatchVersion) {
+        throw new AppError(
+          `Conditional write failed: Version mismatch for ${key}. Expected version ${conditionalOpts.ifMatchVersion}, found ${currentVersion}.`,
+          412
+        );
+      }
+    }
+
+    const nextVersion = conditionalOpts?.ifMatchVersion !== undefined ? conditionalOpts.ifMatchVersion + 1 : currentVersion + 1;
+
+    // Write to a temporary file in the same directory, then atomic rename
+    const tempFilePath = `${filePath}.tmp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
     if (Buffer.isBuffer(data)) {
-      fs.writeFileSync(filePath, data, { mode: 0o600 });
+      fs.writeFileSync(tempFilePath, data, { mode: 0o600 });
     } else {
-      const writeStream = fs.createWriteStream(filePath, { mode: 0o600 });
+      const writeStream = fs.createWriteStream(tempFilePath, { mode: 0o600 });
       await new Promise<void>((resolve, reject) => {
         data.pipe(writeStream);
         data.on('error', reject);
@@ -54,17 +96,21 @@ export class LocalStorageProvider implements IStorageProvider {
       });
     }
 
+    // Atomic replace
+    fs.renameSync(tempFilePath, filePath);
+
     const stats = fs.statSync(filePath);
     const metaObj: StorageObjectMetadata = {
       size: stats.size,
       contentType: metadata?.contentType || 'application/pdf',
       createdAt: new Date(),
       ownerId: metadata?.ownerId,
-      originalFilename: metadata?.originalFilename
+      originalFilename: metadata?.originalFilename,
+      version: nextVersion
     };
 
     fs.writeFileSync(metaPath, JSON.stringify(metaObj), { mode: 0o600 });
-    LoggingService.info(`[LocalStorageProvider] Uploaded object to ${key}`);
+    LoggingService.info(`[LocalStorageProvider] Uploaded object to ${key} (version: ${nextVersion})`);
     return key;
   }
 

@@ -79,6 +79,17 @@ export async function withJobLock<T>(jobId: string, fn: () => Promise<T>): Promi
   }
 }
 
+/**
+ * IMPORTANT ARCHITECTURAL LIMITATION & DISTRIBUTED GUARANTEES:
+ * This storage-backed job coordination mechanism guarantees AT MOST ONE ACTIVE LEASE OWNER AT A TIME
+ * using atomic conditional writes (Generation/Version preconditions) on shared object storage (Google Cloud Storage).
+ * 
+ * LOCAL LOCK vs DISTRIBUTED LOCK:
+ * - Local filesystem/in-memory mutex locks (`withJobLock`) are local development optimizations ONLY for single-node execution.
+ * - Distributed concurrency safety across independent Cloud Run instances is enforced via atomic conditional writes (`ifMatchVersion`).
+ * - Storage-backed coordination is a lightweight job coordination protocol for Cloud Run / serverless instances, not a message queue.
+ * - Exactly-once processing is not claimed; PDF worker operations must remain idempotent so retries after worker failure are safe.
+ */
 export class StorageJobStore implements IJobStore {
   // In-memory write-through cache per process instance for fast polling reads
   private memoryCache = new Map<string, Job>();
@@ -122,7 +133,8 @@ export class StorageJobStore implements IJobStore {
       createdAt: nowIso,
       expiresAt: jobData.expiresAt || expiresAtIso,
       attemptCount: 0,
-      idempotencyKey
+      idempotencyKey,
+      version: 1
     };
 
     await this.persistJob(job);
@@ -140,17 +152,34 @@ export class StorageJobStore implements IJobStore {
     return job;
   }
 
-  private async persistJob(job: Job): Promise<void> {
+  private async persistJob(job: Job, expectedVersion?: number): Promise<Job> {
     const key = this.getJobObjectKey(job.ownerId, job.id);
     const provider = StorageService.getStorageProvider();
-    const jsonBuf = Buffer.from(JSON.stringify(job, null, 2), 'utf-8');
 
-    await provider.upload(key, jsonBuf, {
-      ownerId: job.ownerId,
-      contentType: 'application/json'
-    });
+    if (!provider.supportsConditionalWrites()) {
+      throw new AppError(
+        'Configuration Error: Distributed job claiming requires a storage provider with atomic conditional write support (e.g. GCS_BUCKET_NAME must be configured in production).',
+        500
+      );
+    }
 
-    this.memoryCache.set(`${job.ownerId}:${job.id}`, job);
+    const nextVersion = expectedVersion !== undefined ? expectedVersion + 1 : (job.version || 1);
+    const updatedJob: Job = {
+      ...job,
+      version: nextVersion
+    };
+
+    const jsonBuf = Buffer.from(JSON.stringify(updatedJob, null, 2), 'utf-8');
+
+    await provider.upload(
+      key,
+      jsonBuf,
+      { ownerId: job.ownerId, contentType: 'application/json' },
+      expectedVersion !== undefined ? { ifMatchVersion: expectedVersion } : undefined
+    );
+
+    this.memoryCache.set(`${job.ownerId}:${job.id}`, updatedJob);
+    return updatedJob;
   }
 
   async getJob(id: string, ownerId: string, forceRefresh: boolean = false): Promise<Job | null> {
@@ -167,6 +196,7 @@ export class StorageJobStore implements IJobStore {
 
       const buf = await provider.download(key);
       const job: Job = JSON.parse(buf.toString('utf-8'));
+      if (!job.version) job.version = 1;
 
       if (job.ownerId !== ownerId && ownerId !== 'admin') {
         LoggingService.warn(`[StorageJobStore] Ownership mismatch for job ${id}: expected ${ownerId}, got ${job.ownerId}`);
@@ -196,6 +226,7 @@ export class StorageJobStore implements IJobStore {
         }
       }
 
+      const expectedVersion = current.version || 1;
       const updatedJob: Job = {
         ...current,
         ...updates,
@@ -204,9 +235,17 @@ export class StorageJobStore implements IJobStore {
         createdAt: current.createdAt
       };
 
-      await this.persistJob(updatedJob);
-      LoggingService.info(`[StorageJobStore] Updated job ${id} (status: ${updatedJob.status}, progress: ${updatedJob.progress}%)`);
-      return updatedJob;
+      try {
+        const savedJob = await this.persistJob(updatedJob, expectedVersion);
+        LoggingService.info(`[StorageJobStore] Updated job ${id} (status: ${savedJob.status}, progress: ${savedJob.progress}%, version: ${savedJob.version})`);
+        return savedJob;
+      } catch (err: any) {
+        if (err.statusCode === 412 || err.message?.includes('Conditional write failed')) {
+          LoggingService.warn(`[StorageJobStore] Update conflict for job ${id}: concurrent update rejected.`);
+          return null;
+        }
+        throw err;
+      }
     });
   }
 
@@ -236,6 +275,7 @@ export class StorageJobStore implements IJobStore {
 
       const nowIso = new Date(now).toISOString();
       const leaseExpiresAt = new Date(now + leaseDurationMs).toISOString();
+      const expectedVersion = current.version || 1;
 
       const claimedJob: Job = {
         ...current,
@@ -249,9 +289,17 @@ export class StorageJobStore implements IJobStore {
         progress: isQueued ? 10 : current.progress
       };
 
-      await this.persistJob(claimedJob);
-      LoggingService.info(`[StorageJobStore] Worker ${workerId} successfully claimed job ${jobId} (attempt: ${claimedJob.attemptCount})`);
-      return { success: true, job: claimedJob };
+      try {
+        const savedJob = await this.persistJob(claimedJob, expectedVersion);
+        LoggingService.info(`[StorageJobStore] Worker ${workerId} successfully claimed job ${jobId} (version: ${savedJob.version})`);
+        return { success: true, job: savedJob };
+      } catch (err: any) {
+        if (err.statusCode === 412 || err.message?.includes('Conditional write failed')) {
+          LoggingService.warn(`[StorageJobStore] Worker ${workerId} lost claim race on job ${jobId}: version ${expectedVersion} modified by concurrent instance.`);
+          return { success: false, job: null };
+        }
+        throw err;
+      }
     });
   }
 
@@ -268,15 +316,29 @@ export class StorageJobStore implements IJobStore {
         return false;
       }
 
+      if (current.leaseExpiresAt && new Date(current.leaseExpiresAt).getTime() < Date.now()) {
+        LoggingService.warn(`[StorageJobStore] Lease renewal failed for job ${jobId}: worker ${workerId} lease already expired.`);
+        return false;
+      }
+
+      const expectedVersion = current.version || 1;
       const newExpiresAt = new Date(Date.now() + extensionMs).toISOString();
       const updatedJob: Job = {
         ...current,
         leaseExpiresAt: newExpiresAt
       };
 
-      await this.persistJob(updatedJob);
-      LoggingService.info(`[StorageJobStore] Extended lease for worker ${workerId} on job ${jobId} to ${newExpiresAt}`);
-      return true;
+      try {
+        await this.persistJob(updatedJob, expectedVersion);
+        LoggingService.info(`[StorageJobStore] Extended lease for worker ${workerId} on job ${jobId} to ${newExpiresAt}`);
+        return true;
+      } catch (err: any) {
+        if (err.statusCode === 412 || err.message?.includes('Conditional write failed')) {
+          LoggingService.warn(`[StorageJobStore] Lease renewal conditional write failed for worker ${workerId} on job ${jobId}: reclaimed by another worker.`);
+          return false;
+        }
+        throw err;
+      }
     });
   }
 
@@ -306,6 +368,7 @@ export class StorageJobStore implements IJobStore {
         }
       }
 
+      const expectedVersion = current.version || 1;
       const updatedJob: Job = {
         ...current,
         ...updates,
@@ -314,9 +377,17 @@ export class StorageJobStore implements IJobStore {
         createdAt: current.createdAt
       };
 
-      await this.persistJob(updatedJob);
-      LoggingService.info(`[StorageJobStore] Completed job ${jobId} with lease verification for worker ${workerId}`);
-      return updatedJob;
+      try {
+        const savedJob = await this.persistJob(updatedJob, expectedVersion);
+        LoggingService.info(`[StorageJobStore] Completed job ${jobId} with lease verification for worker ${workerId}`);
+        return savedJob;
+      } catch (err: any) {
+        if (err.statusCode === 412 || err.message?.includes('Conditional write failed')) {
+          LoggingService.warn(`[StorageJobStore] Worker ${workerId} completion conditional write rejected for job ${jobId}: version ${expectedVersion} changed.`);
+          return null;
+        }
+        throw err;
+      }
     });
   }
 

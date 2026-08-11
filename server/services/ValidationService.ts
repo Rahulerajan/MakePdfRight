@@ -75,6 +75,89 @@ export class ValidationService {
     }
   }
 
+  /**
+   * Pre-processing check for PDF integrity and encryption handling.
+   */
+  static async checkEncryptionAndIntegrity(buffer: Buffer): Promise<{ pageCount: number; isEncrypted: boolean }> {
+    this.validatePDFBuffer(buffer);
+
+    try {
+      // First attempt to load normally
+      let pdfDoc: PDFDocument;
+      let isEncrypted = false;
+
+      try {
+        pdfDoc = await PDFDocument.load(buffer);
+      } catch (err: any) {
+        if (err.message?.includes('encrypted') || err.message?.includes('Password') || err.message?.includes('encrypt')) {
+          isEncrypted = true;
+          // Attempt loading with ignoreEncryption to inspect metadata
+          pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+        } else {
+          throw err;
+        }
+      }
+
+      if (isEncrypted) {
+        throw new AppError('This PDF file is password-protected or encrypted. Please unlock or decrypt the file before processing.', 400);
+      }
+
+      const pageCount = pdfDoc.getPageCount();
+      if (pageCount === 0) {
+        throw new AppError('The PDF document contains 0 pages.', 400);
+      }
+      if (pageCount > 2000) {
+        throw new AppError(`PDF page count (${pageCount}) exceeds maximum allowable limit of 2000 pages.`, 400);
+      }
+
+      return { pageCount, isEncrypted: false };
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      LoggingService.warn(`PDF pre-check failed: ${err.message}`);
+      throw new AppError('Invalid, corrupted, or password-protected PDF document structure.', 400);
+    }
+  }
+
+  /**
+   * Strict post-processing validation for compressed/generated PDF outputs.
+   */
+  static async validateCompressedOutput(
+    outputBuffer: Buffer,
+    expectedPageCount: number
+  ): Promise<boolean> {
+    if (!outputBuffer || outputBuffer.length === 0) {
+      throw new AppError('Compression validation failed: Output PDF buffer is empty.', 500);
+    }
+
+    // Verify PDF magic bytes
+    this.validateMagicBytes(outputBuffer, 'pdf');
+
+    let pdfDoc: PDFDocument;
+    try {
+      pdfDoc = await PDFDocument.load(outputBuffer, { ignoreEncryption: true });
+    } catch (err: any) {
+      LoggingService.error(`Output PDF parse validation failed: ${err.message}`);
+      throw new AppError('Compression validation failed: Generated output PDF is corrupted or unparseable.', 500);
+    }
+
+    const outputPageCount = pdfDoc.getPageCount();
+    if (outputPageCount !== expectedPageCount) {
+      LoggingService.error(`Output PDF page count mismatch: expected ${expectedPageCount}, got ${outputPageCount}`);
+      throw new AppError(`Compression validation failed: Output page count (${outputPageCount}) does not match input (${expectedPageCount}).`, 500);
+    }
+
+    // Verify page dimensions are valid
+    const pages = pdfDoc.getPages();
+    for (let i = 0; i < pages.length; i++) {
+      const { width, height } = pages[i].getSize();
+      if (!width || !height || isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+        throw new AppError(`Compression validation failed: Invalid page dimensions on page ${i + 1}.`, 500);
+      }
+    }
+
+    return true;
+  }
+
   // Reject PDFs with unreasonable page counts (>2000 pages) to prevent resource-exhaustion attacks
   static async validatePDFPageCount(buffer: Buffer, maxPages: number = 2000) {
     try {
