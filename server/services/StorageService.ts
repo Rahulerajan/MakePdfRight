@@ -73,7 +73,7 @@ export class StorageService {
     const provider = this.getStorageProvider();
     const exists = await provider.exists(objectKey);
     if (!exists) {
-      throw new AppError(`Object not found: ${objectKey}`, 404);
+      throw new AppError('Requested file does not exist or has expired.', 404);
     }
 
     // Verify key path owner ID matches or check metadata ownerId
@@ -82,12 +82,12 @@ export class StorageService {
 
     if (keyOwner && keyOwner !== ownerId && ownerId !== 'admin') {
       LoggingService.warn(`[Security Alert] IDOR attempt blocked. Key owner ${keyOwner} != ${ownerId}`);
-      throw new AppError('Access denied: You do not have permission to access this storage object.', 403);
+      throw new AppError('Requested file does not exist or has expired.', 404);
     }
 
     const metadata = await provider.getMetadata(objectKey);
     if (metadata?.ownerId && metadata.ownerId !== ownerId && ownerId !== 'admin') {
-      throw new AppError('Access denied: Ownership verification failed.', 403);
+      throw new AppError('Requested file does not exist or has expired.', 404);
     }
   }
 

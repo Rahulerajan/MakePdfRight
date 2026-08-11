@@ -279,7 +279,7 @@ export class CompressionService {
                 imagesOptimized++;
               }
             } catch (imgErr) {
-              LoggingService.warn(`Skipped image object compression:`, imgErr);
+              LoggingService.debug(`Skipped image object compression:`, imgErr);
             }
           }
         } catch (e) {

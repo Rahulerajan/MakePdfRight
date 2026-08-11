@@ -1,11 +1,18 @@
 import { ThinkingLevel, Modality, Type } from '@google/genai';
-import { getAI, handleError } from '../apiUtils.js';
+import { getAI, getOwnerId, handleError } from '../apiUtils.js';
 import { ValidationService } from '../services/ValidationService.js';
 import { LoggingService } from '../services/LoggingService.js';
+import { DistributedRateLimiter } from '../services/DistributedRateLimiter.js';
 
 export async function dispatchAiAction(req: any, res: any) {
   const rawAction = (req.query?.action as string) || (req.body?.action as string) || '';
   const action = rawAction.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
+  const ownerId = getOwnerId(req);
+  const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'ai', action || 'ai-operation');
+  if (!rateCheck.allowed) {
+    return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);
+  }
 
   try {
     switch (action) {

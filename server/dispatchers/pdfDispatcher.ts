@@ -17,12 +17,63 @@ import { AppError } from '../services/ErrorHandler.js';
 import { LoggingService } from '../services/LoggingService.js';
 import { dispatchFileAction } from './fileDispatcher.js';
 
+import { DistributedRateLimiter } from '../services/DistributedRateLimiter.js';
+
 export async function dispatchPdfAction(req: any, res: any) {
-  const action = req.query?.action;
+  const reqPath = req.path || req.url || '';
+  let action = req.query?.action || req.body?.action;
+
+  if (!action) {
+    if (reqPath.includes('/job/create')) action = 'job-create';
+    else if (reqPath.includes('/job/status')) action = 'job-status';
+    else if (reqPath.includes('/job/cancel')) action = 'job-cancel';
+    else {
+      const parts = reqPath.split('?')[0].split('/').filter(Boolean);
+      const lastPart = parts[parts.length - 1];
+      if (lastPart && lastPart !== 'pdf-tools' && lastPart !== 'pdf') {
+        action = lastPart;
+      }
+    }
+  }
+
+  const ownerId = getOwnerId(req);
+
+  // Enforce Rate Limits by Category
+  if (action === 'job-create') {
+    const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'pdf', 'job-create');
+    if (!rateCheck.allowed) {
+      return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);
+    }
+    const activeCheck = await DistributedRateLimiter.checkActiveJobLimit(ownerId);
+    if (!activeCheck.allowed) {
+      return res.status(429).json({
+        success: false,
+        status: 'error',
+        statusCode: 429,
+        error: {
+          code: 'RATE_LIMITED',
+          message: activeCheck.message,
+          retryAfter: activeCheck.retryAfter
+        }
+      });
+    }
+  } else if (['compress', 'merge', 'split', 'rotate', 'organize', 'ocr', 'watermark', 'repair'].includes(action)) {
+    const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'pdf', action);
+    if (!rateCheck.allowed) {
+      return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);
+    }
+  } else if (['job-status', 'job-cancel', 'details'].includes(action)) {
+    const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'general', action);
+    if (!rateCheck.allowed) {
+      return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);
+    }
+  }
   
   try {
     switch (action) {
       case 'upload-url':
+        return await dispatchFileAction(req, res);
+      case 'download-url':
         return await dispatchFileAction(req, res);
       case 'compress':
         return await handleCompress(req, res);
@@ -415,7 +466,7 @@ async function handleJobCreate(req: any, res: any) {
 }
 
 async function handleJobStatus(req: any, res: any) {
-  const jobId = req.query?.id || req.body?.id;
+  const jobId = req.query?.id || req.body?.id || req.query?.jobId || req.params?.jobId;
   if (!jobId) return res.status(400).json({ success: false, error: 'Job ID is required.' });
 
   const ownerId = getOwnerId(req);
@@ -432,7 +483,7 @@ async function handleJobStatus(req: any, res: any) {
 }
 
 async function handleJobCancel(req: any, res: any) {
-  const jobId = req.query?.id || req.body?.id;
+  const jobId = req.query?.id || req.body?.id || req.query?.jobId || req.params?.jobId;
   if (!jobId) return res.status(400).json({ success: false, error: 'Job ID is required.' });
 
   const ownerId = getOwnerId(req);

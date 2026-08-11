@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
+import { getOwnerId } from '../server/apiUtils.js';
+import { DistributedRateLimiter } from '../server/services/DistributedRateLimiter.js';
 
 function escapeHtml(str: string): string {
   return str
@@ -13,6 +15,12 @@ function escapeHtml(str: string): string {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const ownerId = getOwnerId(req);
+  const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'general', 'contact');
+  if (!rateCheck.allowed) {
+    return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);
   }
 
   const { name, email, message, honeypot } = req.body || {};

@@ -1,0 +1,14 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { applyCors, verifyAuth, handleError } from '../server/apiUtils.js';
+import { dispatchFileAction } from '../server/dispatchers/fileDispatcher.js';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (applyCors(req, res)) return;
+  if (!verifyAuth(req, res)) return;
+
+  try {
+    await dispatchFileAction(req, res);
+  } catch (err: any) {
+    handleError(res, err);
+  }
+}

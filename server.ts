@@ -32,6 +32,7 @@ import { CompressionService } from "./server/services/CompressionService";
 import { dispatchPdfAction } from "./server/dispatchers/pdfDispatcher.js";
 import { dispatchAiAction } from "./server/dispatchers/aiDispatcher.js";
 import { dispatchFileAction } from "./server/dispatchers/fileDispatcher.js";
+import { getOwnerId } from "./server/apiUtils.js";
 
 // Load environment variables
 dotenv.config();
@@ -57,50 +58,17 @@ function validateEnvironment() {
 
 validateEnvironment();
 
-// Configure Rate Limiters
-const standardLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute window
-  max: 60, // 60 requests per minute
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).json({
-      status: "error",
-      statusCode: 429,
-      error: "Too many requests. Please wait a minute before trying again."
-    });
-  }
-});
+import { DistributedRateLimiter } from "./server/services/DistributedRateLimiter";
 
-// Processing operations limiter (20 requests per minute)
-const processingLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).json({
-      status: "error",
-      statusCode: 429,
-      error: "Rate limit exceeded for PDF processing. Please wait a minute before submitting more files."
-    });
+// Distributed General Rate Limiting Middleware
+async function standardLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const ownerId = (req as any).ownerId || getOwnerId(req as any);
+  const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'general', 'general-api');
+  if (!rateCheck.allowed) {
+    return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);
   }
-});
-
-// Stricter rate limit for Gemini-backed AI endpoints (10 requests per minute)
-const aiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res) => {
-    res.status(429).json({
-      status: "error",
-      statusCode: 429,
-      error: "Rate limit exceeded for AI endpoints (10 requests/minute). Please wait a minute before trying again."
-    });
-  }
-});
+  next();
+}
 
 // Auth & Session Identification Middleware
 declare global {
@@ -285,7 +253,7 @@ async function startServer() {
 
   // --- Unified Dispatcher API Endpoints ---
 
-  app.all("/api/files/*", processingLimiter, async (req, res, next) => {
+  app.all(["/api/files", "/api/files/*"], async (req, res, next) => {
     try {
       await dispatchFileAction(req, res);
     } catch (err) {
@@ -293,7 +261,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/pdf-tools", processingLimiter, async (req, res, next) => {
+  app.all("/api/pdf-tools", async (req, res, next) => {
     try {
       await dispatchPdfAction(req, res);
     } catch (err) {
@@ -301,7 +269,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/ai-tools", aiLimiter, async (req, res, next) => {
+  app.all("/api/ai-tools", async (req, res, next) => {
     try {
       await dispatchAiAction(req, res);
     } catch (err) {
@@ -309,7 +277,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/pdf/job/status/:jobId", processingLimiter, async (req, res, next) => {
+  app.all("/api/pdf/job/status/:jobId", async (req, res, next) => {
     try {
       req.query.action = 'job-status';
       req.query.jobId = req.params.jobId;
@@ -319,7 +287,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/pdf/job/cancel/:jobId", processingLimiter, async (req, res, next) => {
+  app.all("/api/pdf/job/cancel/:jobId", async (req, res, next) => {
     try {
       req.query.action = 'job-cancel';
       req.query.jobId = req.params.jobId;
@@ -329,7 +297,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/pdf/job/:action", processingLimiter, async (req, res, next) => {
+  app.all("/api/pdf/job/:action", async (req, res, next) => {
     try {
       req.query.action = `job-${req.params.action}`;
       await dispatchPdfAction(req, res);
@@ -338,7 +306,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/pdf/:action", processingLimiter, async (req, res, next) => {
+  app.all("/api/pdf/:action", async (req, res, next) => {
     try {
       req.query.action = req.params.action;
       await dispatchPdfAction(req, res);
@@ -347,7 +315,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/chat-pdf", aiLimiter, async (req, res, next) => {
+  app.all("/api/chat-pdf", async (req, res, next) => {
     try {
       req.query.action = 'chat-pdf';
       await dispatchAiAction(req, res);
@@ -356,7 +324,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/analyze-image", aiLimiter, async (req, res, next) => {
+  app.all("/api/analyze-image", async (req, res, next) => {
     try {
       req.query.action = 'analyze-image';
       await dispatchAiAction(req, res);
@@ -365,7 +333,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/transcribe-audio", aiLimiter, async (req, res, next) => {
+  app.all("/api/transcribe-audio", async (req, res, next) => {
     try {
       req.query.action = 'transcribe-audio';
       await dispatchAiAction(req, res);
@@ -374,7 +342,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/generate-speech", aiLimiter, async (req, res, next) => {
+  app.all("/api/generate-speech", async (req, res, next) => {
     try {
       req.query.action = 'generate-speech';
       await dispatchAiAction(req, res);
@@ -383,7 +351,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/generate-image", aiLimiter, async (req, res, next) => {
+  app.all("/api/generate-image", async (req, res, next) => {
     try {
       req.query.action = 'generate-image';
       await dispatchAiAction(req, res);
@@ -392,7 +360,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/complex-query", aiLimiter, async (req, res, next) => {
+  app.all("/api/complex-query", async (req, res, next) => {
     try {
       req.query.action = 'complex-query';
       await dispatchAiAction(req, res);
@@ -401,7 +369,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/pdf-editor-ai", aiLimiter, async (req, res, next) => {
+  app.all("/api/pdf-editor-ai", async (req, res, next) => {
     try {
       req.query.action = 'editor-ai';
       await dispatchPdfAction(req, res);
@@ -410,7 +378,7 @@ async function startServer() {
     }
   });
 
-  app.all("/api/pdf-editor-ocr", aiLimiter, async (req, res, next) => {
+  app.all("/api/pdf-editor-ocr", async (req, res, next) => {
     try {
       req.query.action = 'editor-ocr';
       await dispatchPdfAction(req, res);
@@ -478,7 +446,7 @@ async function startServer() {
   });
 
   // 17. PDF Editor OCR Vision (Page Text Extraction to Overlays, AI rate limited)
-  app.post("/api/pdf-editor-ocr", aiLimiter, async (req, res, next) => {
+  app.post("/api/pdf-editor-ocr", async (req, res, next) => {
     const { imageBase64 } = req.body;
     if (!imageBase64) {
       return res.status(400).json({ error: "imageBase64 page snapshot is required for OCR." });

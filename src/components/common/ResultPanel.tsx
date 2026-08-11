@@ -1,5 +1,5 @@
-import React from 'react';
-import { Download, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import { BackButton } from './BackButton';
 import { AdUnit } from '../ads/AdUnit';
 
@@ -16,6 +16,8 @@ export interface ResultPanelProps {
   downloadUrl: string;
   downloadFileName: string;
   downloadLabel?: string;
+  objectKey?: string;
+  onDownload?: () => void;
   onReset: () => void;
   resetLabel: string;
   onBack?: () => void;
@@ -30,13 +32,158 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
   details,
   downloadUrl,
   downloadFileName,
-  downloadLabel = 'Download',
+  downloadLabel = 'DOWNLOAD COMPRESSED PDF ↓',
+  objectKey,
+  onDownload,
   onReset,
   resetLabel,
   onBack,
   backLabel = 'Back',
   children
 }) => {
+  const [currentUrl, setCurrentUrl] = useState<string>(downloadUrl);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [expiredError, setExpiredError] = useState(false);
+
+  useEffect(() => {
+    setCurrentUrl(downloadUrl);
+  }, [downloadUrl]);
+
+  const triggerDownload = async (targetUrl: string) => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    setError(null);
+    setExpiredError(false);
+
+    let urlToFetch = targetUrl || currentUrl;
+
+    try {
+      // If no URL available initially, attempt to obtain a fresh signed URL
+      if (!urlToFetch && objectKey) {
+        const refreshRes = await fetch('/api/files/download-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: objectKey })
+        });
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          if (data.success && data.downloadUrl) {
+            urlToFetch = data.downloadUrl;
+            setCurrentUrl(urlToFetch);
+          }
+        }
+      }
+
+      if (!urlToFetch) {
+        setExpiredError(true);
+        setError('Download link expired. Generate a new download link.');
+        setIsDownloading(false);
+        return;
+      }
+
+      // 1. Direct browser download for client-side Blob or Data URLs
+      if (urlToFetch.startsWith('blob:') || urlToFetch.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = urlToFetch;
+        a.download = downloadFileName || 'compressed_document.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setIsDownloading(false);
+        if (onDownload) onDownload();
+        return;
+      }
+
+      // 2. Fetch binary payload from authorized signed download URL
+      let res = await fetch(urlToFetch);
+
+      // If status 403 or 404 (expired token), attempt auto-refresh once if objectKey is known
+      if (!res.ok && (res.status === 403 || res.status === 404) && objectKey) {
+        const refreshRes = await fetch('/api/files/download-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: objectKey })
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (refreshData.success && refreshData.downloadUrl) {
+            urlToFetch = refreshData.downloadUrl;
+            setCurrentUrl(urlToFetch);
+            res = await fetch(urlToFetch);
+          }
+        }
+      }
+
+      if (!res.ok) {
+        if (res.status === 403 || res.status === 404) {
+          setExpiredError(true);
+          setError('Download link expired. Generate a new download link.');
+        } else {
+          setError('Unable to download the compressed PDF. Please try again.');
+        }
+        setIsDownloading(false);
+        return;
+      }
+
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = downloadFileName || 'compressed_document.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Clean up temporary Blob URL after download trigger
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 200);
+
+      setIsDownloading(false);
+      if (onDownload) onDownload();
+
+    } catch (err) {
+      console.error('Download error:', err);
+      setError('Unable to download the compressed PDF. Please try again.');
+      setIsDownloading(false);
+    }
+  };
+
+  const handleRefreshDownloadUrl = async () => {
+    if (!objectKey) return;
+    setIsRefreshingUrl(true);
+    setError(null);
+    setExpiredError(false);
+
+    try {
+      const res = await fetch('/api/files/download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: objectKey })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to refresh download URL');
+      }
+
+      const data = await res.json();
+      if (data.success && data.downloadUrl) {
+        setCurrentUrl(data.downloadUrl);
+        await triggerDownload(data.downloadUrl);
+      } else {
+        setExpiredError(true);
+        setError('Download link expired. Generate a new download link.');
+      }
+    } catch {
+      setExpiredError(true);
+      setError('Download link expired. Generate a new download link.');
+    } finally {
+      setIsRefreshingUrl(false);
+    }
+  };
+
   return (
     <div className="relative h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 flex flex-col items-center text-center space-y-6 overflow-y-auto">
       {/* Top Header Navigation Bar inside Card */}
@@ -80,23 +227,55 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
         </div>
       )}
 
-      {/* Children Slot */}
+      {/* Children Slot (e.g. Optimization Summary) */}
       {children}
 
-      {/* Buttons Container */}
-      <div className="flex flex-col sm:flex-row gap-3.5 w-full max-w-md justify-center items-center">
-        <a
-          href={downloadUrl}
-          download={downloadFileName}
-          className="btn-primary py-3.5 px-6 flex items-center justify-center gap-2 text-base font-extrabold flex-1 w-full sm:w-auto min-w-[200px]"
+      {/* Download Error / Expired Link Notification Banner */}
+      {error && (
+        <div className="w-full max-w-md p-4 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 text-amber-800 dark:text-amber-300 text-xs font-bold flex flex-col items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{error}</span>
+          </div>
+          {expiredError && objectKey && (
+            <button
+              type="button"
+              onClick={handleRefreshDownloadUrl}
+              disabled={isRefreshingUrl}
+              className="mt-1 px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-lg font-extrabold text-xs transition-all cursor-pointer shadow-xs"
+            >
+              {isRefreshingUrl ? 'Generating new link...' : 'Generate a new download link'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Primary Download CTA & Secondary Reset Action */}
+      <div className="flex flex-col gap-3 w-full max-w-md justify-center items-center shrink-0">
+        <button
+          type="button"
+          onClick={() => triggerDownload(currentUrl)}
+          disabled={isDownloading || isRefreshingUrl}
+          id="download-compressed-pdf-btn"
+          className="btn-primary py-4 px-6 flex items-center justify-center gap-2 text-base font-black tracking-wide w-full shadow-lg shadow-red-500/15 hover:shadow-red-500/25 active:scale-[0.98] cursor-pointer"
         >
-          <Download className="w-5 h-5 shrink-0" />
-          <span>{downloadLabel}</span>
-        </a>
+          {isDownloading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+              <span>Downloading PDF...</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-5.5 h-5.5 shrink-0" />
+              <span>{downloadLabel || 'DOWNLOAD COMPRESSED PDF ↓'}</span>
+            </>
+          )}
+        </button>
+
         <button
           type="button"
           onClick={onReset}
-          className="py-3.5 px-6 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer w-full sm:w-auto shrink-0"
+          className="py-3 px-6 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer w-full text-center"
         >
           {resetLabel}
         </button>

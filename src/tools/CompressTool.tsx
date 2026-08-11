@@ -126,6 +126,8 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
   
   const [result, setResult] = useState<{
     url: string;
+    objectKey?: string;
+    filename?: string;
     size: number;
     originalSize: number;
     savedSize: number;
@@ -327,10 +329,12 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
       if (isCancelledRef.current) return;
 
       const outputData = jobRes.result?.output || {};
-      const downloadUrl = outputData.downloadUrl || jobRes.result?.downloadUrl;
+      const downloadUrl = outputData.downloadUrl || jobRes.result?.downloadUrl || (jobRes as any).downloadUrl;
+      const objectKey = outputData.objectKey || jobRes.result?.outputObjectKey || (jobRes as any).outputObjectKey;
+      const filename = outputData.filename || (fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf');
       const resResult = jobRes.result || {};
 
-      if (downloadUrl) {
+      if (downloadUrl || objectKey) {
         setManualProgress(100);
         const endTime = performance.now();
         const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
@@ -338,17 +342,19 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
         HistoryService.addHistoryItem({
           toolId: 'compress',
           toolName: 'Compress PDF',
-          fileName: fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf',
+          fileName: filename,
           fileSize: resResult.originalSize || uploadTargetFile.size,
           outputSize: resResult.compressedSize || outputData.size || uploadTargetFile.size,
-          resultUrl: downloadUrl,
+          resultUrl: downloadUrl || '',
           status: 'completed',
           details: `Reduced size by ${resResult.percentage || 0}% (${((resResult.spaceSaved || 0) / (1024 * 1024)).toFixed(2)} MB saved)`
         });
 
         setResult({
-          url: downloadUrl,
-          size: resResult.compressedSize || outputData.size,
+          url: downloadUrl || '',
+          objectKey,
+          filename,
+          size: resResult.compressedSize || outputData.size || uploadTargetFile.size,
           originalSize: resResult.originalSize || uploadTargetFile.size,
           savedSize: resResult.spaceSaved || 0,
           percentage: resResult.percentage || 0,
@@ -526,18 +532,19 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
               { label: `Pages: ${result.totalPages}` },
             ]}
             downloadUrl={result.url}
+            objectKey={result.objectKey}
             downloadFileName={
-              fileItems.length === 1 ? `compressed_${fileItems[0].name}` : 'compressed_documents.pdf'
+              result.filename || (fileItems.length === 1 ? `compressed_${fileItems[0].name}` : 'compressed_documents.pdf')
             }
-            downloadLabel="Download Compressed PDF"
+            downloadLabel="DOWNLOAD COMPRESSED PDF ↓"
             onBack={() => {
-              if (result?.url) {
+              if (result?.url && result.url.startsWith('blob:')) {
                 URL.revokeObjectURL(result.url);
               }
               setResult(null);
             }}
             onReset={() => {
-              if (result?.url) {
+              if (result?.url && result.url.startsWith('blob:')) {
                 URL.revokeObjectURL(result.url);
               }
               setResult(null);

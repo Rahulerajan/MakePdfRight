@@ -67,6 +67,13 @@ export class JobService {
   }
 
   /**
+   * Retrieve all jobs for an owner.
+   */
+  static async listJobsForOwner(ownerId: string, limit: number = 50): Promise<Job[]> {
+    return await this.store.listJobsForOwner(ownerId, limit);
+  }
+
+  /**
    * Retrieve a job by ID for the authorized owner.
    */
   static async getJob(id: string, ownerId: string = 'anonymous'): Promise<Job | null> {
@@ -99,12 +106,15 @@ export class JobService {
    * Periodic background sweeper for stale jobs and expired output files.
    */
   private static startScheduledSweeper(intervalMs: number = 60 * 1000) {
-    setInterval(async () => {
+    const timer = setInterval(async () => {
       try {
         await WorkerService.sweepStaleJobs();
       } catch (err) {
         LoggingService.error('[JobService] Sweeper error:', err);
       }
     }, intervalMs);
+    if (timer && typeof timer.unref === 'function') {
+      timer.unref();
+    }
   }
 }

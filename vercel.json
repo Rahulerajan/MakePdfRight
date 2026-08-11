@@ -13,6 +13,22 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/api/files/upload-url",
+      "destination": "/api/files?action=upload-url"
+    },
+    {
+      "source": "/api/files/upload",
+      "destination": "/api/files?action=upload"
+    },
+    {
+      "source": "/api/files/download",
+      "destination": "/api/files?action=download"
+    },
+    {
+      "source": "/api/files/:action",
+      "destination": "/api/files?action=:action"
+    },
+    {
       "source": "/api/pdf/job/status/:jobId",
       "destination": "/api/pdf-tools?action=job-status&jobId=:jobId"
     },

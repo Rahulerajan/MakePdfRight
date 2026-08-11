@@ -2,6 +2,7 @@ import { Readable } from 'stream';
 import { Storage as GCSClient } from '@google-cloud/storage';
 import { IStorageProvider, StorageObjectMetadata, StorageConditionalOptions } from './IStorageProvider.js';
 import { LocalStorageProvider } from './LocalStorageProvider.js';
+import { FileTokenService } from '../services/FileTokenService.js';
 import { LoggingService } from '../services/LoggingService.js';
 import { AppError } from '../services/ErrorHandler.js';
 
@@ -155,12 +156,45 @@ export class GCSStorageProvider implements IStorageProvider {
   }
 
   async createSignedUploadUrl(key: string, contentType: string, expiresInSeconds: number = 900): Promise<string> {
+    if (this.gcsStorage && this.bucketName) {
+      try {
+        const [url] = await this.gcsStorage.bucket(this.bucketName).file(key).getSignedUrl({
+          version: 'v4',
+          action: 'write',
+          expires: Date.now() + expiresInSeconds * 1000,
+          contentType
+        });
+        return url;
+      } catch (err) {
+        LoggingService.warn('[GCSStorageProvider] GCS V4 signed upload URL generation unavailable, using signed token endpoint:', err);
+      }
+    }
     if (this.fallback) return this.fallback.createSignedUploadUrl(key, contentType, expiresInSeconds);
-    return `/api/files/upload?key=${encodeURIComponent(key)}`;
+
+    const parts = key.split('/');
+    const ownerId = parts.length >= 2 && parts[0] === 'users' ? parts[1] : 'anonymous';
+    const { token } = FileTokenService.generateToken(key, ownerId, 'upload', expiresInSeconds);
+    return `/api/files/upload?key=${encodeURIComponent(key)}&token=${token}`;
   }
 
   async createSignedDownloadUrl(key: string, expiresInSeconds: number = 900): Promise<string> {
+    if (this.gcsStorage && this.bucketName) {
+      try {
+        const [url] = await this.gcsStorage.bucket(this.bucketName).file(key).getSignedUrl({
+          version: 'v4',
+          action: 'read',
+          expires: Date.now() + expiresInSeconds * 1000
+        });
+        return url;
+      } catch (err) {
+        LoggingService.warn('[GCSStorageProvider] GCS V4 signed download URL generation unavailable, using signed token endpoint:', err);
+      }
+    }
     if (this.fallback) return this.fallback.createSignedDownloadUrl(key, expiresInSeconds);
-    return `/api/files/download?key=${encodeURIComponent(key)}`;
+
+    const parts = key.split('/');
+    const ownerId = parts.length >= 2 && parts[0] === 'users' ? parts[1] : 'anonymous';
+    const { token } = FileTokenService.generateToken(key, ownerId, 'download', expiresInSeconds);
+    return `/api/files/download?key=${encodeURIComponent(key)}&token=${token}`;
   }
 }
