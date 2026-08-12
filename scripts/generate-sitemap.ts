@@ -4,8 +4,23 @@ import { SEO_DATA } from '../src/constants/seoData';
 
 function generateSitemap() {
   const baseUrl = 'https://www.makepdfright.com';
+  const NON_CANONICAL_ROUTES = new Set([
+    '/compress-pdf',
+    '/merge-pdf',
+    '/split-pdf',
+    '/edit-pdf',
+    '/rotate-pdf',
+    '/word-to-pdf',
+    '/organize',
+    '/audio-transcribe',
+    '/image-generator',
+    '/pdf-editor',
+    '/404'
+  ]);
 
-  const urls = Object.keys(SEO_DATA).map((route) => {
+  const canonicalRoutes = Object.keys(SEO_DATA).filter(route => !NON_CANONICAL_ROUTES.has(route));
+
+  const urls = canonicalRoutes.map((route) => {
     const loc = `${baseUrl}${route === '/' ? '' : route}`;
     let priority = '0.8';
     let changefreq = 'weekly';
@@ -13,7 +28,7 @@ function generateSitemap() {
     if (route === '/') {
       priority = '1.0';
       changefreq = 'daily';
-    } else if (route === '/privacy' || route === '/terms') {
+    } else if (route === '/privacy' || route === '/terms' || route === '/cookie-policy' || route === '/disclaimer') {
       priority = '0.3';
       changefreq = 'monthly';
     }

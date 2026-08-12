@@ -73,31 +73,47 @@ export const SEO: React.FC<SEOProps> = ({
     }
     link.setAttribute('href', fullCanonical);
 
-    // 3. Structured Data (JSON-LD) Injection
-    const schemaGraph: any[] = [
+    // 3. Structured Data (JSON-LD) Injection using @graph format
+    const graphNodes: any[] = [
       // WebSite Schema
       {
-        '@context': 'https://schema.org',
         '@type': 'WebSite',
+        '@id': `${appUrl}/#website`,
+        'url': appUrl,
         'name': 'MakePDFRight',
-        'url': 'https://makepdfright.com',
         'description': 'Fast, private & free browser-first PDF and AI document processing tools.'
       },
       // Organization Schema
       {
-        '@context': 'https://schema.org',
         '@type': 'Organization',
+        '@id': `${appUrl}/#organization`,
         'name': 'MakePDFRight',
-        'url': 'https://makepdfright.com',
-        'logo': 'https://makepdfright.com/apple-touch-icon.png'
+        'url': appUrl,
+        'logo': `${appUrl}/apple-touch-icon.png`
       }
     ];
 
-    // If on a specific Tool Page, add SoftwareApplication schema
-    if (toolName) {
-      schemaGraph.push({
-        '@context': 'https://schema.org',
+    // Page Specific Schemas
+    if (currentPath === '/about') {
+      graphNodes.push({
+        '@type': 'AboutPage',
+        '@id': `${fullCanonical}/#webpage`,
+        'url': fullCanonical,
+        'name': title,
+        'description': description
+      });
+    } else if (currentPath === '/contact') {
+      graphNodes.push({
+        '@type': 'ContactPage',
+        '@id': `${fullCanonical}/#webpage`,
+        'url': fullCanonical,
+        'name': title,
+        'description': description
+      });
+    } else if (toolName) {
+      graphNodes.push({
         '@type': 'SoftwareApplication',
+        '@id': `${fullCanonical}/#software`,
         'name': `${toolName} - MakePDFRight`,
         'applicationCategory': 'BusinessApplication',
         'operatingSystem': 'Any',
@@ -109,28 +125,32 @@ export const SEO: React.FC<SEOProps> = ({
         'description': description,
         'url': fullCanonical
       });
+    } else {
+      graphNodes.push({
+        '@type': 'WebPage',
+        '@id': `${fullCanonical}/#webpage`,
+        'url': fullCanonical,
+        'name': title,
+        'description': description
+      });
+    }
 
-      // Breadcrumb Schema
-      schemaGraph.push({
-        '@context': 'https://schema.org',
+    // Breadcrumb Schema for non-home pages
+    if (currentPath !== '/' && currentPath !== '') {
+      graphNodes.push({
         '@type': 'BreadcrumbList',
+        '@id': `${fullCanonical}/#breadcrumb`,
         'itemListElement': [
           {
             '@type': 'ListItem',
             'position': 1,
             'name': 'Home',
-            'item': 'https://makepdfright.com'
+            'item': appUrl
           },
           {
             '@type': 'ListItem',
             'position': 2,
-            'name': category,
-            'item': 'https://makepdfright.com/#tools'
-          },
-          {
-            '@type': 'ListItem',
-            'position': 3,
-            'name': toolName,
+            'name': toolName || title.split('–')[0].split('|')[0].trim(),
             'item': fullCanonical
           }
         ]
@@ -139,9 +159,9 @@ export const SEO: React.FC<SEOProps> = ({
 
     // FAQ Schema if FAQs present
     if (faqs && faqs.length > 0) {
-      schemaGraph.push({
-        '@context': 'https://schema.org',
+      graphNodes.push({
         '@type': 'FAQPage',
+        '@id': `${fullCanonical}/#faq`,
         'mainEntity': faqs.map(faq => ({
           '@type': 'Question',
           'name': faq.question,
@@ -152,6 +172,11 @@ export const SEO: React.FC<SEOProps> = ({
         }))
       });
     }
+
+    const schemaGraph = {
+      '@context': 'https://schema.org',
+      '@graph': graphNodes
+    };
 
     // Inject JSON-LD Script Tag
     let scriptEl = document.querySelector('#seo-jsonld-schema') as HTMLScriptElement;

@@ -11,6 +11,7 @@ import rateLimit from "express-rate-limit";
 
 // Import SEO metadata
 import { SEO_DATA, RouteSEO } from "./src/constants/seoData";
+import { TOOL_SEO_CONTENT_MAP } from "./src/constants/toolSeoData";
 
 // Import custom PDF infrastructure services
 import { LoggingService, requestLogger } from "./server/services/LoggingService";
@@ -186,6 +187,30 @@ async function startServer() {
 
   // Request logging & observability middleware
   app.use(requestLogger);
+
+  // Canonical Host & Trailing Slash Redirections (Technical SEO)
+  app.use((req, res, next) => {
+    // Only redirect GET and HEAD requests to avoid altering API POST bodies
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      return next();
+    }
+
+    const host = (req.headers.host || '').toLowerCase();
+
+    // Redirect non-www host (makepdfright.com) to www.makepdfright.com (301)
+    if (host === 'makepdfright.com') {
+      return res.redirect(301, `https://www.makepdfright.com${req.originalUrl}`);
+    }
+
+    // Trailing slash normalization (e.g. /compress/ -> /compress, except root '/')
+    if (req.path.length > 1 && req.path.endsWith('/')) {
+      const query = req.url.slice(req.path.length);
+      const safePath = req.path.slice(0, -1);
+      return res.redirect(301, safePath + query);
+    }
+
+    next();
+  });
 
   // Handle larger payloads for base64 files up to 50MB
   app.use(express.json({ limit: "50mb" }));
@@ -527,8 +552,23 @@ async function startServer() {
   // Dynamic sitemap route
   app.get("/sitemap.xml", (req, res) => {
     const baseUrl = 'https://www.makepdfright.com';
+    const NON_CANONICAL_ROUTES = new Set([
+      '/compress-pdf',
+      '/merge-pdf',
+      '/split-pdf',
+      '/edit-pdf',
+      '/rotate-pdf',
+      '/word-to-pdf',
+      '/organize',
+      '/audio-transcribe',
+      '/image-generator',
+      '/pdf-editor',
+      '/404'
+    ]);
 
-    const urls = Object.keys(SEO_DATA).map((route) => {
+    const canonicalRoutes = Object.keys(SEO_DATA).filter(route => !NON_CANONICAL_ROUTES.has(route));
+
+    const urls = canonicalRoutes.map((route) => {
       const loc = `${baseUrl}${route === '/' ? '' : route}`;
       let priority = '0.8';
       let changefreq = 'weekly';
@@ -536,7 +576,7 @@ async function startServer() {
       if (route === '/') {
         priority = '1.0';
         changefreq = 'daily';
-      } else if (route === '/privacy' || route === '/terms') {
+      } else if (route === '/privacy' || route === '/terms' || route === '/cookie-policy' || route === '/disclaimer') {
         priority = '0.3';
         changefreq = 'monthly';
       }
@@ -636,48 +676,122 @@ async function startServer() {
       html = html.replace('</head>', `  ${canonicalTag}\n</head>`);
     }
 
-    // 8. JSON-LD Schema
-    let jsonLdObj: any;
-    if (cleanPath === '/') {
-      jsonLdObj = {
-        "@context": "https://schema.org",
+    // 8. JSON-LD Schema using @graph format
+    const graphNodes: any[] = [
+      {
         "@type": "WebSite",
+        "@id": `${appUrl}/#website`,
+        "url": appUrl,
         "name": "MakePDFRight",
-        "url": canonicalUrl,
-        "description": descText,
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": `${appUrl}/?q={search_term_string}`,
-          "query-input": "required name=search_term_string"
-        }
-      };
-    } else if (cleanPath === '/privacy' || cleanPath === '/terms') {
-      jsonLdObj = {
-        "@context": "https://schema.org",
+        "description": "Fast, private & free browser-first PDF and AI document processing tools."
+      },
+      {
+        "@type": "Organization",
+        "@id": `${appUrl}/#organization`,
+        "name": "MakePDFRight",
+        "url": appUrl,
+        "logo": `${appUrl}/apple-touch-icon.png`
+      }
+    ];
+
+    if (cleanPath === '/') {
+      graphNodes.push({
         "@type": "WebPage",
+        "@id": `${canonicalUrl}/#webpage`,
+        "url": canonicalUrl,
         "name": titleText,
-        "description": descText,
-        "url": canonicalUrl
-      };
+        "description": descText
+      });
+    } else if (cleanPath === '/about') {
+      graphNodes.push({
+        "@type": "AboutPage",
+        "@id": `${canonicalUrl}/#webpage`,
+        "url": canonicalUrl,
+        "name": titleText,
+        "description": descText
+      });
+    } else if (cleanPath === '/contact') {
+      graphNodes.push({
+        "@type": "ContactPage",
+        "@id": `${canonicalUrl}/#webpage`,
+        "url": canonicalUrl,
+        "name": titleText,
+        "description": descText
+      });
+    } else if (['/privacy', '/terms', '/cookie-policy', '/disclaimer'].includes(cleanPath)) {
+      graphNodes.push({
+        "@type": "WebPage",
+        "@id": `${canonicalUrl}/#webpage`,
+        "url": canonicalUrl,
+        "name": titleText,
+        "description": descText
+      });
     } else {
-      jsonLdObj = {
-        "@context": "https://schema.org",
+      graphNodes.push({
         "@type": "SoftwareApplication",
+        "@id": `${canonicalUrl}/#software`,
         "name": titleText,
         "description": descText,
         "url": canonicalUrl,
-        "applicationCategory": "UtilityApplication",
+        "applicationCategory": "BusinessApplication",
         "operatingSystem": "Any",
         "offers": {
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "USD"
         }
-      };
+      });
     }
 
-    const jsonLdScript = `<script type="application/ld+json">\n${JSON.stringify(jsonLdObj, null, 2)}\n</script>`;
-    html = html.replace('</head>', `  ${jsonLdScript}\n</head>`);
+    if (cleanPath !== '/') {
+      graphNodes.push({
+        "@type": "BreadcrumbList",
+        "@id": `${canonicalUrl}/#breadcrumb`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": appUrl
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": titleText.split('–')[0].split('|')[0].trim(),
+            "item": canonicalUrl
+          }
+        ]
+      });
+    }
+
+    const toolData = TOOL_SEO_CONTENT_MAP[cleanPath];
+    if (toolData && toolData.faqs && toolData.faqs.length > 0) {
+      graphNodes.push({
+        "@type": "FAQPage",
+        "@id": `${canonicalUrl}/#faq`,
+        "mainEntity": toolData.faqs.map(faq => ({
+          "@type": "Question",
+          "name": faq.question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faq.answer
+          }
+        }))
+      });
+    }
+
+    const jsonLdObj = {
+      "@context": "https://schema.org",
+      "@graph": graphNodes
+    };
+
+    const jsonLdScript = `<script type="application/ld+json" id="seo-jsonld-schema">\n${JSON.stringify(jsonLdObj, null, 2)}\n</script>`;
+    
+    if (/<script\s+type="application\/ld\+json".*?>.*?<\/script>/is.test(html)) {
+      html = html.replace(/<script\s+type="application\/ld\+json".*?>.*?<\/script>/is, jsonLdScript);
+    } else {
+      html = html.replace('</head>', `  ${jsonLdScript}\n</head>`);
+    }
 
     return html;
   }
