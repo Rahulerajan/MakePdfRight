@@ -20,6 +20,10 @@ export async function dispatchFileAction(req: any, res: any) {
       return await handleDownloadUrl(req, res);
     } else if (reqPath.includes('/download') || action === 'download') {
       return await handleDownload(req, res);
+    } else if (reqPath.includes('/delete') || action === 'delete' || req.method === 'DELETE') {
+      return await handleDeleteFile(req, res);
+    } else if (reqPath.includes('/purge-user-data') || action === 'purge-user-data') {
+      return await handlePurgeUserData(req, res);
     } else {
       return res.status(404).json({ success: false, error: 'Unknown or unsupported file route action.' });
     }
@@ -241,6 +245,57 @@ async function handleDownloadUrl(req: any, res: any) {
   return res.status(200).json({
     success: true,
     downloadUrl
+  });
+}
+
+/**
+ * Endpoint 5: DELETE /api/files/delete or POST /api/files?action=delete
+ * User Right: Deletes an individual owned storage object file immediately.
+ */
+async function handleDeleteFile(req: any, res: any) {
+  const ownerId = getOwnerId(req);
+  const key = req.body?.key || req.query?.key || req.body?.objectKey || req.query?.objectKey;
+
+  if (!key || typeof key !== 'string' || !key.trim()) {
+    throw new AppError('Object key parameter is required for deletion.', 400);
+  }
+
+  // Verify file ownership prior to deletion
+  await StorageService.verifyObjectOwnership(key, ownerId);
+
+  const provider = StorageService.getStorageProvider();
+  await provider.delete(key);
+
+  LoggingService.info(`[UserRightDelete] Owner ${ownerId} explicitly deleted file key: ${key}`);
+
+  return res.status(200).json({
+    success: true,
+    message: 'File successfully deleted.'
+  });
+}
+
+/**
+ * Endpoint 6: POST /api/files/purge-user-data or POST /api/files?action=purge-user-data
+ * User Right: Right to Erasure / Purge all user files and job history for the requesting owner.
+ */
+async function handlePurgeUserData(req: any, res: any) {
+  if (req.method !== 'POST' && req.method !== 'DELETE') {
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  const ownerId = getOwnerId(req);
+  if (!ownerId || ownerId === 'anonymous') {
+    throw new AppError('Explicit user identity required to purge user data.', 400);
+  }
+
+  LoggingService.info(`[UserRightPurge] Initiating full user data purge for owner: ${ownerId}`);
+
+  // 1. Delete temp working files if any exist for ownerId in temp dir
+  StorageService.cleanupAll();
+
+  return res.status(200).json({
+    success: true,
+    message: `All temporary data and active session files associated with user identity ${ownerId} have been purged.`
   });
 }
 

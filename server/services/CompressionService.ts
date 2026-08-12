@@ -29,6 +29,52 @@ function lookupObj(pdfDoc: PDFDocument, obj: any): any {
   }
 }
 
+const getSharpConcurrency = () => {
+  const envVal = parseInt(process.env.SHARP_IMAGE_CONCURRENCY || '3', 10);
+  if (isNaN(envVal)) return 3;
+  return Math.max(1, Math.min(4, envVal));
+};
+
+const getMinImageWidth = () => {
+  const envVal = parseInt(process.env.COMPRESSION_MIN_IMAGE_WIDTH || '64', 10);
+  return isNaN(envVal) ? 64 : envVal;
+};
+
+const getMinImageHeight = () => {
+  const envVal = parseInt(process.env.COMPRESSION_MIN_IMAGE_HEIGHT || '64', 10);
+  return isNaN(envVal) ? 64 : envVal;
+};
+
+const getMinImageBytes = () => {
+  const envVal = parseInt(process.env.COMPRESSION_MIN_IMAGE_BYTES || '10240', 10);
+  return isNaN(envVal) ? 10240 : envVal;
+};
+
+async function processWithBoundedConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results: R[] = new Array(items.length);
+  let currentIndex = 0;
+
+  const workerCount = Math.min(items.length, Math.max(1, limit));
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (currentIndex < items.length) {
+      const idx = currentIndex++;
+      try {
+        results[idx] = await fn(items[idx]);
+      } catch (err) {
+        results[idx] = null as any;
+      }
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
 export type CompressionLevel = 'less' | 'recommended' | 'extreme' | 'custom';
 
 export interface CompressionResult {
@@ -45,6 +91,26 @@ export interface CompressionResult {
   pdfBuffer: Buffer;
 }
 
+interface ImageTask {
+  ref: any;
+  dict: PDFDict;
+  width: number;
+  height: number;
+  filterStr: string;
+  colorSpaceObj?: any;
+  decodeParmsObj?: any;
+  sMaskObj?: any;
+  originalImageBytes: Uint8Array;
+}
+
+interface ReplacementResult {
+  ref: any;
+  dict: PDFDict;
+  compressedJpeg: Buffer;
+  newWidth: number;
+  newHeight: number;
+}
+
 export class CompressionService {
   static async compressPDF(
     filePath: string,
@@ -59,8 +125,10 @@ export class CompressionService {
 
     // Pre-processing integrity & encryption check
     const { pageCount } = await ValidationService.checkEncryptionAndIntegrity(originalBytes);
+    const tCheck = performance.now();
 
     const pdfDoc = await PDFDocument.load(originalBytes, { ignoreEncryption: true });
+    const tParse = performance.now();
 
     // Detect digital signatures
     let isSigned = false;
@@ -93,6 +161,11 @@ export class CompressionService {
     let imagesOptimized = 0;
 
     const indirectObjects = pdfDoc.context.enumerateIndirectObjects();
+    const imageTasks: ImageTask[] = [];
+
+    const minW = getMinImageWidth();
+    const minH = getMinImageHeight();
+    const minB = getMinImageBytes();
 
     for (const [ref, obj] of indirectObjects) {
       if (!obj) continue;
@@ -123,170 +196,219 @@ export class CompressionService {
 
             const width = getDictNumber(dict, 'Width');
             const height = getDictNumber(dict, 'Height');
+            
+            // Image Bomb Protection: Max 100 MegaPixels (100,000,000 pixels) to avoid Sharp decompressed RAM exhaustion
+            const rawPixels = parseInt(process.env.MAX_IMAGE_PIXELS || '100000000', 10);
+            const MAX_IMAGE_PIXELS = (isNaN(rawPixels) || rawPixels <= 0) ? 100000000 : Math.min(200000000, rawPixels);
+            if (width > 0 && height > 0 && (width * height > MAX_IMAGE_PIXELS)) {
+              LoggingService.warn(`[CompressionService] Skipping oversized image stream (${width}x${height} = ${width * height} pixels > ${MAX_IMAGE_PIXELS}) to prevent pixel bomb.`);
+              continue;
+            }
             const filterObj = lookupObj(pdfDoc, dict.get(PDFName.of('Filter')));
             const colorSpaceObj = lookupObj(pdfDoc, dict.get(PDFName.of('ColorSpace')));
             const decodeParmsObj = lookupObj(pdfDoc, dict.get(PDFName.of('DecodeParms')));
             const sMaskObj = dict.get(PDFName.of('SMask'));
+            const isMask = dict.has(PDFName.of('ImageMask')) || !!sMaskObj;
             const filterStr = filterObj ? filterObj.toString() : '';
 
             const originalImageBytes = rawStream.contents;
             if (!originalImageBytes || originalImageBytes.length === 0) continue;
 
-            let imageInput: Buffer | null = null;
-            let sharpOptions: SharpOptions | undefined = undefined;
+            // Pre-filtering check: Skip tiny images unless they are structural masks or transparent
+            const isTinyByDimensions = width > 0 && height > 0 && width < minW && height < minH;
+            const isTinyByBytes = originalImageBytes.length < minB;
 
-            if (filterStr.includes('/DCTDecode') || filterStr.includes('/JPXDecode')) {
-              // Standard JPEG / JPEG2000 image stream
-              imageInput = Buffer.from(originalImageBytes);
-            } else if (filterStr.includes('/FlateDecode')) {
-              try {
-                const inflated = zlib.inflateSync(Buffer.from(originalImageBytes));
-                
-                // Check if inflated data is a valid PNG or JPEG file with magic header
-                if (inflated.length >= 8 && inflated[0] === 0x89 && inflated[1] === 0x50 && inflated[2] === 0x4e && inflated[3] === 0x47) {
-                  imageInput = inflated;
-                } else if (inflated.length >= 3 && inflated[0] === 0xff && inflated[1] === 0xd8 && inflated[2] === 0xff) {
-                  imageInput = inflated;
-                } else if (width > 0 && height > 0) {
-                  const csStr = colorSpaceObj ? colorSpaceObj.toString() : '';
-                  let channels = 3;
-
-                  // Infer channels from inflated data length matching width * height
-                  if (inflated.length === width * height * 1 || inflated.length === height * (width * 1 + 1)) {
-                    channels = 1;
-                  } else if (inflated.length === width * height * 4 || inflated.length === height * (width * 4 + 1)) {
-                    channels = 4;
-                  } else if (inflated.length === width * height * 3 || inflated.length === height * (width * 3 + 1)) {
-                    channels = 3;
-                  } else if (csStr.includes('/DeviceGray') || csStr.includes('/CalGray')) {
-                    channels = 1;
-                  } else if (csStr.includes('/DeviceCMYK')) {
-                    channels = 4;
-                  } else {
-                    channels = 3;
-                  }
-
-                  let rawPixels = inflated;
-
-                  // Check if PNG predictor is present
-                  let predictor = 1;
-                  if (decodeParmsObj && decodeParmsObj instanceof PDFDict) {
-                    const predVal = decodeParmsObj.get(PDFName.of('Predictor'));
-                    if (predVal && typeof (predVal as any).value === 'number') {
-                      predictor = (predVal as any).value;
-                    }
-                  }
-
-                  if (predictor >= 10) {
-                    rawPixels = removePngPredictor(inflated, width, height, channels);
-                  }
-
-                  if (rawPixels.length >= width * height * channels) {
-                    imageInput = rawPixels.subarray(0, width * height * channels);
-                    sharpOptions = { raw: { width, height, channels: channels as any } };
-                  } else {
-                    imageInput = Buffer.from(originalImageBytes);
-                  }
-                } else {
-                  imageInput = Buffer.from(originalImageBytes);
-                }
-              } catch (zerr) {
-                imageInput = Buffer.from(originalImageBytes);
-              }
-            } else {
-              // Uncompressed or other filter
-              imageInput = Buffer.from(originalImageBytes);
+            if (!isMask && (originalImageBytes.length < 1024 || (isTinyByDimensions && isTinyByBytes))) {
+              continue;
             }
 
-            if (!imageInput) continue;
-
-            try {
-              let pipeline: any;
-              try {
-                pipeline = sharp(imageInput, sharpOptions);
-                if (sharpOptions?.raw?.channels === 4) {
-                  pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
-                }
-              } catch (initErr) {
-                // Fallback without raw sharpOptions if raw metadata mismatch
-                pipeline = sharp(imageInput);
-              }
-
-              // Preserve transparency by flattening if converting transparent image to JPEG
-              if (sMaskObj) {
-                pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
-              }
-
-              const meta = await pipeline.metadata().catch(() => null);
-
-              const currentWidth = meta?.width || width || 0;
-              const currentHeight = meta?.height || height || 0;
-              const isLargeImage = currentWidth > 500 || currentHeight > 500;
-              let isResized = false;
-
-              // Determine if resizing is needed
-              if (currentWidth > targetMaxDim || currentHeight > targetMaxDim) {
-                pipeline = pipeline.resize({
-                  width: currentWidth >= currentHeight ? targetMaxDim : undefined,
-                  height: currentHeight > currentWidth ? targetMaxDim : undefined,
-                  fit: 'inside',
-                  withoutEnlargement: true
-                });
-                isResized = true;
-              }
-
-              // Re-encode as high-efficiency JPEG
-              let compressedJpeg = await pipeline
-                .jpeg({ quality: targetQuality, mozjpeg: true })
-                .toBuffer();
-
-              // If level is extreme and image is large, ensure we attempt maximum quality drop if size didn't shrink
-              if (level === 'extreme' && isLargeImage && compressedJpeg.length >= originalImageBytes.length) {
-                try {
-                  const lowerJpeg = await sharp(imageInput, sharpOptions)
-                    .resize({
-                      width: currentWidth >= currentHeight ? Math.min(targetMaxDim, 800) : undefined,
-                      height: currentHeight > currentWidth ? Math.min(targetMaxDim, 800) : undefined,
-                      fit: 'inside',
-                      withoutEnlargement: true
-                    })
-                    .jpeg({ quality: 20, mozjpeg: true })
-                    .toBuffer();
-                  if (lowerJpeg.length < compressedJpeg.length) {
-                    compressedJpeg = lowerJpeg;
-                  }
-                } catch (lowerErr) {}
-              }
-
-              // Get new image dimensions
-              const newMeta = await sharp(compressedJpeg).metadata().catch(() => null);
-              const newWidth = newMeta?.width || (isResized ? Math.min(currentWidth, targetMaxDim) : currentWidth);
-              const newHeight = newMeta?.height || (isResized ? Math.min(currentHeight, targetMaxDim) : currentHeight);
-
-              // Decision heuristic: replace ONLY if compressed image stream is smaller than original
-              const shouldReplace = compressedJpeg.length < originalImageBytes.length || isResized;
-
-              if (shouldReplace) {
-                dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
-                dict.set(PDFName.of('Width'), pdfDoc.context.obj(newWidth));
-                dict.set(PDFName.of('Height'), pdfDoc.context.obj(newHeight));
-                dict.set(PDFName.of('Length'), pdfDoc.context.obj(compressedJpeg.length));
-                dict.delete(PDFName.of('DecodeParms'));
-                dict.delete(PDFName.of('ColorSpace')); // DCTDecode uses default DeviceRGB or DeviceGray
-
-                pdfDoc.context.assign(ref, PDFRawStream.of(dict, compressedJpeg));
-
-                imagesOptimized++;
-              }
-            } catch (imgErr) {
-              LoggingService.debug(`Skipped image object compression:`, imgErr);
-            }
+            imageTasks.push({
+              ref,
+              dict,
+              width,
+              height,
+              filterStr,
+              colorSpaceObj,
+              decodeParmsObj,
+              sMaskObj,
+              originalImageBytes
+            });
           }
         } catch (e) {
           // Safe ignore if dictionary property lookup fails
         }
       }
     }
+
+    const tEnum = performance.now();
+
+    // Process candidate image tasks with bounded Sharp concurrency
+    const concurrency = getSharpConcurrency();
+    const replacements = await processWithBoundedConcurrency<ImageTask, ReplacementResult | null>(
+      imageTasks,
+      concurrency,
+      async (task) => {
+        const {
+          ref,
+          dict,
+          width,
+          height,
+          filterStr,
+          colorSpaceObj,
+          decodeParmsObj,
+          sMaskObj,
+          originalImageBytes
+        } = task;
+
+        let imageInput: Buffer | null = null;
+        let sharpOptions: SharpOptions | undefined = undefined;
+
+        if (filterStr.includes('/DCTDecode') || filterStr.includes('/JPXDecode')) {
+          imageInput = Buffer.from(originalImageBytes);
+        } else if (filterStr.includes('/FlateDecode')) {
+          try {
+            const inflated = zlib.inflateSync(Buffer.from(originalImageBytes));
+
+            if (inflated.length >= 8 && inflated[0] === 0x89 && inflated[1] === 0x50 && inflated[2] === 0x4e && inflated[3] === 0x47) {
+              imageInput = inflated;
+            } else if (inflated.length >= 3 && inflated[0] === 0xff && inflated[1] === 0xd8 && inflated[2] === 0xff) {
+              imageInput = inflated;
+            } else if (width > 0 && height > 0) {
+              const csStr = colorSpaceObj ? colorSpaceObj.toString() : '';
+              let channels = 3;
+
+              if (inflated.length === width * height * 1 || inflated.length === height * (width * 1 + 1)) {
+                channels = 1;
+              } else if (inflated.length === width * height * 4 || inflated.length === height * (width * 4 + 1)) {
+                channels = 4;
+              } else if (inflated.length === width * height * 3 || inflated.length === height * (width * 3 + 1)) {
+                channels = 3;
+              } else if (csStr.includes('/DeviceGray') || csStr.includes('/CalGray')) {
+                channels = 1;
+              } else if (csStr.includes('/DeviceCMYK')) {
+                channels = 4;
+              } else {
+                channels = 3;
+              }
+
+              let rawPixels = inflated;
+              let predictor = 1;
+              if (decodeParmsObj && decodeParmsObj instanceof PDFDict) {
+                const predVal = decodeParmsObj.get(PDFName.of('Predictor'));
+                if (predVal && typeof (predVal as any).value === 'number') {
+                  predictor = (predVal as any).value;
+                }
+              }
+
+              if (predictor >= 10) {
+                rawPixels = removePngPredictor(inflated, width, height, channels);
+              }
+
+              if (rawPixels.length >= width * height * channels) {
+                imageInput = rawPixels.subarray(0, width * height * channels);
+                sharpOptions = { raw: { width, height, channels: channels as any } };
+              } else {
+                imageInput = Buffer.from(originalImageBytes);
+              }
+            } else {
+              imageInput = Buffer.from(originalImageBytes);
+            }
+          } catch (zerr) {
+            imageInput = Buffer.from(originalImageBytes);
+          }
+        } else {
+          imageInput = Buffer.from(originalImageBytes);
+        }
+
+        if (!imageInput) return null;
+
+        try {
+          let pipeline: any;
+          try {
+            pipeline = sharp(imageInput, sharpOptions);
+            if (sharpOptions?.raw?.channels === 4) {
+              pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
+            }
+          } catch (initErr) {
+            pipeline = sharp(imageInput);
+          }
+
+          if (sMaskObj) {
+            pipeline = pipeline.flatten({ background: { r: 255, g: 255, b: 255 } });
+          }
+
+          const meta = await pipeline.metadata().catch(() => null);
+          const currentWidth = meta?.width || width || 0;
+          const currentHeight = meta?.height || height || 0;
+          const isLargeImage = currentWidth > 500 || currentHeight > 500;
+          let isResized = false;
+
+          if (currentWidth > targetMaxDim || currentHeight > targetMaxDim) {
+            pipeline = pipeline.resize({
+              width: currentWidth >= currentHeight ? targetMaxDim : undefined,
+              height: currentHeight > currentWidth ? targetMaxDim : undefined,
+              fit: 'inside',
+              withoutEnlargement: true
+            });
+            isResized = true;
+          }
+
+          let compressedJpeg = await pipeline
+            .jpeg({ quality: targetQuality, mozjpeg: true })
+            .toBuffer();
+
+          if (level === 'extreme' && isLargeImage && compressedJpeg.length >= originalImageBytes.length) {
+            try {
+              const lowerJpeg = await sharp(imageInput, sharpOptions)
+                .resize({
+                  width: currentWidth >= currentHeight ? Math.min(targetMaxDim, 800) : undefined,
+                  height: currentHeight > currentWidth ? Math.min(targetMaxDim, 800) : undefined,
+                  fit: 'inside',
+                  withoutEnlargement: true
+                })
+                .jpeg({ quality: 20, mozjpeg: true })
+                .toBuffer();
+              if (lowerJpeg.length < compressedJpeg.length) {
+                compressedJpeg = lowerJpeg;
+              }
+            } catch (lowerErr) {}
+          }
+
+          const newMeta = await sharp(compressedJpeg).metadata().catch(() => null);
+          const newWidth = newMeta?.width || (isResized ? Math.min(currentWidth, targetMaxDim) : currentWidth);
+          const newHeight = newMeta?.height || (isResized ? Math.min(currentHeight, targetMaxDim) : currentHeight);
+
+          const shouldReplace = compressedJpeg.length < originalImageBytes.length || isResized;
+
+          if (shouldReplace) {
+            return { ref, dict, compressedJpeg, newWidth, newHeight };
+          }
+          return null;
+        } catch (imgErr) {
+          LoggingService.debug(`Skipped image object compression:`, imgErr);
+          return null;
+        } finally {
+          imageInput = null;
+        }
+      }
+    );
+
+    // Apply replacements to pdfDoc context
+    for (const rep of replacements) {
+      if (!rep) continue;
+      const { dict, ref, compressedJpeg, newWidth, newHeight } = rep;
+      dict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'));
+      dict.set(PDFName.of('Width'), pdfDoc.context.obj(newWidth));
+      dict.set(PDFName.of('Height'), pdfDoc.context.obj(newHeight));
+      dict.set(PDFName.of('Length'), pdfDoc.context.obj(compressedJpeg.length));
+      dict.delete(PDFName.of('DecodeParms'));
+      dict.delete(PDFName.of('ColorSpace'));
+
+      pdfDoc.context.assign(ref, PDFRawStream.of(dict, compressedJpeg));
+      imagesOptimized++;
+    }
+
+    const tImg = performance.now();
 
     // Metadata Purging
     pdfDoc.setTitle('');
@@ -342,6 +464,8 @@ export class CompressionService {
       : 0;
     const endTime = performance.now();
     const duration = ((endTime - startTime) / 1000).toFixed(2);
+
+    LoggingService.info(`[CompressionMetrics] file=${filePath} totalMs=${(endTime - startTime).toFixed(1)} checkMs=${(tCheck - startTime).toFixed(1)} parseMs=${(tParse - tCheck).toFixed(1)} enumMs=${(tEnum - tParse).toFixed(1)} imgMs=${(tImg - tEnum).toFixed(1)} imgCandidates=${imageTasks.length}/${imageCount} imgOptimized=${imagesOptimized}`);
 
     // Generate accurate optimization summary reflecting ACTUAL processing
     let summary = '';

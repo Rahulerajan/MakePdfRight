@@ -1,6 +1,7 @@
 import { PDFDocument, degrees } from 'pdf-lib';
 import fs from 'fs';
 import { LoggingService } from './LoggingService.js';
+import { ValidationService } from './ValidationService.js';
 
 export interface PageRotationInput {
   index: number;
@@ -11,6 +12,7 @@ export class RotateService {
   static async rotatePDF(filePath: string, rotations: PageRotationInput[]): Promise<Buffer> {
     LoggingService.info(`Starting server-side rotate for file: ${filePath}`);
     const bytes = fs.readFileSync(filePath);
+    await ValidationService.checkEncryptionAndIntegrity(bytes);
     const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     const pdfPages = pdfDoc.getPages();
     

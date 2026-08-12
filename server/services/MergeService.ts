@@ -1,6 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import { LoggingService } from './LoggingService.js';
+import { ValidationService } from './ValidationService.js';
 
 export class MergeService {
   static async mergePDFs(filePaths: string[]): Promise<Buffer> {
@@ -9,6 +10,7 @@ export class MergeService {
     
     for (const filePath of filePaths) {
       const bytes = fs.readFileSync(filePath);
+      await ValidationService.checkEncryptionAndIntegrity(bytes);
       const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
       const copiedPages = await mergedDoc.copyPages(pdf, pdf.getPageIndices());
       copiedPages.forEach((page) => mergedDoc.addPage(page));

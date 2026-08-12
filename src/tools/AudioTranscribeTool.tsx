@@ -252,16 +252,29 @@ export const AudioTranscribeTool: React.FC = () => {
     setLiveFinalText('');
     setLiveInterimText('');
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Audio recording is not supported in this browser environment. Please upload an audio file directly.");
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setPermissionStatus('granted');
       
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-          ? 'audio/ogg;codecs=opus'
-          : 'audio/webm';
+      let mimeType = 'audio/webm';
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+          mimeType = 'audio/ogg;codecs=opus';
+        } else {
+          mimeType = '';
+        }
+      }
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -272,7 +285,7 @@ export const AudioTranscribeTool: React.FC = () => {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' });
         await handleTranscribe(audioBlob);
         stream.getTracks().forEach(track => track.stop());
       };
@@ -322,7 +335,31 @@ export const AudioTranscribeTool: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to start recording:', err);
       setPermissionStatus('denied');
-      setError("Could not access microphone. Please check permissions in your browser.");
+      const errName = err?.name || '';
+      const errMsg = String(err?.message || err || '');
+
+      if (
+        errName === 'NotFoundError' || 
+        errName === 'OverconstrainedError' ||
+        errMsg.includes('Requested device not found') || 
+        errMsg.includes('DevicesNotFoundError') ||
+        errMsg.includes('device not found')
+      ) {
+        setError("No audio input device (microphone) detected. Please connect a microphone or upload an audio file directly.");
+      } else if (
+        errName === 'NotAllowedError' || 
+        errName === 'PermissionDeniedError' || 
+        errMsg.includes('Permission denied') ||
+        errMsg.includes('Permission dismissed')
+      ) {
+        setError("Microphone permission was denied. Please grant microphone access in your browser or upload an audio file directly.");
+      } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        setError("Microphone is currently occupied by another application. Please free your audio device and try again.");
+      } else if (errMsg) {
+        setError(`Could not access microphone (${errMsg}). You can upload an audio file directly below.`);
+      } else {
+        setError("Could not access microphone. Please check your audio settings or upload an audio file directly.");
+      }
     }
   };
 

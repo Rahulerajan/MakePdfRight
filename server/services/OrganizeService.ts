@@ -1,6 +1,7 @@
 import { PDFDocument, degrees } from 'pdf-lib';
 import fs from 'fs';
 import { LoggingService } from './LoggingService.js';
+import { ValidationService } from './ValidationService.js';
 
 export interface OrganizePageItem {
   index: number;
@@ -11,6 +12,7 @@ export class OrganizeService {
   static async organizePDF(filePath: string, pageItems: OrganizePageItem[]): Promise<Buffer> {
     LoggingService.info(`Starting server-side organize for file: ${filePath}`);
     const bytes = fs.readFileSync(filePath);
+    await ValidationService.checkEncryptionAndIntegrity(bytes);
     const sourceDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     const organizedDoc = await PDFDocument.create();
     

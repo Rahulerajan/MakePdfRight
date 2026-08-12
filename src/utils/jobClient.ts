@@ -105,7 +105,8 @@ export class JobClient {
         throw new Error('Job execution aborted by client.');
       }
 
-      if (Date.now() - startTime > maxTimeoutMs) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > maxTimeoutMs) {
         throw new Error('Job processing timed out on client wait limit.');
       }
 
@@ -166,7 +167,19 @@ export class JobClient {
         if (networkConsecutiveErrors > 5) throw pollErr;
       }
 
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      // Adaptive polling schedule: 0-5s -> 500ms, 5-15s -> 1000ms, 15s+ -> 1500ms
+      let currentInterval = pollIntervalMs;
+      if (!options.pollIntervalMs) {
+        if (elapsed < 5000) {
+          currentInterval = 500;
+        } else if (elapsed < 15000) {
+          currentInterval = 1000;
+        } else {
+          currentInterval = 1500;
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, currentInterval));
     }
   }
 

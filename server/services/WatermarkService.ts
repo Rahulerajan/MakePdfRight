@@ -1,6 +1,7 @@
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import fs from 'fs';
 import { LoggingService } from './LoggingService.js';
+import { ValidationService } from './ValidationService.js';
 
 export interface WatermarkOptions {
   text: string;
@@ -14,6 +15,7 @@ export class WatermarkService {
   static async addWatermark(filePath: string, options: WatermarkOptions): Promise<Buffer> {
     LoggingService.info(`Adding watermark to PDF file: ${filePath}`);
     const bytes = fs.readFileSync(filePath);
+    await ValidationService.checkEncryptionAndIntegrity(bytes);
     const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);

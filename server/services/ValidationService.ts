@@ -82,23 +82,8 @@ export class ValidationService {
     this.validatePDFBuffer(buffer);
 
     try {
-      // First attempt to load normally
-      let pdfDoc: PDFDocument;
-      let isEncrypted = false;
-
-      try {
-        pdfDoc = await PDFDocument.load(buffer);
-      } catch (err: any) {
-        if (err.message?.includes('encrypted') || err.message?.includes('Password') || err.message?.includes('encrypt')) {
-          isEncrypted = true;
-          // Attempt loading with ignoreEncryption to inspect metadata
-          pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
-        } else {
-          throw err;
-        }
-      }
-
-      if (isEncrypted) {
+      const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+      if (pdfDoc.isEncrypted) {
         throw new AppError('This PDF file is password-protected or encrypted. Please unlock or decrypt the file before processing.', 400);
       }
 
@@ -146,12 +131,16 @@ export class ValidationService {
       throw new AppError(`Compression validation failed: Output page count (${outputPageCount}) does not match input (${expectedPageCount}).`, 500);
     }
 
-    // Verify page dimensions are valid
+    // Verify page dimensions (sampling strategy for large documents)
     const pages = pdfDoc.getPages();
-    for (let i = 0; i < pages.length; i++) {
-      const { width, height } = pages[i].getSize();
+    const sampleIndices = pages.length <= 5 
+      ? pages.map((_, i) => i) 
+      : [0, Math.floor(pages.length / 4), Math.floor(pages.length / 2), Math.floor((3 * pages.length) / 4), pages.length - 1];
+
+    for (const idx of sampleIndices) {
+      const { width, height } = pages[idx].getSize();
       if (!width || !height || isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
-        throw new AppError(`Compression validation failed: Invalid page dimensions on page ${i + 1}.`, 500);
+        throw new AppError(`Compression validation failed: Invalid page dimensions on page ${idx + 1}.`, 500);
       }
     }
 

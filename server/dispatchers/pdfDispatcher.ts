@@ -19,6 +19,8 @@ import { dispatchFileAction } from './fileDispatcher.js';
 
 import { DistributedRateLimiter } from '../services/DistributedRateLimiter.js';
 
+import { JobDispatcherFactory } from './JobDispatcherFactory.js';
+
 export async function dispatchPdfAction(req: any, res: any) {
   const reqPath = req.path || req.url || '';
   let action = req.query?.action || req.body?.action;
@@ -27,6 +29,7 @@ export async function dispatchPdfAction(req: any, res: any) {
     if (reqPath.includes('/job/create')) action = 'job-create';
     else if (reqPath.includes('/job/status')) action = 'job-status';
     else if (reqPath.includes('/job/cancel')) action = 'job-cancel';
+    else if (reqPath.includes('/job/process')) action = 'job-process';
     else {
       const parts = reqPath.split('?')[0].split('/').filter(Boolean);
       const lastPart = parts[parts.length - 1];
@@ -99,6 +102,8 @@ export async function dispatchPdfAction(req: any, res: any) {
         return handleJobStatus(req, res);
       case 'job-cancel':
         return handleJobCancel(req, res);
+      case 'job-process':
+        return await handleJobProcess(req, res);
       default:
         return res.status(400).json({
           success: false,
@@ -454,14 +459,42 @@ async function handleJobCreate(req: any, res: any) {
 
   const job = await JobService.createJob(type, ownerId, payload, idempotencyKey);
 
-  // Trigger worker processing asynchronously (non-blocking for HTTP response)
-  WorkerService.processJob(job.id, ownerId).catch((err) => {
-    LoggingService.error(`Background processing trigger failed for job ${job.id}:`, err);
+  // Dispatch job processing via durable/local dispatcher
+  const dispatcher = JobDispatcherFactory.getDispatcher();
+  await dispatcher.dispatch({
+    jobId: job.id,
+    ownerId,
+    operation: type,
+    payload
   });
 
   return res.status(200).json({
     success: true,
     job
+  });
+}
+
+async function handleJobProcess(req: any, res: any) {
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
+
+  const workerSecret = process.env.WORKER_SECRET;
+  if (workerSecret) {
+    const providedSecret = req.headers['x-worker-secret'] || req.body?.workerSecret;
+    if (providedSecret !== workerSecret) {
+      return res.status(401).json({ success: false, error: 'Unauthorized worker trigger request.' });
+    }
+  }
+
+  const { jobId, ownerId } = req.body || {};
+  if (!jobId || !ownerId) {
+    return res.status(400).json({ success: false, error: 'jobId and ownerId are required.' });
+  }
+
+  const processedJob = await WorkerService.processJob(jobId, ownerId);
+  return res.status(200).json({
+    success: true,
+    jobId: processedJob?.id || jobId,
+    status: processedJob?.status || 'processed'
   });
 }
 

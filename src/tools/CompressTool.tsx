@@ -304,8 +304,11 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
       setManualProgress(10);
 
       // Direct upload to storage with progress tracking
-      const uploadResult = await uploadFileForProcessing(uploadTargetFile, (percent) => {
-        setManualProgress(Math.min(40, Math.round(10 + (percent * 0.30))));
+      const uploadResult = await uploadFileForProcessing(uploadTargetFile, {
+        onProgress: (percent) => {
+          setManualProgress(Math.min(40, Math.round(10 + (percent * 0.30))));
+        },
+        signal: controller.signal
       });
 
       if (isCancelledRef.current) return;

@@ -1,11 +1,13 @@
 import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import { LoggingService } from './LoggingService.js';
+import { ValidationService } from './ValidationService.js';
 
 export class RepairService {
   static async repairPDF(filePath: string): Promise<Buffer> {
     LoggingService.info(`Repairing PDF file: ${filePath}...`);
     const bytes = fs.readFileSync(filePath);
+    ValidationService.validatePDFBuffer(bytes);
     
     // Attempt loose parsing
     const pdfDoc = await PDFDocument.load(bytes, {
