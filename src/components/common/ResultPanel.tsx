@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, CheckCircle2, AlertCircle, ShieldCheck, ExternalLink } from 'lucide-react';
 import { BackButton } from './BackButton';
-import { AdUnit } from '../ads/AdUnit';
 
 export interface ResultDetail {
   icon?: React.ReactNode;
@@ -298,9 +297,6 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
           <span>Files are encrypted and auto-deleted shortly after processing</span>
         </div>
       </div>
-
-      {/* Result Screen Ad Unit */}
-      <AdUnit format="in-content" className="w-full max-w-md mx-auto mt-4" />
     </div>
   );
 };

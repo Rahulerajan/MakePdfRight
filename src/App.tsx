@@ -424,9 +424,10 @@ export default function App() {
               <Route path="/organise" element={
                 <ToolPage 
                   title="Organize PDF" 
-                  description="Drag and drop to reorder, remove, or rearrange pages in your PDF."
+                  description="Drag and drop to reorder, merge multiple PDFs, insert blank pages, or rearrange pages in your document."
+                  multiple
                 >
-                  {(files, onReset) => <OrganiseTool file={files[0]} onReset={onReset} />}
+                  {(files, onReset) => <OrganiseTool file={files[0]} initialFiles={files} onReset={onReset} />}
                 </ToolPage>
               } />
               <Route path="/organize" element={<Navigate to="/organise" replace />} />

@@ -7,7 +7,6 @@ import { LoadingOverlay } from './LoadingOverlay';
 import { useLanguage } from '../LanguageContext';
 import { SEO } from './SEO';
 import { SEO_DATA } from '../../constants/seoData';
-import { AdUnit } from '../ads/AdUnit';
 import { ToolSEOContent } from '../seo/ToolSEOContent';
 import { TOOL_SEO_CONTENT_MAP } from '../../constants/toolSeoData';
 import { analytics } from '../../services/analytics';

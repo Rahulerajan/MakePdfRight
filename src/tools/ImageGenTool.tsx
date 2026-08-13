@@ -22,7 +22,6 @@ import { SEO_DATA } from '../constants/seoData';
 import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
 import { ToolSEOContent } from '../components/seo/ToolSEOContent';
 import { BackButton } from '../components/common/BackButton';
-import { AdUnit } from '../components/ads/AdUnit';
 
 interface AspectRatioOption {
   value: string;
@@ -276,9 +275,6 @@ export const ImageGenTool: React.FC = () => {
               <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
                 <span>🔒 Images are not stored after generation</span>
               </div>
-
-              {/* Result Screen Ad Unit */}
-              <AdUnit format="in-content" className="w-full mt-3" />
             </div>
         )}
       </div>
@@ -399,9 +395,6 @@ export const ImageGenTool: React.FC = () => {
                 <p className="text-xs text-center text-slate-400 dark:text-slate-500 font-medium">
                   Tip: Right-click the image and click "Save Image As..." if the automated download is blocked in your iframe browser.
                 </p>
-
-                {/* Result Screen Ad Unit */}
-                <AdUnit format="in-content" className="w-full mt-4" />
               </motion.div>
             )}
           </AnimatePresence>

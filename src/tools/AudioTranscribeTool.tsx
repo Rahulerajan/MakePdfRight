@@ -23,7 +23,6 @@ import {
 import { transcribeAudio } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { FileUpload } from '../components/common/FileUpload';
-import { AdUnit } from '../components/ads/AdUnit';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
 import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
