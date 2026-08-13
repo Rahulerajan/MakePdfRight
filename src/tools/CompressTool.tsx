@@ -276,99 +276,106 @@ export const CompressTool: React.FC<CompressToolProps> = ({ file, initialFiles, 
     abortControllerRef.current = controller;
 
     try {
-      // 1. Try Server-Side High-Efficiency Sharp Image Compression Endpoint first
+      // Clear any stale active job from sessionStorage before starting a new compression
+      try { sessionStorage.removeItem('compress_active_job'); } catch {}
+
       const validItems = fileItems.filter(i => !i.error);
       if (validItems.length === 0) {
         throw new Error('No valid PDF files selected.');
       }
 
-      let uploadTargetFile: File;
-      if (validItems.length === 1) {
-        uploadTargetFile = validItems[0].file;
-      } else {
-        // Merge multiple files before sending to server compression service
-        const mergedDoc = await PDFDocument.create();
-        for (const item of validItems) {
-          if (isCancelledRef.current) return;
-          const docBytes = await item.file.arrayBuffer();
-          const doc = await PDFDocument.load(docBytes, { ignoreEncryption: true });
-          const copiedPages = await mergedDoc.copyPages(doc, doc.getPageIndices());
-          copiedPages.forEach(p => mergedDoc.addPage(p));
-        }
-        const mergedBytes = await mergedDoc.save();
-        uploadTargetFile = new File([mergedBytes], 'merged_input.pdf', { type: 'application/pdf' });
-      }
-
-      if (isCancelledRef.current) return;
-
-      setManualProgress(10);
-
-      // Direct upload to storage with progress tracking
-      const uploadResult = await uploadFileForProcessing(uploadTargetFile, {
-        onProgress: (percent) => {
-          setManualProgress(Math.min(40, Math.round(10 + (percent * 0.30))));
-        },
-        signal: controller.signal
-      });
-
-      if (isCancelledRef.current) return;
-
-      // Submit job and poll via JobClient
-      const jobRes = await JobClient.executeJob({
-        type: 'compress',
-        payload: {
-          inputObjectKey: uploadResult.objectKey,
-          level
-        },
-        sessionStorageKey: 'compress_active_job',
-        signal: controller.signal,
-        onProgress: (progress, status) => {
-          if (!isCancelledRef.current) {
-            setManualProgress(Math.min(95, Math.round(40 + (progress * 0.55))));
+      // 1. Try Server-Side High-Efficiency Sharp Image Compression Endpoint first
+      try {
+        let uploadTargetFile: File;
+        if (validItems.length === 1) {
+          uploadTargetFile = validItems[0].file;
+        } else {
+          // Merge multiple files before sending to server compression service
+          const mergedDoc = await PDFDocument.create();
+          for (const item of validItems) {
+            if (isCancelledRef.current) return;
+            const docBytes = await item.file.arrayBuffer();
+            const doc = await PDFDocument.load(docBytes, { ignoreEncryption: true });
+            const copiedPages = await mergedDoc.copyPages(doc, doc.getPageIndices());
+            copiedPages.forEach(p => mergedDoc.addPage(p));
           }
+          const mergedBytes = await mergedDoc.save();
+          uploadTargetFile = new File([mergedBytes], 'merged_input.pdf', { type: 'application/pdf' });
         }
-      });
 
-      if (isCancelledRef.current) return;
+        if (isCancelledRef.current) return;
 
-      const outputData = jobRes.result?.output || {};
-      const downloadUrl = outputData.downloadUrl || jobRes.result?.downloadUrl || (jobRes as any).downloadUrl;
-      const objectKey = outputData.objectKey || jobRes.result?.outputObjectKey || (jobRes as any).outputObjectKey;
-      const filename = outputData.filename || (fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf');
-      const resResult = jobRes.result || {};
+        setManualProgress(10);
 
-      if (downloadUrl || objectKey) {
-        setManualProgress(100);
-        const endTime = performance.now();
-        const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
-
-        HistoryService.addHistoryItem({
-          toolId: 'compress',
-          toolName: 'Compress PDF',
-          fileName: filename,
-          fileSize: resResult.originalSize || uploadTargetFile.size,
-          outputSize: resResult.compressedSize || outputData.size || uploadTargetFile.size,
-          resultUrl: downloadUrl || '',
-          status: 'completed',
-          details: `Reduced size by ${resResult.percentage || 0}% (${((resResult.spaceSaved || 0) / (1024 * 1024)).toFixed(2)} MB saved)`
+        // Direct upload to storage with progress tracking
+        const uploadResult = await uploadFileForProcessing(uploadTargetFile, {
+          onProgress: (percent) => {
+            setManualProgress(Math.min(40, Math.round(10 + (percent * 0.30))));
+          },
+          signal: controller.signal
         });
 
-        setResult({
-          url: downloadUrl || '',
-          objectKey,
-          filename,
-          size: resResult.compressedSize || outputData.size || uploadTargetFile.size,
-          originalSize: resResult.originalSize || uploadTargetFile.size,
-          savedSize: resResult.spaceSaved || 0,
-          percentage: resResult.percentage || 0,
-          totalPages: resResult.pages || 1,
-          timeSeconds: resResult.processingTime || elapsedSeconds,
-          optimizationSummary: resResult.optimizationSummary
+        if (isCancelledRef.current) return;
+
+        // Submit job and poll via JobClient
+        const jobRes = await JobClient.executeJob({
+          type: 'compress',
+          payload: {
+            inputObjectKey: uploadResult.objectKey,
+            level
+          },
+          sessionStorageKey: 'compress_active_job',
+          signal: controller.signal,
+          onProgress: (progress, status) => {
+            if (!isCancelledRef.current) {
+              setManualProgress(Math.min(95, Math.round(40 + (progress * 0.55))));
+            }
+          }
         });
-        return;
+
+        if (isCancelledRef.current) return;
+
+        const outputData = jobRes.result?.output || {};
+        const downloadUrl = outputData.downloadUrl || jobRes.result?.downloadUrl || (jobRes as any).downloadUrl;
+        const objectKey = outputData.objectKey || jobRes.result?.outputObjectKey || (jobRes as any).outputObjectKey;
+        const filename = outputData.filename || (fileItems[0]?.file.name ? `compressed_${fileItems[0].file.name}` : 'compressed_document.pdf');
+        const resResult = jobRes.result || {};
+
+        if (downloadUrl || objectKey) {
+          setManualProgress(100);
+          const endTime = performance.now();
+          const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
+
+          HistoryService.addHistoryItem({
+            toolId: 'compress',
+            toolName: 'Compress PDF',
+            fileName: filename,
+            fileSize: resResult.originalSize || uploadTargetFile.size,
+            outputSize: resResult.compressedSize || outputData.size || uploadTargetFile.size,
+            resultUrl: downloadUrl || '',
+            status: 'completed',
+            details: `Reduced size by ${resResult.percentage || 0}% (${((resResult.spaceSaved || 0) / (1024 * 1024)).toFixed(2)} MB saved)`
+          });
+
+          setResult({
+            url: downloadUrl || '',
+            objectKey,
+            filename,
+            size: resResult.compressedSize || outputData.size || uploadTargetFile.size,
+            originalSize: resResult.originalSize || uploadTargetFile.size,
+            savedSize: resResult.spaceSaved || 0,
+            percentage: resResult.percentage || 0,
+            totalPages: resResult.pages || 1,
+            timeSeconds: resResult.processingTime || elapsedSeconds,
+            optimizationSummary: resResult.optimizationSummary
+          });
+          return;
+        }
+      } catch (serverErr: any) {
+        console.warn('Server compression failed or returned non-success, falling back to client-side rendering...', serverErr);
       }
 
-      console.warn('Server compression endpoint returned non-success, falling back to client-side rendering...');
+      if (isCancelledRef.current) return;
 
       // 2. Client-Side Canvas Fallback Pipeline
       let scale = 1.5;
