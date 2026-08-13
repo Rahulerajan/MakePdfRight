@@ -50,6 +50,22 @@ const getMinImageBytes = () => {
   return isNaN(envVal) ? 10240 : envVal;
 };
 
+function hasRecognizedImageHeader(buf: Buffer): boolean {
+  if (!buf || buf.length < 4) return false;
+  // JPEG: FF D8
+  if (buf[0] === 0xff && buf[1] === 0xd8) return true;
+  // PNG: 89 50 4E 47
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return true;
+  // GIF: 47 49 46
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return true;
+  // WebP: RIFF ... WEBP
+  if (buf.length >= 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return true;
+  // TIFF: II* (49 49 2A 00) or MM* (4D 4D 00 2A)
+  if ((buf[0] === 0x49 && buf[1] === 0x49 && buf[2] === 0x2a && buf[3] === 0x00) ||
+      (buf[0] === 0x4d && buf[1] === 0x4d && buf[2] === 0x00 && buf[3] === 0x2a)) return true;
+  return false;
+}
+
 async function processWithBoundedConcurrency<T, R>(
   items: T[],
   limit: number,
@@ -269,9 +285,7 @@ export class CompressionService {
           try {
             const inflated = zlib.inflateSync(Buffer.from(originalImageBytes));
 
-            if (inflated.length >= 8 && inflated[0] === 0x89 && inflated[1] === 0x50 && inflated[2] === 0x4e && inflated[3] === 0x47) {
-              imageInput = inflated;
-            } else if (inflated.length >= 3 && inflated[0] === 0xff && inflated[1] === 0xd8 && inflated[2] === 0xff) {
+            if (hasRecognizedImageHeader(inflated)) {
               imageInput = inflated;
             } else if (width > 0 && height > 0) {
               const csStr = colorSpaceObj ? colorSpaceObj.toString() : '';
@@ -307,20 +321,34 @@ export class CompressionService {
               if (rawPixels.length >= width * height * channels) {
                 imageInput = rawPixels.subarray(0, width * height * channels);
                 sharpOptions = { raw: { width, height, channels: channels as any } };
-              } else {
-                imageInput = Buffer.from(originalImageBytes);
               }
-            } else {
-              imageInput = Buffer.from(originalImageBytes);
             }
           } catch (zerr) {
-            imageInput = Buffer.from(originalImageBytes);
+            // Uncompressed or inflate failure: check if original is valid image format
+            const rawBuf = Buffer.from(originalImageBytes);
+            if (hasRecognizedImageHeader(rawBuf)) {
+              imageInput = rawBuf;
+            }
           }
         } else {
-          imageInput = Buffer.from(originalImageBytes);
+          const rawBuf = Buffer.from(originalImageBytes);
+          if (hasRecognizedImageHeader(rawBuf)) {
+            imageInput = rawBuf;
+          } else if (!filterStr && width > 0 && height > 0) {
+            // Unfiltered raw bitmap stream
+            let channels = 3;
+            const csStr = colorSpaceObj ? colorSpaceObj.toString() : '';
+            if (csStr.includes('/DeviceGray') || csStr.includes('/CalGray')) channels = 1;
+            else if (csStr.includes('/DeviceCMYK')) channels = 4;
+            if (rawBuf.length >= width * height * channels) {
+              imageInput = rawBuf.subarray(0, width * height * channels);
+              sharpOptions = { raw: { width, height, channels: channels as any } };
+            }
+          }
         }
 
         if (!imageInput) return null;
+        if (!sharpOptions && !hasRecognizedImageHeader(imageInput)) return null;
 
         try {
           let pipeline: any;
@@ -384,8 +412,11 @@ export class CompressionService {
             return { ref, dict, compressedJpeg, newWidth, newHeight };
           }
           return null;
-        } catch (imgErr) {
-          LoggingService.debug(`Skipped image object compression:`, imgErr);
+        } catch (imgErr: any) {
+          const errMsg = imgErr?.message || String(imgErr);
+          if (!errMsg.includes('unsupported image format')) {
+            LoggingService.debug(`Skipped image object compression:`, errMsg);
+          }
           return null;
         } finally {
           imageInput = null;

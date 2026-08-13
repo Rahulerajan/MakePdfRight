@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Download, CheckCircle2, AlertCircle, ShieldCheck, ExternalLink } from 'lucide-react';
 import { BackButton } from './BackButton';
 import { AdUnit } from '../ads/AdUnit';
 
@@ -121,7 +121,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
           setExpiredError(true);
           setError('Download link expired. Generate a new download link.');
         } else {
-          setError('Unable to download the compressed PDF. Please try again.');
+          setError('Unable to download the file. Please try again.');
         }
         setIsDownloading(false);
         return;
@@ -146,7 +146,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
 
     } catch (err) {
       console.error('Download error:', err);
-      setError('Unable to download the compressed PDF. Please try again.');
+      setError('Unable to download the file. Please try again.');
       setIsDownloading(false);
     }
   };
@@ -257,7 +257,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
           onClick={() => triggerDownload(currentUrl)}
           disabled={isDownloading || isRefreshingUrl}
           id="download-compressed-pdf-btn"
-          className="btn-primary py-4 px-6 flex items-center justify-center gap-2 text-base font-black tracking-wide w-full shadow-lg shadow-red-500/15 hover:shadow-red-500/25 active:scale-[0.98] cursor-pointer"
+          className="bg-[#E5322D] hover:bg-[#c92824] text-white py-4 px-6 rounded-xl font-black text-base tracking-wide w-full shadow-lg shadow-red-500/20 hover:shadow-red-500/30 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isDownloading ? (
             <>
@@ -266,19 +266,37 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
             </>
           ) : (
             <>
-              <Download className="w-5.5 h-5.5 shrink-0" />
+              <Download className="w-6 h-6 shrink-0" />
               <span>{downloadLabel || 'DOWNLOAD COMPRESSED PDF ↓'}</span>
             </>
           )}
         </button>
 
+        {currentUrl && (
+          <a
+            href={currentUrl}
+            download={downloadFileName || 'compressed_document.pdf'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-slate-400 hover:text-[#E5322D] dark:hover:text-red-400 font-medium underline flex items-center gap-1 transition-colors cursor-pointer"
+          >
+            <span>Having trouble? Direct download link</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+
         <button
           type="button"
           onClick={onReset}
-          className="py-3 px-6 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer w-full text-center"
+          className="py-3 px-6 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer w-full text-center mt-1"
         >
           {resetLabel}
         </button>
+
+        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 pt-1">
+          <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span>Files are encrypted and auto-deleted shortly after processing</span>
+        </div>
       </div>
 
       {/* Result Screen Ad Unit */}

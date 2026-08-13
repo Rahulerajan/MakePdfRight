@@ -168,7 +168,7 @@ body[data-workspace="true"] footer {
   }
 
   .btn-primary {
-    @apply bg-primary text-white px-8 py-3.5 rounded-xl font-bold tracking-wide shadow-md hover:bg-primary-hover hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-primary/10 hover:shadow-lg hover:shadow-primary/25 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2;
+    @apply bg-[#e5322d] text-white px-8 py-3.5 rounded-xl font-bold tracking-wide shadow-md hover:bg-[#c42b27] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shadow-red-500/10 hover:shadow-lg hover:shadow-red-500/25 disabled:opacity-40 disabled:scale-100 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2;
   }
 
   .btn-secondary {

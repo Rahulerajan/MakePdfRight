@@ -53,9 +53,11 @@ export class ValidationService {
       const isOgg = buffer.length >= 4 && buffer.toString('ascii', 0, 4) === 'OggS';
       const isFlac = buffer.length >= 4 && buffer.toString('ascii', 0, 4) === 'fLaC';
       const isM4a = buffer.length >= 8 && buffer.toString('ascii', 4, 8) === 'ftyp';
+      const isWebm = buffer.length >= 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+      const isAac = buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xf6) === 0xf0;
 
-      if (!isMp3 && !isWav && !isOgg && !isFlac && !isM4a) {
-        throw new AppError('Invalid audio content. File signature does not match allowed audio formats (MP3, WAV, OGG, FLAC, M4A).', 400);
+      if (!isMp3 && !isWav && !isOgg && !isFlac && !isM4a && !isWebm && !isAac) {
+        throw new AppError('Invalid audio content. File signature does not match allowed audio formats (MP3, WAV, OGG, FLAC, M4A, WEBM, AAC).', 400);
       }
     }
   }
@@ -224,12 +226,16 @@ export class ValidationService {
       'audio/aac',
       'audio/flac',
       'audio/x-m4a',
-      'audio/x-wav'
+      'audio/x-wav',
+      'audio/3gp',
+      'audio/3gpp',
+      'video/webm',
+      'video/mp4'
     ]);
 
-    const cleanMime = mimeType.toLowerCase().trim();
-    if (!ALLOWED_AUDIO_MIMES.has(cleanMime)) {
-      throw new AppError(`Unsupported audio format (${mimeType}). Allowed formats are MP3, WAV, WEBM, OGG, AAC, FLAC, M4A.`, 400);
+    const cleanMime = mimeType.toLowerCase().split(';')[0].trim();
+    if (!ALLOWED_AUDIO_MIMES.has(cleanMime) && !cleanMime.startsWith('audio/')) {
+      throw new AppError(`Unsupported audio format (${mimeType}). Allowed formats are MP3, WAV, WEBM, OGG, AAC, FLAC, M4A, MP4.`, 400);
     }
 
     const cleanBase64 = this.validateStrictBase64(audioBase64);

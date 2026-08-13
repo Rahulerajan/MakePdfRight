@@ -304,6 +304,11 @@ async function handleTranscribeAudio(req: any, res: any) {
   ValidationService.validateAudioUpload(audioBase64, mimeType);
   const cleanAudioBase64 = ValidationService.validateStrictBase64(audioBase64);
 
+  // Extract base MIME type without parameters (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+  let targetMimeType = mimeType.toLowerCase().split(';')[0].trim();
+  if (targetMimeType === 'audio/x-wav') targetMimeType = 'audio/wav';
+  if (targetMimeType === 'audio/x-m4a') targetMimeType = 'audio/m4a';
+
   const client = getAI();
   const languageText = language && language !== 'auto'
     ? `The spoken language is ${language}.`
@@ -317,49 +322,84 @@ async function handleTranscribeAudio(req: any, res: any) {
   - Handle different speaking speeds and pronunciations.
   - If the audio is silent or contains no clear speech, return empty text and a low confidence score (e.g. 0).`;
 
-  const response = await client.models.generateContent({
-    model: 'gemini-3.5-flash',
-    contents: [
-      {
-        role: 'user',
-        parts: [
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-3.5-flash'];
+  let lastError: any = null;
+  let responseText: string | null = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      const response = await client.models.generateContent({
+        model: modelName,
+        contents: [
           {
-            inlineData: {
-              mimeType,
-              data: cleanAudioBase64,
-            },
-          },
-          {
-            text: promptText,
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: targetMimeType,
+                  data: cleanAudioBase64,
+                },
+              },
+              {
+                text: promptText,
+              },
+            ],
           },
         ],
-      },
-    ],
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          text: {
-            type: Type.STRING,
-            description: 'The verbatim transcript of the audio with correct punctuation, capitalization, and paragraphing.'
-          },
-          confidence: {
-            type: Type.INTEGER,
-            description: 'The estimated confidence of the transcription, as an integer between 0 and 100.'
-          },
-          detectedLanguage: {
-            type: Type.STRING,
-            description: 'The name of the language detected (e.g., English, Hindi, French, German, Spanish).'
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              text: {
+                type: Type.STRING,
+                description: 'The verbatim transcript of the audio with correct punctuation, capitalization, and paragraphing.'
+              },
+              confidence: {
+                type: Type.INTEGER,
+                description: 'The estimated confidence of the transcription, as an integer between 0 and 100.'
+              },
+              detectedLanguage: {
+                type: Type.STRING,
+                description: 'The name of the language detected (e.g., English, Hindi, French, German, Spanish).'
+              }
+            },
+            required: ['text', 'confidence']
           }
-        },
-        required: ['text', 'confidence']
-      }
-    }
-  });
+        }
+      });
 
-  const jsonText = response.text || '{}';
-  const result = JSON.parse(jsonText.trim());
+      if (response.text) {
+        responseText = response.text;
+        break;
+      }
+    } catch (err: any) {
+      LoggingService.warn(`[Server] Audio transcription attempt with model ${modelName} failed:`, err?.message || err);
+      lastError = err;
+    }
+  }
+
+  if (!responseText) {
+    throw lastError || new Error('Failed to transcribe audio with available AI models.');
+  }
+
+  let jsonText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+  let result: any = {};
+  try {
+    result = JSON.parse(jsonText);
+  } catch (parseErr) {
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        result = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        result = { text: jsonText, confidence: 80 };
+      }
+    } else {
+      result = { text: jsonText, confidence: 80 };
+    }
+  }
+
   return res.status(200).json({ success: true, ...result });
 }
 
