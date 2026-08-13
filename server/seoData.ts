@@ -127,6 +127,42 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'How to Split a PDF Online Free Step-by-Step | MakePDFRight',
     description: 'Learn how to split a PDF file into separate pages or ranges online for free in 3 easy steps. Works on any device.'
   },
+  '/split-pdf-by-range': {
+    title: 'Split PDF by Page Range Online | MakePDFRight',
+    description: 'Split PDF files by specifying exact page ranges like 1-5, 6-10, or 2-4 online for free. Fast, private, browser-first PDF extractor with no file limits.'
+  },
+  '/split-pdf-into-multiple-files': {
+    title: 'Split PDF into Multiple Files Online | MakePDFRight',
+    description: 'Divide a single PDF document into multiple separate PDF files by page ranges or sections. Free, private, and instant browser-based PDF splitter.'
+  },
+  '/separate-pdf-pages': {
+    title: 'Separate PDF Pages Online | MakePDFRight',
+    description: 'Separate specific pages or groups of pages from any PDF document quickly and easily online. Free, private, with instant browser-based download.'
+  },
+  '/extract-specific-pages-from-pdf': {
+    title: 'Extract Specific Pages from PDF Online | MakePDFRight',
+    description: 'Extract selected pages (e.g. 1, 3, 7-10) from your PDF file for free. Select exact pages via interactive thumbnail selection or range inputs.'
+  },
+  '/extract-single-page-from-pdf': {
+    title: 'Extract a Single Page from PDF Online | MakePDFRight',
+    description: 'Extract just one specific page from a large PDF document in seconds. Free, private, browser-based extraction with zero quality loss.'
+  },
+  '/split-pdf-for-email': {
+    title: 'Split PDF for Email Online | MakePDFRight',
+    description: 'Split oversized PDF files into smaller documents to send smoothly as email attachments without exceeding file size limits.'
+  },
+  '/split-pdf-for-whatsapp': {
+    title: 'Split PDF for WhatsApp Online | MakePDFRight',
+    description: 'Divide large PDF files into smaller, shareable documents for quick sending over WhatsApp and messaging apps without upload failures.'
+  },
+  '/split-pdf-for-upload': {
+    title: 'Split PDF for Upload | MakePDFRight',
+    description: 'Split large PDF files into smaller sections to meet strict upload limits on job portals, application websites, and cloud forms.'
+  },
+  '/split-pdf-online-free': {
+    title: 'Free Online PDF Splitter | MakePDFRight',
+    description: 'Split PDF files online for free with zero page limits or watermarks. Extract page ranges, pull out specific pages, and split documents fast and privately.'
+  },
   '/pdf-to-jpg': {
     title: 'Convert PDF to JPG High Quality – Image Converter | MakePDFRight',
     description: 'Convert PDF pages to high quality JPG images online for free. Turn document pages into sharp graphics ready for presentations and web sharing.'

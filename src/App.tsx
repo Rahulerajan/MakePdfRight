@@ -188,6 +188,78 @@ export default function App() {
                   {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
               } />
+              <Route path="/split-pdf-by-range" element={
+                <ToolPage 
+                  title="Split PDF by Page Range" 
+                  description="Split PDF files by specifying exact page ranges like 1-5, 6-10, or custom page expressions online for free."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-into-multiple-files" element={
+                <ToolPage 
+                  title="Split PDF into Multiple Files" 
+                  description="Divide a single PDF document into multiple separate PDF files by page ranges or sections."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/separate-pdf-pages" element={
+                <ToolPage 
+                  title="Separate PDF Pages" 
+                  description="Separate specific pages or groups of pages from any PDF document quickly and easily."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/extract-specific-pages-from-pdf" element={
+                <ToolPage 
+                  title="Extract Specific Pages from PDF" 
+                  description="Extract selected pages (e.g. 1, 3, 7-10) from your PDF file for free."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/extract-single-page-from-pdf" element={
+                <ToolPage 
+                  title="Extract Single Page from PDF" 
+                  description="Extract just one specific page from a large PDF document in seconds with zero quality loss."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-for-email" element={
+                <ToolPage 
+                  title="Split PDF for Email" 
+                  description="Split oversized PDF files into smaller documents to send smoothly as email attachments."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-for-whatsapp" element={
+                <ToolPage 
+                  title="Split PDF for WhatsApp" 
+                  description="Divide large PDF files into smaller, shareable documents for quick sending over WhatsApp and messaging apps."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-for-upload" element={
+                <ToolPage 
+                  title="Split PDF for Upload" 
+                  description="Split large PDF files into smaller sections to meet strict upload limits on job portals and online forms."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/split-pdf-online-free" element={
+                <ToolPage 
+                  title="Free Online PDF Splitter" 
+                  description="Split PDF files online for free with zero page limits or watermarks."
+                >
+                  {(files, onReset) => <SplitTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
 
               <Route path="/compress" element={
                 <ToolPage 

@@ -1484,5 +1484,331 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       { name: 'Extract Pages from PDF', path: '/extract-pages-from-pdf', desc: 'Extract chosen pages into a new file.' },
       { name: 'Split PDF', path: '/split', desc: 'General PDF splitting tool.' }
     ]
+  },
+  '/split-pdf-by-range': {
+    toolName: 'Split PDF by Range',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Split PDF by Range lets you extract continuous page intervals (e.g. 1-5, 6-10) or custom page sets from any PDF document for free. Specify exact start and end page numbers to extract precisely what you need.',
+    topBody: [
+      'When working with long documents like academic dissertations, multi-chapter books, or annual financial reports, you often only need a specific section. Splitting a PDF by range allows you to pull out a block of consecutive pages—such as pages 1 through 5 or 12 through 18—into a standalone PDF file.',
+      'MakePDFRight provides an easy range selection tool. Simply input your desired "From Page" and "To Page" numbers or type custom comma-separated range expressions. Your extracted section is generated instantly with crisp text and original formatting preserved.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Your PDF', desc: 'Select or drag and drop your document into the PDF range splitter.' },
+      { step: 2, title: 'Specify Range', desc: 'Enter the start and end page numbers (e.g., From Page 1 to Page 5) or type custom expressions.' },
+      { step: 3, title: 'Split & Download', desc: 'Click "Split PDF" to extract your specified range into a new, independent PDF file instantly.' }
+    ],
+    benefits: [
+      { title: 'Flexible Range Selection', desc: 'Extract consecutive page blocks or custom range expressions like 1-5, 8, 12-15.' },
+      { title: 'High Fidelity Preservation', desc: 'Vector typography, embedded fonts, and graphics remain untouched.' },
+      { title: 'Visual Thumbnail Verification', desc: 'Inspect page thumbnails to verify your selected range before extracting.' },
+      { title: '100% Free & Private', desc: 'Browser-based splitting ensures your files are never stored or logged.' }
+    ],
+    useCases: [
+      'Extracting a specific 5-page chapter from a 200-page eBook or manual',
+      'Isolating a 3-page appendix or financial table from a corporate report',
+      'Separating a specific term range (e.g., pages 10-14) from a master agreement',
+      'Preparing selected reading materials for students or study groups'
+    ],
+    faqs: [
+      { question: 'How do I split a PDF by page range?', answer: 'Upload your PDF to MakePDFRight, enter the "From Page" and "To Page" numbers (for example, 1 to 5) in the split options, and click "Split PDF". Your selected page range will be saved as a new PDF file immediately.' },
+      { question: 'Can I enter multiple page ranges at once?', answer: 'Yes! In the custom range input, you can type expressions like "1-5, 8, 12-15" to extract multiple page ranges simultaneously into your output PDF.' },
+      { question: 'Does splitting by page range lower the image or text quality?', answer: 'Not at all. MakePDFRight copies the native PDF streams directly, preserving original vector text, font embedding, and image resolution.' },
+      { question: 'Is there a page limit for range splitting?', answer: 'No. You can split documents with hundreds or thousands of pages without restrictions or watermarks.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF', path: '/split', desc: 'Main PDF Splitter tool.' },
+      { name: 'Extract Pages from PDF', path: '/extract-pages-from-pdf', desc: 'Extract chosen pages into a new file.' },
+      { name: 'Split PDF by Page Number', path: '/split-pdf-by-page-number', desc: 'Specify exact page numbers to extract.' }
+    ]
+  },
+  '/split-pdf-into-multiple-files': {
+    toolName: 'Split PDF into Multiple Files',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight allows you to split large PDF files into multiple separate PDF documents in seconds. Extract distinct sections, chapters, or page groups into standalone files with complete privacy and zero quality loss.',
+    topBody: [
+      'Large PDF documents often contain multiple distinct reports, invoices, or contract sections bundled into a single file. Splitting a PDF into multiple separate files helps organize your digital filing cabinet, share relevant sections with different stakeholders, and keep documents lightweight.',
+      'Using our browser-first PDF splitter, you can break down multi-page files into custom smaller files by selecting page ranges or extracting individual pages step by step. Everything happens directly in your browser with no software installation.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Multi-Page PDF', desc: 'Drag and drop your PDF document into the file drop zone.' },
+      { step: 2, title: 'Select Ranges or Pages', desc: 'Choose the page groups or ranges you want to break into separate files.' },
+      { step: 3, title: 'Generate & Save', desc: 'Download your split PDF files instantly.' }
+    ],
+    benefits: [
+      { title: 'Organized Document Workflow', desc: 'Divide combined invoices or contracts into separate neatly named files.' },
+      { title: 'No Quality Loss', desc: 'Keeps all original text crisp and vector layout intact.' },
+      { title: 'Multi-Section Splitting', desc: 'Extract multiple custom sections from a single source document.' },
+      { title: 'Secure Browser Processing', desc: 'Your files stay in private client memory and are never saved on cloud servers.' }
+    ],
+    useCases: [
+      'Dividing a quarterly report into separate departmental summaries',
+      'Splitting a batch scan of invoices into individual client billing files',
+      'Separating multi-section legal filings into distinct court exhibits',
+      'Breaking large scanned packets into manageable individual attachments'
+    ],
+    faqs: [
+      { question: 'How do I split one PDF into multiple separate files?', answer: 'Upload your PDF to MakePDFRight, choose your desired page range for the first section, and click "Split PDF" to generate the file. Repeat the process for additional page ranges to produce all the separate files you need.' },
+      { question: 'Will my split files have watermarks?', answer: 'No. MakePDFRight is 100% free and never adds watermarks or branding to your generated documents.' },
+      { question: 'Can I split a scanned PDF into multiple files?', answer: 'Yes, our splitter processes scanned PDFs perfectly, preserving high-resolution scans and image quality.' },
+      { question: 'Is there a limit on how many files I can split?', answer: 'There are no limits on file count or page count.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF', path: '/split', desc: 'Split PDF Tool' },
+      { name: 'Split PDF into Single Pages', path: '/split-pdf-into-single-pages', desc: 'Separate every page into its own PDF.' },
+      { name: 'Extract Pages from PDF', path: '/extract-pages-from-pdf', desc: 'Extract target pages from PDF.' }
+    ]
+  },
+  '/separate-pdf-pages': {
+    toolName: 'Separate PDF Pages',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Separate PDF Pages lets you select and detach specific pages or page groups from any PDF file. Visual page thumbnails make it effortless to identify, check, and separate the exact pages you need.',
+    topBody: [
+      'When you receive a multi-page PDF document containing confidential pages, irrelevant filler, or mixed topics, separating pages into focused documents is key. Our visual page separation tool gives you full control over page extraction.',
+      'Rather than splitting every page blindly, you can visually review thumbnail previews, select specific pages or continuous page blocks, and separate them into a clean new PDF file.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF Document', desc: 'Select or drag and drop the PDF you want to separate.' },
+      { step: 2, title: 'Select Pages to Separate', desc: 'Click page thumbnails to select or enter page range values.' },
+      { step: 3, title: 'Separate & Save', desc: 'Click "Split PDF" to separate selected pages into a new document.' }
+    ],
+    benefits: [
+      { title: 'Interactive Visual Selection', desc: 'Click page thumbnails directly to toggle page inclusion.' },
+      { title: 'Targeted Separation', desc: 'Isolate only the relevant pages while removing unwanted sections.' },
+      { title: 'Preserves PDF Structure', desc: 'Maintains hyper-clear typography, links, and vector graphics.' },
+      { title: 'Instant Client Download', desc: 'No waiting for server queues—download separated files immediately.' }
+    ],
+    useCases: [
+      'Separating a signed signature page from a long service agreement',
+      'Detaching tax schedules from a full personal tax return PDF',
+      'Extracting slide deck pages for a focused presentation package',
+      'Isolating specific project schematics or blueprints from a building plan'
+    ],
+    faqs: [
+      { question: 'What is the difference between separating PDF pages and splitting into single pages?', answer: 'Separating PDF pages lets you select specific custom combinations of pages (e.g. pages 2, 5, and 9) to group into a new file, whereas splitting into single pages creates a separate 1-page PDF file for every page in the document.' },
+      { question: 'Can I separate non-consecutive pages?', answer: 'Yes! You can click any individual thumbnails or type comma-separated values like "1, 4, 7" to separate non-adjacent pages.' },
+      { question: 'Are my documents kept private during separation?', answer: 'Yes, all document handling is performed securely in browser memory and auto-purged.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF', path: '/split', desc: 'Main Split PDF tool.' },
+      { name: 'Delete Pages from PDF', path: '/delete-pages-from-pdf', desc: 'Remove unwanted pages from PDF.' },
+      { name: 'Extract Specific Pages', path: '/extract-specific-pages-from-pdf', desc: 'Pull out arbitrary page combinations.' }
+    ]
+  },
+  '/extract-specific-pages-from-pdf': {
+    toolName: 'Extract Specific Pages from PDF',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Extract Specific Pages from PDF allows you to pull out arbitrary page combinations (like pages 1, 3, 7-10) from any document. Use visual page pickers or range inputs to extract exact pages.',
+    topBody: [
+      'Need to pull out just pages 2, 5, and 12-15 from a 50-page manual? MakePDFRight makes extracting specific pages fast, intuitive, and accurate. You don\'t need expensive PDF editing software to extract non-adjacent pages.',
+      'Our tool supports custom range strings like "1, 3, 5-8" as well as interactive point-and-click thumbnail selection. Choose your specific pages and save them as a clean new PDF document in seconds.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload File', desc: 'Drop your PDF into the upload area.' },
+      { step: 2, title: 'Specify Pages', desc: 'Click page thumbnails or enter custom expressions (e.g. 1, 3, 7-10).' },
+      { step: 3, title: 'Extract Pages', desc: 'Download your newly formed PDF file with the selected pages.' }
+    ],
+    benefits: [
+      { title: 'Arbitrary Page Selection', desc: 'Extract any combination of single pages and ranges simultaneously.' },
+      { title: 'Zero Compression Artifacts', desc: 'Text, images, and formatting remain 100% true to original.' },
+      { title: 'Visual Thumbnail Checkboxes', desc: 'See what each page looks like before extracting.' },
+      { title: 'Free & Unlimited', desc: 'No daily limits, file caps, or registration needed.' }
+    ],
+    useCases: [
+      'Extracting pages 1, 3, and 5 for a quick summary report',
+      'Pulling out specific receipt pages from a monthly expense packet',
+      'Isolating key references or citations from a scientific paper',
+      'Selecting specific forms from a government document package'
+    ],
+    faqs: [
+      { question: 'How do I extract non-consecutive pages from a PDF?', answer: 'Upload your PDF to MakePDFRight, click on the thumbnails of the specific pages you want, or type a range string like "1, 4, 7-9" in the custom range box, then click "Split PDF".' },
+      { question: 'Will extracting specific pages alter the original document?', answer: 'No, your original PDF remains completely unchanged on your computer. MakePDFRight creates a brand new PDF containing only your selected pages.' },
+      { question: 'Can I extract specific pages on mobile phones?', answer: 'Yes, our interface is fully mobile responsive and works on iOS and Android devices.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF', path: '/split', desc: 'Main Split PDF tool.' },
+      { name: 'Extract Single Page from PDF', path: '/extract-single-page-from-pdf', desc: 'Extract just 1 specific page.' },
+      { name: 'Split PDF by Range', path: '/split-pdf-by-range', desc: 'Split PDFs by continuous page ranges.' }
+    ]
+  },
+  '/extract-single-page-from-pdf': {
+    toolName: 'Extract Single Page from PDF',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Extract Single Page from PDF makes it effortless to isolate and save a single page from any multi-page PDF document. Select page 1, page 7, or any individual page and download it as a standalone PDF.',
+    topBody: [
+      'Often, you only need one single page out of an entire document—such as a certificate page, a signed agreement page, an invoice, or a map layer. Extracting a single page into its own PDF file keeps your document lightweight and focused.',
+      'MakePDFRight lets you click any single page thumbnail or set "From Page" and "To Page" to the same number (e.g. From 7 To 7) to extract that exact page in one click.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF File', desc: 'Drag and drop your document.' },
+      { step: 2, title: 'Select the Single Page', desc: 'Click the specific page thumbnail or set the page number.' },
+      { step: 3, title: 'Extract & Download', desc: 'Download your single-page PDF file instantly.' }
+    ],
+    benefits: [
+      { title: 'One-Click Extraction', desc: 'Isolate any single page from a document in seconds.' },
+      { title: 'Perfect Formatting', desc: 'Preserves original vector resolution, fonts, and layout.' },
+      { title: 'Lightweight Output', desc: 'Creates a small, easily shareable single-page file.' },
+      { title: 'Private & Browser-Based', desc: 'No file data is permanently saved on remote servers.' }
+    ],
+    useCases: [
+      'Extracting a single certificate page from a multi-page diploma transcript',
+      'Isolating page 1 (cover page) or a specific diagram page',
+      'Saving a single receipt or invoice page for reimbursement',
+      'Extracting a single sign-off sheet from a long contract'
+    ],
+    faqs: [
+      { question: 'How do I pull out just one page from a PDF?', answer: 'Upload your document to MakePDFRight, click on the thumbnail of the page you want (or set From Page and To Page to that page number), and click "Split PDF". Download your 1-page PDF file immediately.' },
+      { question: 'Does extracting a single page change the file size?', answer: 'Yes, the extracted single-page PDF will be significantly smaller than the multi-page original, making it easy to email or upload.' },
+      { question: 'Is this service free?', answer: 'Yes, completely free with no registration or hidden fees.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF', path: '/split', desc: 'Main Split PDF tool.' },
+      { name: 'Extract Pages from PDF', path: '/extract-pages-from-pdf', desc: 'Extract chosen pages into a new file.' },
+      { name: 'Split PDF into Single Pages', path: '/split-pdf-into-single-pages', desc: 'Split every page into a single PDF.' }
+    ]
+  },
+  '/split-pdf-for-email': {
+    toolName: 'Split PDF for Email',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Split PDF for Email helps you divide oversized PDF documents into smaller sections so they easily pass email attachment limits (like Gmail, Outlook, or Yahoo 25MB caps) without bouncing back.',
+    topBody: [
+      'Email providers enforce strict attachment file size limits, often causing large PDF documents to bounce or fail to send. Splitting a heavy PDF into logical parts (such as Part 1 and Part 2) is the most reliable way to send large files over email.',
+      'MakePDFRight lets you quickly extract page ranges to break long PDFs into lightweight chunks. Send your document across multiple emails smoothly while preserving crisp formatting.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Large PDF', desc: 'Select your large document.' },
+      { step: 2, title: 'Split into Chunks', desc: 'Define page ranges to break the PDF into email-friendly files.' },
+      { step: 3, title: 'Download & Email', desc: 'Save your smaller PDFs and attach them to your email.' }
+    ],
+    benefits: [
+      { title: 'Bypass Email Size Caps', desc: 'Prevent email bounce-backs caused by oversized attachments.' },
+      { title: 'Retains Crisp Quality', desc: 'Reduces document size by page count without compressing images into blurry artifacts.' },
+      { title: 'Fast & Private', desc: 'Process files locally in browser memory.' },
+      { title: 'Free Forever', desc: 'No file caps or subscription requirements.' }
+    ],
+    useCases: [
+      'Splitting a 50MB presentation into two 25MB parts for email attachment',
+      'Dividing long legal briefs to send to clients via Outlook',
+      'Sending heavy tax filings across multiple emails',
+      'Sharing academic research papers with size-restricted inbox servers'
+    ],
+    faqs: [
+      { question: 'Why should I split a PDF for email instead of compressing it?', answer: 'Compression reduces file size by lowering image quality, whereas splitting breaks a long document into separate smaller PDFs without losing any text or image sharpness.' },
+      { question: 'What is the standard email attachment limit?', answer: 'Most major providers (Gmail, Outlook, Yahoo) limit attachments to 20MB or 25MB per email.' },
+      { question: 'Can I split a PDF for email on my phone?', answer: 'Yes, MakePDFRight works seamlessly in mobile browsers on iOS and Android.' }
+    ],
+    relatedTools: [
+      { name: 'Compress PDF', path: '/compress', desc: 'Compress PDF file size for email.' },
+      { name: 'Split PDF', path: '/split', desc: 'Main PDF Splitter tool.' },
+      { name: 'Reduce PDF Size for Email', path: '/reduce-pdf-size-for-email', desc: 'Reduce PDF size for attachments.' }
+    ]
+  },
+  '/split-pdf-for-whatsapp': {
+    toolName: 'Split PDF for WhatsApp',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Split PDF for WhatsApp allows you to break large PDF files into smaller sections ideal for quick, reliable sharing over WhatsApp, Telegram, and mobile messaging apps.',
+    topBody: [
+      'Sharing large documents on mobile messaging platforms can cause slow upload speeds, app timeouts, or file transfer errors. Splitting a long PDF into smaller chapters or page sets ensures instant delivery on WhatsApp.',
+      'With MakePDFRight, you can split PDFs directly on your mobile device or computer, extract the exact pages you want to share, and send them seamlessly across chats.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload File', desc: 'Upload the PDF from your device.' },
+      { step: 2, title: 'Select Page Section', desc: 'Choose the page range or pages you need to send.' },
+      { step: 3, title: 'Save & Share', desc: 'Download the split PDF and share directly to WhatsApp.' }
+    ],
+    benefits: [
+      { title: 'Instant Messaging Optimization', desc: 'Send focused PDF sections without long upload delays.' },
+      { title: 'Mobile-First Interface', desc: 'Works smoothly directly inside mobile Safari or Chrome.' },
+      { title: 'Zero Extra Data Usage', desc: 'Fast client-side splitting minimizes mobile data bandwidth.' },
+      { title: '100% Private', desc: 'Document contents remain confidential.' }
+    ],
+    useCases: [
+      'Splitting a multi-page study guide to share specific chapters with classmates on WhatsApp',
+      'Sending specific work orders or project sheets to team group chats',
+      'Sharing a single contract section with a client via instant messaging',
+      'Sending lightweight PDF excerpts over mobile networks'
+    ],
+    faqs: [
+      { question: 'How do I split a PDF on my phone to send on WhatsApp?', answer: 'Open MakePDFRight in Safari or Chrome on your phone, upload your PDF, select the page range you want to share, click "Split PDF", and download the file to share on WhatsApp.' },
+      { question: 'Is there a file limit for WhatsApp attachments?', answer: 'While WhatsApp supports document transfers, smaller files upload significantly faster and avoid timeouts on mobile networks.' },
+      { question: 'Does splitting reduce text readability?', answer: 'No, text vectors and formatting remain 100% crisp.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF on iPhone', path: '/split-pdf-on-iphone', desc: 'Split PDF on iOS devices.' },
+      { name: 'Compress PDF for WhatsApp', path: '/compress-pdf-for-whatsapp', desc: 'Compress PDF for messaging.' },
+      { name: 'Split PDF', path: '/split', desc: 'Main Split PDF tool.' }
+    ]
+  },
+  '/split-pdf-for-upload': {
+    toolName: 'Split PDF for Upload',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Split PDF for Upload helps you break heavy PDF documents into smaller parts to comply with file size or page count limits required by web portals, job applications, and government forms.',
+    topBody: [
+      'Online submission portals—such as university admissions systems, job application portals, and visa application sites—frequently enforce strict page count or file size restrictions. Uploading a document that exceeds these rules results in failed submissions.',
+      'MakePDFRight allows you to split multi-page packages into required single files or smaller page blocks, ensuring your submissions pass portal checks without technical glitches.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Document', desc: 'Select your multi-page submission PDF.' },
+      { step: 2, title: 'Set Required Ranges', desc: 'Extract page ranges or individual pages as required by your upload portal.' },
+      { step: 3, title: 'Download & Upload', desc: 'Save your newly compliant PDF files and complete your web submission.' }
+    ],
+    benefits: [
+      { title: 'Portal Compliance', desc: 'Meet strict portal submission rules without losing formatting.' },
+      { title: 'Uncompromised Quality', desc: 'Maintains crisp text, signatures, and document clarity.' },
+      { title: 'Fast & Private', desc: 'Browser-first processing guarantees security.' },
+      { title: 'No Registration', desc: 'Instant access without user accounts.' }
+    ],
+    useCases: [
+      'Splitting job application packages into separate Resume and Portfolio uploads',
+      'Dividing university application documents to fit portal file limits',
+      'Separating visa application supporting documents for online forms',
+      'Extracting required tax forms for official government portal submissions'
+    ],
+    faqs: [
+      { question: 'Why did my PDF fail to upload on an online portal?', answer: 'Online portals often reject PDFs that exceed specific page counts or file size thresholds. Splitting the document into smaller sections solves this issue.' },
+      { question: 'How do I separate my resume from my portfolio in a single PDF?', answer: 'Upload your PDF to MakePDFRight, select the resume page range (e.g. pages 1-2) to create your resume file, then repeat for portfolio pages.' },
+      { question: 'Are my uploaded documents safe?', answer: 'Yes, all file processing happens locally in your browser session and is auto-purged.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF', path: '/split', desc: 'Main Split PDF tool.' },
+      { name: 'Compress PDF for Job Application', path: '/compress-pdf-for-job-application', desc: 'Compress PDF for portals.' },
+      { name: 'Extract Pages from PDF', path: '/extract-pages-from-pdf', desc: 'Extract chosen pages.' }
+    ]
+  },
+  '/split-pdf-online-free': {
+    toolName: 'Free Online PDF Splitter',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight Free Online PDF Splitter provides a fast, 100% free way to extract pages and split PDF files online without watermarks, page limits, or software downloads.',
+    topBody: [
+      'Looking for a completely free online PDF splitter that doesn\'t force you to sign up, add watermarks to your pages, or restrict file sizes? MakePDFRight delivers professional-grade PDF splitting directly in your web browser.',
+      'Whether you need to extract specific page ranges, separate individual pages, or break down large files into smaller documents, our tool offers seamless, private, and high-speed PDF page extraction on any device.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF File', desc: 'Drag and drop your file into the splitter tool.' },
+      { step: 2, title: 'Choose Split Mode', desc: 'Select page ranges, custom page numbers, or single pages.' },
+      { step: 3, title: 'Download Split PDF', desc: 'Download your extracted PDF document instantly.' }
+    ],
+    benefits: [
+      { title: '100% Free Forever', desc: 'No hidden fees, subscriptions, or credit card requirements.' },
+      { title: 'Zero Watermarks', desc: 'Your output files remain clean and professional.' },
+      { title: 'Private & Browser-First', desc: 'Files are processed locally and auto-deleted from memory.' },
+      { title: 'Universal Device Support', desc: 'Works on Mac, Windows, iPhone, Android, and Chromebooks.' }
+    ],
+    useCases: [
+      'Splitting PDF files online for free without installing Adobe Acrobat',
+      'Extracting selected pages from school or work documents',
+      'Dividing business PDFs for easy file management',
+      'Removing unneeded pages and saving clean PDFs'
+    ],
+    faqs: [
+      { question: 'Is this PDF splitter really 100% free?', answer: 'Yes, MakePDFRight is completely free to use with no daily usage caps or hidden fees.' },
+      { question: 'Does MakePDFRight put watermarks on split PDFs?', answer: 'No! We never add watermarks, logos, or headers to your documents.' },
+      { question: 'Do I need to create an account to split PDFs?', answer: 'No account registration or email submission is required. You can start splitting files immediately.' }
+    ],
+    relatedTools: [
+      { name: 'Split PDF', path: '/split', desc: 'Main Split PDF tool.' },
+      { name: 'Split PDF Without Acrobat', path: '/split-pdf-without-acrobat', desc: 'Free Acrobat alternative.' },
+      { name: 'How to Split a PDF', path: '/how-to-split-a-pdf', desc: 'Step-by-step splitting guide.' }
+    ]
   }
 };
