@@ -105,25 +105,3 @@ export const AdUnit: React.FC<AdUnitProps> = ({
     </div>
   );
 };
-
-export const StickyMobileAd: React.FC = () => {
-  const [isDismissed, setIsDismissed] = React.useState(false);
-
-  if (isDismissed) return null;
-
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 shadow-lg px-2 py-1 backdrop-blur-md transition-all">
-      <div className="relative max-w-md mx-auto flex items-center justify-center">
-        <button
-          onClick={() => setIsDismissed(true)}
-          className="absolute -top-3 right-1 w-5 h-5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center text-[10px] font-bold z-10 shadow cursor-pointer"
-          title="Close advertisement"
-          aria-label="Close advertisement"
-        >
-          ✕
-        </button>
-        <AdUnit format="sticky-mobile" className="!my-0" />
-      </div>
-    </div>
-  );
-};

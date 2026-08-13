@@ -955,11 +955,6 @@ export const AudioTranscribeTool: React.FC = () => {
         </div>
       )}
 
-      {/* Thin Ad Banner directly below Input Card */}
-      {!transcription && !isProcessing && (
-        <AdUnit format="thin-banner" className="my-3" />
-      )}
-
       {/* SEO Content Section */}
       <div className="mt-12">
         <ToolSEOContent data={TOOL_SEO_CONTENT_MAP['/transcribe']} />

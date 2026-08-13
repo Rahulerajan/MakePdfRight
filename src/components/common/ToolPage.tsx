@@ -107,13 +107,8 @@ export const ToolPage: React.FC<ToolPageProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.25 }}
-              className="w-full flex items-start justify-center gap-4 lg:gap-8 max-w-7xl mx-auto"
+              className="w-full flex items-start justify-center max-w-7xl mx-auto"
             >
-              {/* Left Skyscraper Ad - Visible on lg+ screens */}
-              <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
-                <AdUnit format="skyscraper" />
-              </div>
-
               {/* Main Content Column */}
               <div className="flex-1 max-w-2xl min-w-0 space-y-6 md:space-y-8">
                 <div className="text-center space-y-3">
@@ -127,18 +122,10 @@ export const ToolPage: React.FC<ToolPageProps> = ({
                   accept={accept}
                 />
 
-                {/* Thin Ad Banner directly below Upload Button/Zone */}
-                <AdUnit format="thin-banner" className="my-2" />
-
                 {/* Comprehensive Tool SEO Content */}
                 {toolSeoContent && (
                   <ToolSEOContent data={toolSeoContent} />
                 )}
-              </div>
-
-              {/* Right Skyscraper Ad - Visible on lg+ screens */}
-              <div className="hidden lg:flex shrink-0 w-[160px] sticky top-24 flex-col items-center">
-                <AdUnit format="skyscraper" />
               </div>
             </motion.div>
           </div>

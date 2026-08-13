@@ -32,7 +32,6 @@ const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Con
 const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
 const Disclaimer = lazy(() => import('./pages/Disclaimer').then(m => ({ default: m.Disclaimer })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
-import { StickyMobileAd } from './components/ads/AdUnit';
 
 // A sleek, minimal, high-performance page loader skeleton fallback
 const PageLoader = () => (
@@ -472,7 +471,6 @@ export default function App() {
         </main>
 
         <Footer />
-        <StickyMobileAd />
       </div>
     </Router>
    </LanguageProvider>

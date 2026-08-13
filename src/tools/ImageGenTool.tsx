@@ -217,9 +217,6 @@ export const ImageGenTool: React.FC = () => {
               <span>{isGenerating ? "Generating Custom Image..." : "✨ Generate Image"}</span>
             </button>
 
-            {/* Thin Ad Banner directly below Generate Button */}
-            <AdUnit format="thin-banner" className="w-full my-2" />
-
             {/* Trust Note */}
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
               <span>🔒 Images are not stored after generation</span>
@@ -355,11 +352,6 @@ export const ImageGenTool: React.FC = () => {
               <Sparkles className="w-5 h-5 fill-white/10" />
             </button>
           </div>
-
-          {/* Thin Ad Banner directly below Form Card / Generate Button */}
-          {!resultUrl && (
-            <AdUnit format="thin-banner" className="w-full my-2" />
-          )}
 
           {/* Result Showcase Card */}
           <AnimatePresence>
