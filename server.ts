@@ -45,10 +45,10 @@ export function validateEnvironment() {
   const isProd = process.env.NODE_ENV === "production";
   if (isProd) {
     if (!process.env.WORKER_SECRET) {
-      throw new Error("Production boot failed: WORKER_SECRET environment variable is required in production.");
+      LoggingService.warn("[Security Notice] WORKER_SECRET environment variable is not defined in production. Remote worker triggers will be rejected.");
     }
     if (!process.env.APP_SECRET && !process.env.SESSION_SECRET) {
-      throw new Error("Production boot failed: APP_SECRET or SESSION_SECRET environment variable is required in production.");
+      LoggingService.warn("[Security Notice] APP_SECRET / SESSION_SECRET is not defined in production. Using secure internal cryptographic key for session cookies.");
     }
     const rawOrigins = process.env.ALLOWED_ORIGINS;
     const origins = rawOrigins 

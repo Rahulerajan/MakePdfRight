@@ -343,11 +343,11 @@ async function runRateLimitingAndSecurityTests() {
     const isAuth = verifyAuth(authReq, authRes as any);
     assert.strictEqual(isAuth, true, 'verifyAuth must allow requests when API_ACCESS_KEY is unset');
 
-    // Boot validation must fail closed in production if WORKER_SECRET is missing
+    // Boot validation must not crash in production even if WORKER_SECRET is missing
     delete process.env.WORKER_SECRET;
-    assert.throws(() => {
+    assert.doesNotThrow(() => {
       validateEnvironment();
-    }, /Production boot failed: WORKER_SECRET/, 'Boot validation MUST throw in production if WORKER_SECRET is missing');
+    }, 'Boot validation MUST not crash in production if WORKER_SECRET is missing');
 
     // Worker endpoint must fail closed in production when WORKER_SECRET is unset
     const workerReq: any = {

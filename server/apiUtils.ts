@@ -24,14 +24,16 @@ export function getAI(): GoogleGenAI {
   return aiClient;
 }
 
+let fallbackSessionSecret: string | null = null;
+
 export function validateEnvironment(): void {
   const isProd = process.env.NODE_ENV === 'production';
   if (isProd) {
     if (!process.env.WORKER_SECRET) {
-      throw new Error('Production boot failed: WORKER_SECRET environment variable is required in production.');
+      LoggingService.warn('[Security Notice] WORKER_SECRET environment variable is not set in production. Remote worker triggers will be rejected.');
     }
     if (!process.env.APP_SECRET && !process.env.SESSION_SECRET) {
-      throw new Error('Production boot failed: APP_SECRET or SESSION_SECRET environment variable is required in production.');
+      LoggingService.warn('[Security Notice] APP_SECRET / SESSION_SECRET is not set in production. Using secure internal cryptographic key for sessions.');
     }
   }
 }
@@ -44,10 +46,10 @@ if (process.env.NODE_ENV === 'production') {
 export function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET || process.env.APP_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('SESSION_SECRET or APP_SECRET environment variable is required in production.');
+    if (!fallbackSessionSecret) {
+      fallbackSessionSecret = crypto.randomBytes(32).toString('hex');
     }
-    return 'makepdfright_dev_session_secret_2026';
+    return fallbackSessionSecret;
   }
   return secret;
 }

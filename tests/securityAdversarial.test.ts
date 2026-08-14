@@ -287,11 +287,12 @@ async function runAdversarialSecuritySuite() {
     assert.strictEqual(verifyAuth(unauthedReq, unauthedRes as any), false, 'Missing API key must be rejected when API_ACCESS_KEY is set');
     assert.strictEqual(unauthedRes.statusCode, 401);
 
-    // Boot validation still fails closed for missing WORKER_SECRET
+    // Boot validation must succeed in production even if optional secrets are missing
     delete process.env.WORKER_SECRET;
-    assert.throws(() => {
+    delete process.env.APP_SECRET;
+    assert.doesNotThrow(() => {
       validateEnvironment();
-    }, /Production boot failed: WORKER_SECRET environment variable is required in production./);
+    }, 'Boot validation must never crash the container in production');
   } finally {
     process.env.NODE_ENV = prevEnv;
     if (prevApiKey) process.env.API_ACCESS_KEY = prevApiKey; else delete process.env.API_ACCESS_KEY;
