@@ -508,6 +508,102 @@ export default function App() {
                   {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
               } />
+              <Route path="/pdf-to-word-without-losing-formatting" element={
+                <ToolPage 
+                  title="Convert PDF to Word Without Losing Formatting" 
+                  description="Convert PDF to an editable Word document while preserving fonts, tables, and layout. Free and online."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/scanned-pdf-to-word" element={
+                <ToolPage 
+                  title="Convert a Scanned PDF to an Editable Word Document" 
+                  description="Turn scanned PDFs and image-based documents into editable Word files using OCR, free and online."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-free-no-email" element={
+                <ToolPage 
+                  title="Convert PDF to Word Free — No Email, No Sign-Up" 
+                  description="Convert PDF to Word online for free. No email required, no account, no watermark."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-editable" element={
+                <ToolPage 
+                  title="Convert PDF to a Fully Editable Word Document" 
+                  description="Turn a PDF into a Word file you can actually edit — text, tables, and formatting all stay editable."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-on-iphone" element={
+                <ToolPage 
+                  title="How to Convert PDF to Word on iPhone" 
+                  description="Convert PDF to Word on your iPhone — no app needed. Free, fast, works right in Safari."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-with-tables" element={
+                <ToolPage 
+                  title="Convert a PDF With Tables Into an Editable Word Document" 
+                  description="Convert PDF files containing tables into Word documents while keeping table structure and formatting intact."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-for-resume" element={
+                <ToolPage 
+                  title="Convert a PDF Resume to an Editable Word Document" 
+                  description="Turn your PDF resume into an editable Word file so you can update it for each job application, free and online."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-multiple-pages" element={
+                <ToolPage 
+                  title="Convert Multi-Page PDFs to Word Documents" 
+                  description="Convert PDFs of any length into a single Word document, free and online — no page limit."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-for-contracts" element={
+                <ToolPage 
+                  title="Convert a PDF Contract to an Editable Word Document" 
+                  description="Turn a signed PDF contract into an editable Word document to revise terms or clauses, free and online."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-online-free" element={
+                <ToolPage 
+                  title="Convert PDF to Word Online, Free" 
+                  description="Convert PDF to Word documents online for free. No software, no sign-up, no watermark."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-without-software" element={
+                <ToolPage 
+                  title="Convert PDF to Word Without Installing Any Software" 
+                  description="Turn PDF files into Word documents online, no downloads or installations required. Works on any device."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-word-password-protected" element={
+                <ToolPage 
+                  title="Convert a Password-Protected PDF to Word" 
+                  description="Learn how to convert a locked or password-protected PDF into an editable Word document, free and online."
+                >
+                  {(files, onReset) => <PDFToWordTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
 
               <Route path="/pdf-to-excel" element={
                 <ToolPage 

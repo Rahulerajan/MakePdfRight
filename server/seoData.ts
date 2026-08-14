@@ -235,6 +235,54 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Convert PDF to Word Online Free – Editable DOCX | MakePDFRight',
     description: 'Convert PDF to Word online for free without formatting loss. Turn regular and scanned PDFs into fully editable DOCX files in seconds.'
   },
+  '/pdf-to-word-without-losing-formatting': {
+    title: 'Convert PDF to Word Without Losing Formatting | MakePDFRight',
+    description: 'Convert PDF to an editable Word document while preserving fonts, tables, and layout. Free and online.'
+  },
+  '/scanned-pdf-to-word': {
+    title: 'Convert a Scanned PDF to an Editable Word Document | MakePDFRight',
+    description: 'Turn scanned PDFs and image-based documents into editable Word files using OCR, free and online.'
+  },
+  '/pdf-to-word-free-no-email': {
+    title: 'Convert PDF to Word Free — No Email, No Sign-Up | MakePDFRight',
+    description: 'Convert PDF to Word online for free. No email required, no account, no watermark.'
+  },
+  '/pdf-to-word-editable': {
+    title: 'Convert PDF to a Fully Editable Word Document | MakePDFRight',
+    description: 'Turn a PDF into a Word file you can actually edit — text, tables, and formatting all stay editable.'
+  },
+  '/pdf-to-word-on-iphone': {
+    title: 'How to Convert PDF to Word on iPhone | MakePDFRight',
+    description: 'Convert PDF to Word on your iPhone — no app needed. Free, fast, works right in Safari.'
+  },
+  '/pdf-to-word-with-tables': {
+    title: 'Convert a PDF With Tables Into an Editable Word Document | MakePDFRight',
+    description: 'Convert PDF files containing tables into Word documents while keeping table structure and formatting intact.'
+  },
+  '/pdf-to-word-for-resume': {
+    title: 'Convert a PDF Resume to an Editable Word Document | MakePDFRight',
+    description: 'Turn your PDF resume into an editable Word file so you can update it for each job application, free and online.'
+  },
+  '/pdf-to-word-multiple-pages': {
+    title: 'Convert Multi-Page PDFs to Word Documents | MakePDFRight',
+    description: 'Convert PDFs of any length into a single Word document, free and online — no page limit.'
+  },
+  '/pdf-to-word-for-contracts': {
+    title: 'Convert a PDF Contract to an Editable Word Document | MakePDFRight',
+    description: 'Turn a signed PDF contract into an editable Word document to revise terms or clauses, free and online.'
+  },
+  '/pdf-to-word-online-free': {
+    title: 'Convert PDF to Word Online, Free | MakePDFRight',
+    description: 'Convert PDF to Word documents online for free. No software, no sign-up, no watermark.'
+  },
+  '/pdf-to-word-without-software': {
+    title: 'Convert PDF to Word Without Installing Any Software | MakePDFRight',
+    description: 'Turn PDF files into Word documents online, no downloads or installations required. Works on any device.'
+  },
+  '/pdf-to-word-password-protected': {
+    title: 'Convert a Password-Protected PDF to Word | MakePDFRight',
+    description: 'Learn how to convert a locked or password-protected PDF into an editable Word document, free and online.'
+  },
   '/pdf-to-excel': {
     title: 'PDF to Excel Converter Online – Extract Tables | MakePDFRight',
     description: 'Extract tables from PDF to Excel spreadsheets online for free. Turn PDF invoices, financial reports, and data grids into editable XLSX files.'
