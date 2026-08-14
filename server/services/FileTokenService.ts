@@ -1,10 +1,12 @@
 import crypto from 'crypto';
 import { LoggingService } from './LoggingService.js';
 
-const DEFAULT_SECRET = 'makepdfright_secure_token_secret_default_key_2026';
-
-function getTokenSecret(): string {
-  return process.env.APP_SECRET || process.env.SESSION_SECRET || DEFAULT_SECRET;
+export function getTokenSecret(): string {
+  const secret = process.env.APP_SECRET || process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error('APP_SECRET or SESSION_SECRET environment variable is required.');
+  }
+  return secret;
 }
 
 export interface FileTokenPayload {

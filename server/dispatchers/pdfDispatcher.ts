@@ -477,10 +477,16 @@ async function handleJobCreate(req: any, res: any) {
 async function handleJobProcess(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
+  const isProd = process.env.NODE_ENV === 'production';
   const workerSecret = process.env.WORKER_SECRET;
+
+  if (isProd && !workerSecret) {
+    return res.status(500).json({ success: false, error: 'Server configuration error: WORKER_SECRET must be set in production.' });
+  }
+
   if (workerSecret) {
     const providedSecret = req.headers['x-worker-secret'] || req.body?.workerSecret;
-    if (providedSecret !== workerSecret) {
+    if (!providedSecret || providedSecret !== workerSecret) {
       return res.status(401).json({ success: false, error: 'Unauthorized worker trigger request.' });
     }
   }

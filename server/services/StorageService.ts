@@ -80,13 +80,13 @@ export class StorageService {
     const keyParts = objectKey.split('/');
     const keyOwner = keyParts.length >= 2 && keyParts[0] === 'users' ? keyParts[1] : null;
 
-    if (keyOwner && keyOwner !== ownerId && ownerId !== 'admin') {
+    if (keyOwner && keyOwner !== ownerId) {
       LoggingService.warn(`[Security Alert] IDOR attempt blocked. Key owner ${keyOwner} != ${ownerId}`);
       throw new AppError('Requested file does not exist or has expired.', 404);
     }
 
     const metadata = await provider.getMetadata(objectKey);
-    if (metadata?.ownerId && metadata.ownerId !== ownerId && ownerId !== 'admin') {
+    if (metadata?.ownerId && metadata.ownerId !== ownerId) {
       throw new AppError('Requested file does not exist or has expired.', 404);
     }
   }

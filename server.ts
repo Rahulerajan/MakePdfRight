@@ -41,9 +41,18 @@ dotenv.config();
 const PORT = 3000;
 
 // Validate Environment at Startup
-function validateEnvironment() {
+export function validateEnvironment() {
   const isProd = process.env.NODE_ENV === "production";
   if (isProd) {
+    if (!process.env.API_ACCESS_KEY) {
+      throw new Error("Production boot failed: API_ACCESS_KEY environment variable is required in production.");
+    }
+    if (!process.env.WORKER_SECRET) {
+      throw new Error("Production boot failed: WORKER_SECRET environment variable is required in production.");
+    }
+    if (!process.env.APP_SECRET && !process.env.SESSION_SECRET) {
+      throw new Error("Production boot failed: APP_SECRET or SESSION_SECRET environment variable is required in production.");
+    }
     const rawOrigins = process.env.ALLOWED_ORIGINS;
     const origins = rawOrigins 
       ? rawOrigins.split(',').map(s => s.trim()).filter(Boolean)
@@ -81,8 +90,13 @@ declare global {
 }
 
 function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  // Check authorization key if API_ACCESS_KEY is set
+  const isProd = process.env.NODE_ENV === "production";
   const accessKey = process.env.API_ACCESS_KEY;
+
+  if (isProd && !accessKey) {
+    return res.status(500).json({ status: "error", statusCode: 500, error: "Server configuration error: API_ACCESS_KEY must be set in production." });
+  }
+
   if (accessKey) {
     const authHeader = req.headers['authorization'];
     const apiKeyHeader = req.headers['x-api-key'];
@@ -92,16 +106,8 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
     }
   }
 
-  // Derive owner ID for job isolation and request ownership
-  const ownerHeader = req.headers['x-owner-id'] || req.headers['x-session-id'];
-  if (ownerHeader && typeof ownerHeader === 'string' && ownerHeader.trim().length > 0) {
-    req.ownerId = ownerHeader.trim().substring(0, 100);
-  } else {
-    // Fallback to IP + User-Agent identifier hash if no session token provided
-    const clientIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
-    const userAgent = req.headers['user-agent'] || 'unknown-client';
-    req.ownerId = 'anon_' + crypto.createHash('sha256').update(`${clientIp}_${userAgent}`).digest('hex').substring(0, 16);
-  }
+  // Derive verified owner ID from signed session token/cookie, or anonymous fallback
+  req.ownerId = getOwnerId(req);
 
   next();
 }

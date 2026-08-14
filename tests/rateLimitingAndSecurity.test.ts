@@ -3,12 +3,13 @@ import { fork } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { DistributedRateLimiter } from '../server/services/DistributedRateLimiter.js';
-import { FileTokenService } from '../server/services/FileTokenService.js';
+import { FileTokenService, getTokenSecret } from '../server/services/FileTokenService.js';
 import { JobService } from '../server/services/JobService.js';
 import { StorageService } from '../server/services/StorageService.js';
 import { dispatchFileAction } from '../server/dispatchers/fileDispatcher.js';
 import { dispatchPdfAction } from '../server/dispatchers/pdfDispatcher.js';
 import { dispatchAiAction } from '../server/dispatchers/aiDispatcher.js';
+import { applyCors, verifyAuth, validateEnvironment, signSessionId, getOwnerId } from '../server/apiUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,10 @@ class MockResponse {
 
   send(data: any) {
     this.body = data;
+    return this;
+  }
+
+  end() {
     return this;
   }
 }
@@ -71,6 +76,9 @@ async function runRateLimitingAndSecurityTests() {
   console.log('==================================================');
   console.log('SECTION 6 — DISTRIBUTED RATE LIMITING & SECURITY SUITE');
   console.log('==================================================');
+
+  // Ensure test secret is set
+  process.env.APP_SECRET = 'test_suite_secret_key_2026_xyz';
 
   // 1. Token Security & Tampering Tests
   console.log('\n--- 1. File Token Security & Tampering Tests ---');
@@ -116,6 +124,26 @@ async function runRateLimitingAndSecurityTests() {
   assert.strictEqual(forgedResult, null, 'Payload key modification MUST invalidate signature');
   console.log('✅ 1e Passed: Payload tampering invalidates signature.');
 
+  // Test 1f: Missing or Wrong Secret Rejection (Item b)
+  const savedAppSecret = process.env.APP_SECRET;
+  const savedSessionSecret = process.env.SESSION_SECRET;
+  delete process.env.APP_SECRET;
+  delete process.env.SESSION_SECRET;
+  assert.throws(() => {
+    getTokenSecret();
+  }, /APP_SECRET or SESSION_SECRET environment variable is required/, 'Unset secret must throw runtime error');
+
+  process.env.APP_SECRET = 'secret_A';
+  const tokenWithSecretA = FileTokenService.generateToken(objectKey, ownerId, 'upload', 300);
+  process.env.APP_SECRET = 'secret_B_different';
+  const verifyWithDifferentSecret = FileTokenService.verifyToken(tokenWithSecretA.token, 'upload');
+  assert.strictEqual(verifyWithDifferentSecret, null, 'Token signed with different secret must be rejected');
+
+  // Restore test secret
+  process.env.APP_SECRET = savedAppSecret || 'test_suite_secret_key_2026_xyz';
+  if (savedSessionSecret) process.env.SESSION_SECRET = savedSessionSecret;
+  console.log('✅ 1f Passed: Tokens signed with wrong/missing secret are strictly rejected.');
+
   // 2. Multi-Process Rate Limiting Test (10 Independent Child Processes)
   console.log('\n--- 2. Multi-Instance Rate Limiting Test (10 Concurrent Processes) ---');
   process.env.RATE_LIMIT_PDF = '5'; // Set strict limit of 5 for test key
@@ -152,13 +180,13 @@ async function runRateLimitingAndSecurityTests() {
     await JobService.createJob('compress', testJobOwner, { level: 'recommended' });
   }
 
-  // Attempt to submit 4th job via dispatcher
+  // Attempt to submit 4th job via dispatcher with signed session token
   const jobReq: any = {
     method: 'POST',
     path: '/api/pdf/job/create',
     url: '/api/pdf/job/create',
     query: { action: 'job-create' },
-    headers: { 'x-owner-id': testJobOwner },
+    headers: { 'x-owner-id': signSessionId(testJobOwner) },
     body: {
       type: 'rotate',
       payload: { angle: 90 }
@@ -176,12 +204,13 @@ async function runRateLimitingAndSecurityTests() {
   console.log('\n--- 4. AI Endpoint Abuse & Rate Limiting Test ---');
   process.env.RATE_LIMIT_AI = '2';
   const aiOwner = `usr_ai_rate_${Date.now()}`;
+  const signedAiHeader = signSessionId(aiOwner);
 
   // 1st request
   const aiReq1: any = {
     method: 'POST',
     query: { action: 'chat-pdf' },
-    headers: { 'x-owner-id': aiOwner },
+    headers: { 'x-owner-id': signedAiHeader },
     body: { prompt: 'Summarize PDF' }
   };
   const aiRes1 = new MockResponse();
@@ -207,7 +236,7 @@ async function runRateLimitingAndSecurityTests() {
     method: 'GET',
     path: '/download',
     query: { action: 'download', key: 'users/usr_other_owner/secret.pdf' },
-    headers: { 'x-owner-id': 'usr_attacker' }
+    headers: { 'x-owner-id': signSessionId('usr_attacker') }
   };
   const leakRes = new MockResponse();
   await dispatchFileAction(leakReq, leakRes);
@@ -221,7 +250,7 @@ async function runRateLimitingAndSecurityTests() {
   const hugeReq: any = {
     method: 'POST',
     query: { action: 'compress' },
-    headers: { 'x-owner-id': 'usr_oversized' },
+    headers: { 'x-owner-id': signSessionId('usr_oversized') },
     body: { pdfBase64: hugeBase64 }
   };
   const hugeRes = new MockResponse();
@@ -230,7 +259,135 @@ async function runRateLimitingAndSecurityTests() {
   assert.strictEqual(hugeRes.statusCode, 413, 'Oversized payload must return 413');
   console.log('✅ 5b Passed: Oversized payload rejected with 413.');
 
+  // 6. Security Hardening Suite (Items a, c, d)
+  console.log('\n--- 6. Security Hardening & Vulnerability Remediation Suite ---');
+
+  // Test 6a: X-Owner-Id: admin No Longer Bypasses Ownership Checks (Item a)
+  const victimOwner = 'victim_user_100';
+  const victimKey = `users/${victimOwner}/uploads/confidential.pdf`;
+  const provider = StorageService.getStorageProvider();
+  await provider.upload(victimKey, Buffer.from('VICTIM_DATA'), { contentType: 'application/pdf', ownerId: victimOwner });
+
+  // Direct ownership check with 'admin' must reject
+  await assert.rejects(async () => {
+    await StorageService.verifyObjectOwnership(victimKey, 'admin');
+  }, /Requested file does not exist or has expired./, 'StorageService MUST NOT allow admin bypass');
+
+  // Dispatcher download attempt with 'admin' header/token must reject with 404
+  const adminReq: any = {
+    method: 'GET',
+    path: '/api/files/download',
+    query: { action: 'download', key: victimKey },
+    headers: { 'x-owner-id': signSessionId('admin') }
+  };
+  const adminRes = new MockResponse();
+  await dispatchFileAction(adminReq, adminRes);
+  assert.strictEqual(adminRes.statusCode, 404, 'Admin identity MUST NOT bypass ownership check');
+  console.log('✅ 6a Passed: X-Owner-Id: admin ownership bypass completely eliminated.');
+
+  // Test 6b: CORS Allowlist Enforcement (Item c)
+  process.env.ALLOWED_ORIGINS = 'https://www.makepdfright.com,https://app.makepdfright.com';
+
+  // Request from non-allowlisted origin
+  const evilCorsReq: any = {
+    method: 'GET',
+    headers: { origin: 'https://evil-hacker.com' }
+  };
+  const evilCorsRes = new MockResponse();
+  applyCors(evilCorsReq, evilCorsRes as any);
+  assert.strictEqual(evilCorsRes.headers['access-control-allow-origin'], undefined, 'Non-allowlisted origin MUST NOT receive Access-Control-Allow-Origin');
+  assert.strictEqual(evilCorsRes.headers['access-control-allow-credentials'], undefined, 'Non-allowlisted origin MUST NOT receive credentials header');
+
+  // OPTIONS preflight from non-allowlisted origin
+  const evilOptionsReq: any = {
+    method: 'OPTIONS',
+    headers: { origin: 'https://evil-hacker.com' }
+  };
+  const evilOptionsRes = new MockResponse();
+  const handled = applyCors(evilOptionsReq, evilOptionsRes as any);
+  assert.strictEqual(handled, true);
+  assert.strictEqual(evilOptionsRes.statusCode, 403, 'Preflight from non-allowlisted origin must be 403');
+  assert.strictEqual(evilOptionsRes.headers['access-control-allow-origin'], undefined);
+
+  // Request from allowlisted origin
+  const goodCorsReq: any = {
+    method: 'GET',
+    headers: { origin: 'https://www.makepdfright.com' }
+  };
+  const goodCorsRes = new MockResponse();
+  applyCors(goodCorsReq, goodCorsRes as any);
+  assert.strictEqual(goodCorsRes.headers['access-control-allow-origin'], 'https://www.makepdfright.com');
+  assert.strictEqual(goodCorsRes.headers['access-control-allow-credentials'], 'true');
+  console.log('✅ 6b Passed: CORS strictly enforced against ALLOWED_ORIGINS allowlist.');
+
+  // Test 6c: Production Fail-Closed Authentication & Boot-Time Validation (Item d)
+  const savedNodeEnv = process.env.NODE_ENV;
+  const savedApiKey = process.env.API_ACCESS_KEY;
+  const savedWorkerSecret = process.env.WORKER_SECRET;
+
+  try {
+    process.env.NODE_ENV = 'production';
+    delete process.env.API_ACCESS_KEY;
+    delete process.env.WORKER_SECRET;
+
+    // Boot validation must refuse to boot
+    assert.throws(() => {
+      validateEnvironment();
+    }, /Production boot failed/, 'Boot validation MUST throw in production if secrets/keys are missing');
+
+    // verifyAuth must fail closed (return false / 500)
+    const authReq: any = { headers: {} };
+    const authRes = new MockResponse();
+    const isAuth = verifyAuth(authReq, authRes as any);
+    assert.strictEqual(isAuth, false, 'verifyAuth must fail closed in production when API_ACCESS_KEY is unset');
+    assert.strictEqual(authRes.statusCode, 500);
+
+    // Worker endpoint must fail closed in production when WORKER_SECRET is unset
+    const workerReq: any = {
+      method: 'POST',
+      path: '/api/pdf/job/process',
+      query: { action: 'job-process' },
+      body: { jobId: '123', ownerId: 'user_1' }
+    };
+    const workerRes = new MockResponse();
+    await dispatchPdfAction(workerReq, workerRes);
+    assert.strictEqual(workerRes.statusCode, 500, 'Worker endpoint must fail closed in production without WORKER_SECRET');
+
+    // With API_ACCESS_KEY configured in production
+    process.env.API_ACCESS_KEY = 'prod_secret_api_key_999';
+    const authedReq: any = {
+      headers: { 'authorization': 'Bearer prod_secret_api_key_999' }
+    };
+    const authedRes = new MockResponse();
+    assert.strictEqual(verifyAuth(authedReq, authedRes as any), true, 'Valid API key must pass verifyAuth');
+
+    const wrongKeyReq: any = {
+      headers: { 'authorization': 'Bearer wrong_key' }
+    };
+    const wrongKeyRes = new MockResponse();
+    assert.strictEqual(verifyAuth(wrongKeyReq, wrongKeyRes as any), false, 'Invalid API key must be rejected');
+    assert.strictEqual(wrongKeyRes.statusCode, 401);
+
+  } finally {
+    process.env.NODE_ENV = savedNodeEnv;
+    if (savedApiKey) process.env.API_ACCESS_KEY = savedApiKey; else delete process.env.API_ACCESS_KEY;
+    if (savedWorkerSecret) process.env.WORKER_SECRET = savedWorkerSecret; else delete process.env.WORKER_SECRET;
+  }
+  console.log('✅ 6c Passed: Production fail-closed authentication and boot validation verified.');
+
+  // Test 6d: Server-Signed Session Identity vs Unsigned Client Headers
+  const rawAttackerHeader: any = { headers: { 'x-owner-id': 'victim_user_100' } };
+  const resolvedOwner = getOwnerId(rawAttackerHeader);
+  assert.notStrictEqual(resolvedOwner, 'victim_user_100', 'Unsigned client-provided header MUST NOT be trusted as ownerId');
+  assert.ok(resolvedOwner.startsWith('anon_'), 'Unsigned identity must fallback to anonymous hash');
+
+  const signedToken = signSessionId('legit_user_200');
+  const signedReq: any = { headers: { 'x-owner-id': signedToken } };
+  assert.strictEqual(getOwnerId(signedReq), 'legit_user_200', 'Valid signed session token must resolve accurately');
+  console.log('✅ 6d Passed: Server-signed session token derivation verified.');
+
   console.log('\n==================================================');
   console.log('ALL SECTION 6 RATE LIMITING & SECURITY TESTS PASSED!');
   console.log('==================================================');
+  process.exit(0);
 }

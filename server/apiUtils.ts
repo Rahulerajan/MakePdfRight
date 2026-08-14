@@ -24,35 +24,142 @@ export function getAI(): GoogleGenAI {
   return aiClient;
 }
 
+export function validateEnvironment(): void {
+  const isProd = process.env.NODE_ENV === 'production';
+  if (isProd) {
+    if (!process.env.API_ACCESS_KEY) {
+      throw new Error('Production boot failed: API_ACCESS_KEY environment variable is required in production.');
+    }
+    if (!process.env.WORKER_SECRET) {
+      throw new Error('Production boot failed: WORKER_SECRET environment variable is required in production.');
+    }
+    if (!process.env.APP_SECRET && !process.env.SESSION_SECRET) {
+      throw new Error('Production boot failed: APP_SECRET or SESSION_SECRET environment variable is required in production.');
+    }
+  }
+}
+
+export function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET || process.env.APP_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET or APP_SECRET environment variable is required in production.');
+    }
+    return 'makepdfright_dev_session_secret_2026';
+  }
+  return secret;
+}
+
+export function signSessionId(sessionId: string): string {
+  const secret = getSessionSecret();
+  const hmac = crypto.createHmac('sha256', secret).update(sessionId).digest('base64url');
+  return `${sessionId}.${hmac}`;
+}
+
+export function verifySignedSessionToken(token: string): string | null {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [sessionId, signature] = parts;
+  if (!sessionId || !signature) return null;
+
+  try {
+    const secret = getSessionSecret();
+    const expectedSig = crypto.createHmac('sha256', secret).update(sessionId).digest('base64url');
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expBuf = Buffer.from(expectedSig, 'utf8');
+    if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return sessionId;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function applyCors(req: VercelRequest, res: VercelResponse): boolean {
-  const origin = (req.headers.origin as string) || '*';
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', origin);
+  const rawAllowed = process.env.ALLOWED_ORIGINS;
+  const allowedOrigins = rawAllowed
+    ? rawAllowed.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+
+  const reqOrigin = (req.headers.origin as string) || (req.headers.Origin as string);
+
+  let isAllowed = false;
+  if (reqOrigin && allowedOrigins.length > 0) {
+    if (allowedOrigins.includes(reqOrigin) || allowedOrigins.includes('*')) {
+      isAllowed = true;
+    }
+  }
+
+  if (isAllowed && reqOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', reqOrigin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Api-Key, X-Owner-Id, X-Session-Id'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Api-Key, X-Owner-Id, X-Session-Id, X-Session-Token, Cookie'
   );
 
   if (req.method === 'OPTIONS') {
+    if (!isAllowed && reqOrigin) {
+      res.status(403).end();
+      return true;
+    }
     res.status(200).end();
     return true;
   }
   return false;
 }
 
-export function getOwnerId(req: VercelRequest): string {
-  const ownerHeader = (req.headers['x-owner-id'] as string) || (req.headers['x-session-id'] as string);
-  if (ownerHeader && typeof ownerHeader === 'string' && ownerHeader.trim().length > 0) {
-    return ownerHeader.trim().substring(0, 100);
+export function getOwnerId(req: VercelRequest | any): string {
+  // 1. Check signed session cookie (sid or session_id)
+  const cookieHeader = req.headers?.cookie || req.headers?.Cookie;
+  if (cookieHeader && typeof cookieHeader === 'string') {
+    const cookies = cookieHeader.split(';').map(c => c.trim());
+    for (const c of cookies) {
+      const [name, val] = c.split('=');
+      if ((name === 'sid' || name === 'session_id') && val) {
+        const verifiedId = verifySignedSessionToken(decodeURIComponent(val));
+        if (verifiedId) {
+          return verifiedId;
+        }
+      }
+    }
   }
-  const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket?.remoteAddress || '127.0.0.1';
-  const userAgent = (req.headers['user-agent'] as string) || 'unknown-client';
+
+  // 2. Check signed session header (x-session-token, x-owner-id, x-session-id)
+  const candidateHeaders = [
+    req.headers?.['x-session-token'],
+    req.headers?.['x-owner-id'],
+    req.headers?.['x-session-id']
+  ];
+  for (const hdr of candidateHeaders) {
+    if (hdr && typeof hdr === 'string') {
+      const verifiedId = verifySignedSessionToken(hdr.trim());
+      if (verifiedId) {
+        return verifiedId;
+      }
+    }
+  }
+
+  // 3. Fallback to low-trust anonymous IP+UA hash
+  const clientIp = (req.headers?.['x-forwarded-for'] as string) || req.socket?.remoteAddress || '127.0.0.1';
+  const userAgent = (req.headers?.['user-agent'] as string) || 'unknown-client';
   return 'anon_' + crypto.createHash('sha256').update(`${clientIp}_${userAgent}`).digest('hex').substring(0, 16);
 }
 
 export function verifyAuth(req: VercelRequest, res: VercelResponse): boolean {
+  const isProd = process.env.NODE_ENV === 'production';
   const accessKey = process.env.API_ACCESS_KEY;
+
+  if (isProd && !accessKey) {
+    res.status(500).json({ status: "error", statusCode: 500, error: "Server configuration error: API_ACCESS_KEY must be set in production." });
+    return false;
+  }
+
   if (accessKey) {
     const authHeader = req.headers['authorization'] as string | undefined;
     const apiKeyHeader = req.headers['x-api-key'] as string | undefined;

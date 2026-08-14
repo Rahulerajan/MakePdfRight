@@ -2,15 +2,50 @@ import assert from 'assert';
 import { StorageService } from '../server/services/StorageService.js';
 import { ValidationService } from '../server/services/ValidationService.js';
 import { JobService } from '../server/services/JobService.js';
-import { FileTokenService } from '../server/services/FileTokenService.js';
+import { FileTokenService, getTokenSecret } from '../server/services/FileTokenService.js';
 import { DistributedRateLimiter } from '../server/services/DistributedRateLimiter.js';
 import { StorageJobStore } from '../server/storage/StorageJobStore.js';
+import { applyCors, verifyAuth, validateEnvironment, signSessionId, getOwnerId } from '../server/apiUtils.js';
+import { dispatchPdfAction } from '../server/dispatchers/pdfDispatcher.js';
+import { dispatchFileAction } from '../server/dispatchers/fileDispatcher.js';
 import { PDFDocument, rgb } from 'pdf-lib';
+
+class MockResponse {
+  public statusCode: number = 200;
+  public headers: Record<string, string> = {};
+  public body: any = null;
+
+  status(code: number) {
+    this.statusCode = code;
+    return this;
+  }
+
+  setHeader(key: string, value: string) {
+    this.headers[key.toLowerCase()] = value;
+    return this;
+  }
+
+  json(data: any) {
+    this.body = data;
+    return this;
+  }
+
+  send(data: any) {
+    this.body = data;
+    return this;
+  }
+
+  end() {
+    return this;
+  }
+}
 
 async function runAdversarialSecuritySuite() {
   console.log('=====================================================');
   console.log('--- Running Adversarial Security Regression Suite ---');
   console.log('=====================================================\n');
+
+  process.env.APP_SECRET = 'adversarial_test_secret_key_2026';
 
   // 1. AUTHENTICATION & AUTHORIZATION / IDOR
   console.log('[1/12] Testing IDOR & Ownership Isolation...');
@@ -41,9 +76,14 @@ async function runAdversarialSecuritySuite() {
   await assert.rejects(async () => {
     await StorageService.verifyObjectOwnership(keyOwnerA, ownerB);
   }, /Requested file does not exist or has expired./, 'Owner B accessing keyOwnerA must throw 404 IDOR error');
-  console.log('✅ IDOR & Ownership Isolation Passed.');
 
-  // 2. TOKEN TAMPERING & TOKEN REPLAY
+  // Verify that 'admin' DOES NOT bypass ownership checks (Item a)
+  await assert.rejects(async () => {
+    await StorageService.verifyObjectOwnership(keyOwnerA, 'admin');
+  }, /Requested file does not exist or has expired./, 'admin identity MUST NOT bypass ownership checks in StorageService');
+  console.log('✅ IDOR & Ownership Isolation Passed (including admin bypass elimination).');
+
+  // 2. TOKEN TAMPERING & TOKEN REPLAY & SECRET REJECTION
   console.log('[2/12] Testing Token Tampering & Token Replay Protections...');
   const { token: uploadToken } = FileTokenService.generateToken('users/owner_alice_123/uploads/doc.pdf', ownerA, 'upload', 60);
 
@@ -65,7 +105,19 @@ async function runAdversarialSecuritySuite() {
   assert.strictEqual(FileTokenService.verifyToken('invalid.token.parts', 'upload'), null);
   assert.strictEqual(FileTokenService.verifyToken('', 'upload'), null);
   assert.strictEqual(FileTokenService.verifyToken('malformed_token_string', 'upload'), null);
-  console.log('✅ Token Tampering & Token Replay Protections Passed.');
+
+  // Test Token with Wrong/Missing Secret (Item b)
+  const backupSecret = process.env.APP_SECRET;
+  delete process.env.APP_SECRET;
+  delete process.env.SESSION_SECRET;
+  assert.throws(() => getTokenSecret(), /APP_SECRET or SESSION_SECRET environment variable is required/, 'Missing secret must throw runtime error');
+
+  process.env.APP_SECRET = 'secret_one';
+  const tok1 = FileTokenService.generateToken('users/owner_alice_123/uploads/doc.pdf', ownerA, 'upload', 60);
+  process.env.APP_SECRET = 'secret_two_mismatched';
+  assert.strictEqual(FileTokenService.verifyToken(tok1.token, 'upload'), null, 'Token verified with wrong secret must be rejected');
+  process.env.APP_SECRET = backupSecret || 'adversarial_test_secret_key_2026';
+  console.log('✅ Token Tampering, Replay & Secret Rejection Protections Passed.');
 
   // 3. OBJECT STORAGE & PATH TRAVERSAL
   console.log('[3/12] Testing Path Traversal & Object Key Attacks...');
@@ -117,8 +169,8 @@ async function runAdversarialSecuritySuite() {
   }, /User limit reached: You have 10 active jobs running/, '11th active job must be blocked by MAX_PER_USER_CONCURRENT_JOBS (limit 10)');
   console.log('✅ Job Flooding Protection Passed.');
 
-  // 6. WORKER ENDPOINT ESCALATION
-  console.log('[6/12] Testing Worker Secret Authentication...');
+  // 6. WORKER ENDPOINT ESCALATION & FAIL-CLOSED CHECKS (Item d)
+  console.log('[6/12] Testing Worker Secret Authentication & Fail-Closed Behavior...');
   process.env.WORKER_SECRET = 'super_secret_worker_key_2026';
   
   const validSecret = process.env.WORKER_SECRET;
@@ -126,7 +178,28 @@ async function runAdversarialSecuritySuite() {
 
   assert.strictEqual(validSecret === process.env.WORKER_SECRET, true, 'Valid worker secret matches');
   assert.strictEqual(wrongSecret === process.env.WORKER_SECRET, false, 'Invalid worker secret rejected');
-  console.log('✅ Worker Secret Authentication Passed.');
+
+  // Test Production Fail-Closed for Worker
+  const originalEnv = process.env.NODE_ENV;
+  const originalWorkerSecret = process.env.WORKER_SECRET;
+  try {
+    process.env.NODE_ENV = 'production';
+    delete process.env.WORKER_SECRET;
+
+    const mockReq: any = {
+      method: 'POST',
+      path: '/api/pdf/job/process',
+      query: { action: 'job-process' },
+      body: { jobId: '1', ownerId: 'user' }
+    };
+    const mockRes = new MockResponse();
+    await dispatchPdfAction(mockReq, mockRes);
+    assert.strictEqual(mockRes.statusCode, 500, 'Worker endpoint MUST reject requests in production when WORKER_SECRET is unset');
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+    if (originalWorkerSecret) process.env.WORKER_SECRET = originalWorkerSecret;
+  }
+  console.log('✅ Worker Secret Authentication & Fail-Closed Checks Passed.');
 
   // 7. PDF RESOURCE EXHAUSTION & MALFORMED INPUTS
   console.log('[7/12] Testing PDF Validation & Encrypted PDF Rejection...');
@@ -157,12 +230,22 @@ async function runAdversarialSecuritySuite() {
   }, 'Valid PNG header must pass');
   console.log('✅ Image Bomb & Magic Byte Protections Passed.');
 
-  // 9. XSS & HTML SANITIZATION
-  console.log('[9/12] Testing XSS Input Sanitization...');
-  assert.doesNotThrow(() => {
-    ValidationService.validateWatermarkText('<script>alert(1)</script>');
-  }, 'Watermark text under 200 characters passes validation (escaped downstream in rendering/PDF lib)');
-  console.log('✅ XSS & Input Sanitization Passed.');
+  // 9. CORS ALLOWLIST & ORIGIN REJECTION (Item c)
+  console.log('[9/12] Testing CORS Allowlist Enforcement...');
+  process.env.ALLOWED_ORIGINS = 'https://www.makepdfright.com';
+  
+  const disreq: any = { method: 'GET', headers: { origin: 'https://malicious-site.org' } };
+  const disres = new MockResponse();
+  applyCors(disreq, disres as any);
+  assert.strictEqual(disres.headers['access-control-allow-origin'], undefined, 'Disallowed origin must NOT receive allow-origin header');
+  assert.strictEqual(disres.headers['access-control-allow-credentials'], undefined, 'Disallowed origin must NOT receive allow-credentials');
+
+  const allowedReq: any = { method: 'GET', headers: { origin: 'https://www.makepdfright.com' } };
+  const allowedRes = new MockResponse();
+  applyCors(allowedReq, allowedRes as any);
+  assert.strictEqual(allowedRes.headers['access-control-allow-origin'], 'https://www.makepdfright.com', 'Allowlisted origin must receive exact allow-origin header');
+  assert.strictEqual(allowedRes.headers['access-control-allow-credentials'], 'true');
+  console.log('✅ CORS Allowlist Enforcement Passed.');
 
   // 10. PROMPT INJECTION & AI PROMPT LIMITS
   console.log('[10/12] Testing AI Prompt Boundaries...');
@@ -171,11 +254,27 @@ async function runAdversarialSecuritySuite() {
   }, /Prompt length exceeds maximum allowable limit of 2000 characters/, 'Oversized prompt must be rejected');
   console.log('✅ AI Prompt Boundaries Passed.');
 
-  // 11. INFORMATION DISCLOSURE
-  console.log('[11/12] Testing Information Disclosure Safeguards...');
-  const appError = new Error('Sensitive DB Connection string exposed');
-  assert.strictEqual(appError.message.includes('Sensitive'), true, 'Diagnostic error recorded internally');
-  console.log('✅ Information Disclosure Safeguards Passed.');
+  // 11. BOOT-TIME VALIDATION & PRODUCTION AUTH FAIL-CLOSED (Item d)
+  console.log('[11/12] Testing Production Boot Validation & Auth Fail-Closed...');
+  const prevEnv = process.env.NODE_ENV;
+  const prevApiKey = process.env.API_ACCESS_KEY;
+  try {
+    process.env.NODE_ENV = 'production';
+    delete process.env.API_ACCESS_KEY;
+
+    assert.throws(() => {
+      validateEnvironment();
+    }, /Production boot failed: API_ACCESS_KEY environment variable is required in production./);
+
+    const vReq: any = { headers: {} };
+    const vRes = new MockResponse();
+    assert.strictEqual(verifyAuth(vReq, vRes as any), false, 'verifyAuth must fail closed in production when API_ACCESS_KEY is unset');
+    assert.strictEqual(vRes.statusCode, 500);
+  } finally {
+    process.env.NODE_ENV = prevEnv;
+    if (prevApiKey) process.env.API_ACCESS_KEY = prevApiKey;
+  }
+  console.log('✅ Production Boot Validation & Auth Fail-Closed Passed.');
 
   // 12. DEPENDENCY & BUILD INTEGRITY
   console.log('[12/12] Testing Service Pre-checks & MAX_IMAGE_PIXELS Clamping...');
@@ -195,6 +294,7 @@ async function runAdversarialSecuritySuite() {
   console.log('\n=====================================================');
   console.log('🎉 ALL 12 ADVERSARIAL SECURITY TESTS PASSED PERFECTLY! 🎉');
   console.log('=====================================================\n');
+  process.exit(0);
 }
 
 runAdversarialSecuritySuite().catch((err) => {
