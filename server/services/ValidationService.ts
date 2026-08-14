@@ -1,8 +1,51 @@
+import path from 'path';
 import { PDFDocument } from 'pdf-lib';
 import { AppError } from './ErrorHandler.js';
 import { LoggingService } from './LoggingService.js';
 
 export class ValidationService {
+  /**
+   * Sanitizes user-supplied filenames to prevent directory traversal, header injection,
+   * command injection, and control character attacks.
+   */
+  static sanitizeFilename(rawFilename?: string | null, fallback: string = 'document.pdf'): string {
+    if (!rawFilename || typeof rawFilename !== 'string') {
+      return fallback;
+    }
+
+    // 1. Extract basename to block path traversal (e.g. ../../etc/passwd)
+    let clean = path.basename(rawFilename.trim());
+
+    // 2. Strip null bytes and control characters (0x00-0x1F, 0x7F-0x9F)
+    clean = clean.replace(/[\x00-\x1f\x7f-\x9f]/g, '');
+
+    // 3. Strip or replace header injection / escape characters (quotes, backslashes, newlines, semicolons)
+    clean = clean.replace(/["\\;\r\n]/g, '_');
+
+    // 4. Remove leading/trailing periods and spaces
+    clean = clean.replace(/^[\s.]+|[\s.]+$/g, '');
+
+    // 5. Enforce maximum filename length limit
+    if (clean.length > 255) {
+      const ext = path.extname(clean);
+      clean = clean.substring(0, 255 - ext.length) + ext;
+    }
+
+    return clean.length > 0 ? clean : fallback;
+  }
+
+  /**
+   * Formats a robust, injection-safe RFC 6266 Content-Disposition header with
+   * a sanitized ASCII fallback and RFC 5987 UTF-8 encoded filename*.
+   */
+  static formatContentDisposition(filename: string, dispositionType: 'attachment' | 'inline' = 'attachment'): string {
+    const sanitized = this.sanitizeFilename(filename);
+    const asciiFallback = sanitized.replace(/[^\x20-\x7E]/g, '_').replace(/["\\;\r\n]/g, '_');
+    const utf8Encoded = encodeURIComponent(sanitized);
+
+    return `${dispositionType}; filename="${asciiFallback}"; filename*=UTF-8''${utf8Encoded}`;
+  }
+
   // Validate Base64 string strictly
   static validateStrictBase64(base64: string): string {
     if (!base64 || typeof base64 !== 'string') {

@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
   const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'general', 'contact');
   if (!rateCheck.allowed) {
     return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);

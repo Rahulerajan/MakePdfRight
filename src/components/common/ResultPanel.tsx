@@ -64,6 +64,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
         const refreshRes = await fetch('/api/files/download-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ key: objectKey })
         });
         if (refreshRes.ok) {
@@ -103,6 +104,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
         const refreshRes = await fetch('/api/files/download-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ key: objectKey })
         });
         if (refreshRes.ok) {
@@ -160,6 +162,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({
       const res = await fetch('/api/files/download-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ key: objectKey })
       });
 

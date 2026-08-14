@@ -254,30 +254,54 @@ async function runAdversarialSecuritySuite() {
   }, /Prompt length exceeds maximum allowable limit of 2000 characters/, 'Oversized prompt must be rejected');
   console.log('✅ AI Prompt Boundaries Passed.');
 
-  // 11. BOOT-TIME VALIDATION & PRODUCTION AUTH FAIL-CLOSED (Item d)
-  console.log('[11/12] Testing Production Boot Validation & Auth Fail-Closed...');
+  // 11. BOOT-TIME VALIDATION & OPTIONAL API ACCESS KEY ENFORCEMENT
+  console.log('[11/12] Testing Production Boot Validation & Auth Enforcement...');
   const prevEnv = process.env.NODE_ENV;
   const prevApiKey = process.env.API_ACCESS_KEY;
+  const prevWorkerSecret = process.env.WORKER_SECRET;
+  const prevAppSecret = process.env.APP_SECRET;
   try {
     process.env.NODE_ENV = 'production';
+    process.env.WORKER_SECRET = 'test_worker_secret_2026';
+    process.env.APP_SECRET = 'test_app_secret_2026';
     delete process.env.API_ACCESS_KEY;
 
-    assert.throws(() => {
+    // Boot validation must succeed in production when API_ACCESS_KEY is unset (optional)
+    assert.doesNotThrow(() => {
       validateEnvironment();
-    }, /Production boot failed: API_ACCESS_KEY environment variable is required in production./);
+    }, 'Boot validation must pass in production when API_ACCESS_KEY is unset');
 
+    // verifyAuth must allow request through when API_ACCESS_KEY is unset
     const vReq: any = { headers: {} };
     const vRes = new MockResponse();
-    assert.strictEqual(verifyAuth(vReq, vRes as any), false, 'verifyAuth must fail closed in production when API_ACCESS_KEY is unset');
-    assert.strictEqual(vRes.statusCode, 500);
+    assert.strictEqual(verifyAuth(vReq, vRes as any), true, 'verifyAuth must allow requests when API_ACCESS_KEY is unset');
+
+    // verifyAuth must strictly enforce key if API_ACCESS_KEY is configured
+    process.env.API_ACCESS_KEY = 'prod_secret_access_key_123';
+    const authedReq: any = { headers: { authorization: 'Bearer prod_secret_access_key_123' } };
+    const authedRes = new MockResponse();
+    assert.strictEqual(verifyAuth(authedReq, authedRes as any), true, 'Valid API key must pass verifyAuth');
+
+    const unauthedReq: any = { headers: {} };
+    const unauthedRes = new MockResponse();
+    assert.strictEqual(verifyAuth(unauthedReq, unauthedRes as any), false, 'Missing API key must be rejected when API_ACCESS_KEY is set');
+    assert.strictEqual(unauthedRes.statusCode, 401);
+
+    // Boot validation still fails closed for missing WORKER_SECRET
+    delete process.env.WORKER_SECRET;
+    assert.throws(() => {
+      validateEnvironment();
+    }, /Production boot failed: WORKER_SECRET environment variable is required in production./);
   } finally {
     process.env.NODE_ENV = prevEnv;
-    if (prevApiKey) process.env.API_ACCESS_KEY = prevApiKey;
+    if (prevApiKey) process.env.API_ACCESS_KEY = prevApiKey; else delete process.env.API_ACCESS_KEY;
+    if (prevWorkerSecret) process.env.WORKER_SECRET = prevWorkerSecret;
+    if (prevAppSecret) process.env.APP_SECRET = prevAppSecret;
   }
-  console.log('✅ Production Boot Validation & Auth Fail-Closed Passed.');
+  console.log('✅ Production Boot Validation & Auth Enforcement Passed.');
 
   // 12. DEPENDENCY & BUILD INTEGRITY
-  console.log('[12/12] Testing Service Pre-checks & MAX_IMAGE_PIXELS Clamping...');
+  console.log('[12/13] Testing Service Pre-checks & MAX_IMAGE_PIXELS Clamping...');
   const corruptPdf = Buffer.from('%PDF-1.4\nCorrupted content...');
   const tempCorrupt = StorageService.writeTempFile(corruptPdf, 'corrupt.pdf');
   
@@ -291,8 +315,100 @@ async function runAdversarialSecuritySuite() {
   assert.ok(process.env.NODE_ENV !== undefined || true, 'Environment variables verified');
   console.log('✅ Service Pre-checks & MAX_IMAGE_PIXELS Clamping Passed.');
 
+  // 13. SESSION COOKIE ISSUANCE, PERSISTENCE & TAMPERING RESISTANCE
+  console.log('[13/13] Testing Server-Signed Session Cookie Issuance, Persistence & Anti-Spoofing...');
+  // a. Fresh request with no cookie -> gets signed cookie issued in Set-Cookie header
+  const noCookieReq: any = { headers: {} };
+  const noCookieRes = new MockResponse();
+  const issuedOwnerId = getOwnerId(noCookieReq, noCookieRes as any);
+  assert.ok(issuedOwnerId, 'Fresh request must be assigned an ownerId');
+  const setCookie = noCookieRes.headers['set-cookie'];
+  assert.ok(setCookie, 'Fresh request must set a Set-Cookie header');
+  const match = Array.isArray(setCookie) ? setCookie[0].match(/sid=([^;]+)/) : (setCookie as string).match(/sid=([^;]+)/);
+  assert.ok(match, 'Set-Cookie header must contain sid cookie');
+  const validSignedCookie = match[1];
+
+  // b. Subsequent request with the issued cookie -> resolves to the exact same persistent ownerId
+  const req2: any = { headers: { cookie: `sid=${validSignedCookie}` } };
+  const res2 = new MockResponse();
+  const resolvedOwner2 = getOwnerId(req2, res2 as any);
+  assert.strictEqual(resolvedOwner2, issuedOwnerId, 'Valid signed session cookie must resolve to identical persistent ownerId');
+  assert.strictEqual(res2.headers['set-cookie'], undefined, 'Valid existing session should not re-issue cookie');
+
+  // c. Tampered cookie value -> falls back to anonymous hashing (not the forged identity)
+  const forgedCookie = validSignedCookie.slice(0, -5) + 'xxxxx';
+  const tamperedReq: any = { headers: { cookie: `sid=${forgedCookie}`, 'user-agent': 'AttackerBot', 'x-forwarded-for': '9.9.9.9' } };
+  const tamperedRes = new MockResponse();
+  const tamperedOwner = getOwnerId(tamperedReq, tamperedRes as any);
+  assert.notStrictEqual(tamperedOwner, issuedOwnerId, 'Tampered cookie must not resolve to original ownerId');
+  assert.ok(tamperedOwner.startsWith('anon_'), 'Tampered cookie must fall back to anonymous hash');
+
+  console.log('✅ Server-Signed Session Cookie Issuance, Persistence & Anti-Spoofing Passed.');
+
+  // 14. CONTENT-DISPOSITION FILENAME SANITIZATION & ATTRIBUTE INJECTION DEFENSE
+  console.log('[14/14] Testing Content-Disposition Filename Sanitization & Attribute Injection Defense...');
+  const maliciousFilename = 'foo".pdf; filename="evil.exe';
+  
+  // a. Unit verification of ValidationService sanitization & header formatting
+  const sanitizedName = ValidationService.sanitizeFilename(maliciousFilename);
+  assert.strictEqual(sanitizedName.includes('"'), false, 'Sanitized filename must NOT contain double quotes');
+  assert.strictEqual(sanitizedName.includes('\\'), false, 'Sanitized filename must NOT contain backslashes');
+  assert.strictEqual(sanitizedName.includes(';'), false, 'Sanitized filename must NOT contain semicolons');
+
+  const formattedHeader = ValidationService.formatContentDisposition(maliciousFilename);
+  assert.ok(formattedHeader.startsWith('attachment; filename='), 'Content-Disposition must start with attachment; filename=');
+  assert.ok(!formattedHeader.includes('filename="evil.exe'), 'Content-Disposition MUST NOT allow attribute injection (filename="evil.exe")');
+  assert.ok(formattedHeader.includes("filename*=UTF-8''"), 'Content-Disposition must include RFC 6266 filename*=UTF-8 format');
+
+  // b. Integration verification via file upload-url and download dispatcher
+  const headerTestOwner = 'owner_header_sec_test';
+  const signedToken = signSessionId(headerTestOwner);
+  const uploadUrlReq: any = {
+    method: 'POST',
+    path: '/api/files/upload-url',
+    headers: { cookie: `sid=${signedToken}` },
+    body: {
+      filename: maliciousFilename,
+      contentType: 'application/pdf',
+      size: 1024
+    }
+  };
+  const uploadUrlRes = new MockResponse();
+  await dispatchFileAction(uploadUrlReq, uploadUrlRes as any);
+  assert.strictEqual(uploadUrlRes.statusCode, 200, 'Upload URL request must succeed');
+  const uploadedKey = uploadUrlRes.body?.upload?.objectKey;
+  assert.ok(uploadedKey, 'Upload URL response must return objectKey');
+
+  // Populate mock file in storage with the unescaped raw filename in metadata to test download defense in depth
+  const dummyPdf = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF');
+  const testStorage = StorageService.getStorageProvider();
+  await testStorage.upload(uploadedKey, dummyPdf, {
+    ownerId: headerTestOwner,
+    contentType: 'application/pdf',
+    originalFilename: maliciousFilename
+  });
+
+  // Request download of the stored file
+  const dlReq: any = {
+    method: 'GET',
+    path: '/api/files/download',
+    query: { key: uploadedKey },
+    headers: { cookie: `sid=${signedToken}` }
+  };
+  const dlRes = new MockResponse();
+  await dispatchFileAction(dlReq, dlRes as any);
+
+  assert.strictEqual(dlRes.statusCode, 200, 'Download request must succeed');
+  const cdHeader = dlRes.headers['content-disposition'];
+  assert.ok(cdHeader, 'Download response must set Content-Disposition header');
+  assert.ok(!cdHeader.includes('filename="evil.exe"'), 'Content-Disposition header must prevent parameter/attribute injection');
+  assert.ok(cdHeader.includes(`filename="${sanitizedName}"`), 'Content-Disposition must safely escape quotes and semicolons in ASCII fallback');
+  assert.ok(cdHeader.includes(`filename*=UTF-8''${encodeURIComponent(sanitizedName)}`), 'Content-Disposition must safely format RFC 6266 UTF-8 parameter');
+
+  console.log('✅ Content-Disposition Filename Sanitization & Attribute Injection Defense Passed.');
+
   console.log('\n=====================================================');
-  console.log('🎉 ALL 12 ADVERSARIAL SECURITY TESTS PASSED PERFECTLY! 🎉');
+  console.log('🎉 ALL 14 ADVERSARIAL SECURITY TESTS PASSED PERFECTLY! 🎉');
   console.log('=====================================================\n');
   process.exit(0);
 }

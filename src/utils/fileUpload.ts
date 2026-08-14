@@ -45,6 +45,7 @@ export async function uploadFileForProcessing(
   const authRes = await fetch('/api/files/upload-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
       filename: file.name,
       contentType: file.type || 'application/pdf',

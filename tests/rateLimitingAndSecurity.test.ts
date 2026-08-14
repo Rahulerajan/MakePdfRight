@@ -320,27 +320,34 @@ async function runRateLimitingAndSecurityTests() {
   assert.strictEqual(goodCorsRes.headers['access-control-allow-credentials'], 'true');
   console.log('✅ 6b Passed: CORS strictly enforced against ALLOWED_ORIGINS allowlist.');
 
-  // Test 6c: Production Fail-Closed Authentication & Boot-Time Validation (Item d)
-  const savedNodeEnv = process.env.NODE_ENV;
-  const savedApiKey = process.env.API_ACCESS_KEY;
-  const savedWorkerSecret = process.env.WORKER_SECRET;
+  // Test 6c: Production Authentication & Boot-Time Validation (Item d)
+  const prevNodeEnv6c = process.env.NODE_ENV;
+  const prevApiKey6c = process.env.API_ACCESS_KEY;
+  const prevWorkerSecret6c = process.env.WORKER_SECRET;
+  const prevAppSecret6c = process.env.APP_SECRET;
 
   try {
     process.env.NODE_ENV = 'production';
     delete process.env.API_ACCESS_KEY;
-    delete process.env.WORKER_SECRET;
+    process.env.WORKER_SECRET = 'test_worker_secret_999';
+    process.env.APP_SECRET = 'test_app_secret_999';
 
-    // Boot validation must refuse to boot
-    assert.throws(() => {
+    // Boot validation must succeed when API_ACCESS_KEY is unset (optional)
+    assert.doesNotThrow(() => {
       validateEnvironment();
-    }, /Production boot failed/, 'Boot validation MUST throw in production if secrets/keys are missing');
+    }, 'Boot validation MUST succeed in production when API_ACCESS_KEY is unset');
 
-    // verifyAuth must fail closed (return false / 500)
+    // verifyAuth must allow request through when API_ACCESS_KEY is unset
     const authReq: any = { headers: {} };
     const authRes = new MockResponse();
     const isAuth = verifyAuth(authReq, authRes as any);
-    assert.strictEqual(isAuth, false, 'verifyAuth must fail closed in production when API_ACCESS_KEY is unset');
-    assert.strictEqual(authRes.statusCode, 500);
+    assert.strictEqual(isAuth, true, 'verifyAuth must allow requests when API_ACCESS_KEY is unset');
+
+    // Boot validation must fail closed in production if WORKER_SECRET is missing
+    delete process.env.WORKER_SECRET;
+    assert.throws(() => {
+      validateEnvironment();
+    }, /Production boot failed: WORKER_SECRET/, 'Boot validation MUST throw in production if WORKER_SECRET is missing');
 
     // Worker endpoint must fail closed in production when WORKER_SECRET is unset
     const workerReq: any = {
@@ -353,7 +360,8 @@ async function runRateLimitingAndSecurityTests() {
     await dispatchPdfAction(workerReq, workerRes);
     assert.strictEqual(workerRes.statusCode, 500, 'Worker endpoint must fail closed in production without WORKER_SECRET');
 
-    // With API_ACCESS_KEY configured in production
+    // Restore WORKER_SECRET and test when API_ACCESS_KEY is configured in production
+    process.env.WORKER_SECRET = 'test_worker_secret_999';
     process.env.API_ACCESS_KEY = 'prod_secret_api_key_999';
     const authedReq: any = {
       headers: { 'authorization': 'Bearer prod_secret_api_key_999' }
@@ -369,22 +377,56 @@ async function runRateLimitingAndSecurityTests() {
     assert.strictEqual(wrongKeyRes.statusCode, 401);
 
   } finally {
-    process.env.NODE_ENV = savedNodeEnv;
-    if (savedApiKey) process.env.API_ACCESS_KEY = savedApiKey; else delete process.env.API_ACCESS_KEY;
-    if (savedWorkerSecret) process.env.WORKER_SECRET = savedWorkerSecret; else delete process.env.WORKER_SECRET;
+    process.env.NODE_ENV = prevNodeEnv6c;
+    if (prevApiKey6c) process.env.API_ACCESS_KEY = prevApiKey6c; else delete process.env.API_ACCESS_KEY;
+    if (prevWorkerSecret6c) process.env.WORKER_SECRET = prevWorkerSecret6c; else delete process.env.WORKER_SECRET;
+    if (prevAppSecret6c) process.env.APP_SECRET = prevAppSecret6c; else delete process.env.APP_SECRET;
   }
-  console.log('✅ 6c Passed: Production fail-closed authentication and boot validation verified.');
+  console.log('✅ 6c Passed: Production authentication and boot validation verified.');
 
-  // Test 6d: Server-Signed Session Identity vs Unsigned Client Headers
+  // Test 6d: Server-Signed Session Cookie Issuance & Identity Verification
+  // 1. Fresh request with no cookie generates a new signed session cookie and returns a valid ownerId
+  const freshReq: any = { headers: {} };
+  const freshRes = new MockResponse();
+  const freshOwnerId = getOwnerId(freshReq, freshRes as any);
+  assert.ok(freshOwnerId, 'Fresh request must receive an ownerId');
+  assert.strictEqual(freshReq.ownerId, freshOwnerId, 'Request must cache ownerId on req object');
+  
+  const setCookieHeader = freshRes.headers['set-cookie'];
+  assert.ok(setCookieHeader, 'Response must include a Set-Cookie header for fresh session');
+  const cookieMatch = Array.isArray(setCookieHeader)
+    ? setCookieHeader[0].match(/sid=([^;]+)/)
+    : (setCookieHeader as string).match(/sid=([^;]+)/);
+  assert.ok(cookieMatch, 'Set-Cookie header must contain a sid cookie');
+  const issuedCookieVal = cookieMatch[1];
+
+  // 2. Subsequent request with the issued signed session cookie resolves to the exact same persistent ownerId
+  const subReq: any = { headers: { cookie: `sid=${issuedCookieVal}` } };
+  const subRes = new MockResponse();
+  const subOwnerId = getOwnerId(subReq, subRes as any);
+  assert.strictEqual(subOwnerId, freshOwnerId, 'Subsequent request with signed session cookie must resolve to same persistent ownerId');
+  assert.strictEqual(subRes.headers['set-cookie'], undefined, 'Valid existing session should not re-issue cookie');
+
+  // 3. Forged / tampered cookie value falls back to anonymous hashing (not the forged identity)
+  const tamperedCookieVal = issuedCookieVal + 'malicious_tamper';
+  const tamperedReq: any = { headers: { cookie: `sid=${tamperedCookieVal}`, 'user-agent': 'TestAgent', 'x-forwarded-for': '1.2.3.4' } };
+  const tamperedRes = new MockResponse();
+  const tamperedOwnerId = getOwnerId(tamperedReq, tamperedRes as any);
+  assert.notStrictEqual(tamperedOwnerId, freshOwnerId, 'Tampered cookie must not resolve to original ownerId');
+  assert.ok(tamperedOwnerId.startsWith('anon_'), 'Tampered cookie must fall back to anonymous hash');
+
+  // 4. Raw client-provided header without valid signature is treated as untrusted and falls back to anon
   const rawAttackerHeader: any = { headers: { 'x-owner-id': 'victim_user_100' } };
   const resolvedOwner = getOwnerId(rawAttackerHeader);
   assert.notStrictEqual(resolvedOwner, 'victim_user_100', 'Unsigned client-provided header MUST NOT be trusted as ownerId');
   assert.ok(resolvedOwner.startsWith('anon_'), 'Unsigned identity must fallback to anonymous hash');
 
-  const signedToken = signSessionId('legit_user_200');
-  const signedReq: any = { headers: { 'x-owner-id': signedToken } };
-  assert.strictEqual(getOwnerId(signedReq), 'legit_user_200', 'Valid signed session token must resolve accurately');
-  console.log('✅ 6d Passed: Server-signed session token derivation verified.');
+  // 5. Signed token passed in cookie or header resolves to the exact subject
+  const explicitSignedToken = signSessionId('legit_user_200');
+  const signedCookieReq: any = { headers: { cookie: `session_id=${explicitSignedToken}` } };
+  assert.strictEqual(getOwnerId(signedCookieReq), 'legit_user_200', 'Valid signed session cookie must resolve accurately');
+
+  console.log('✅ 6d Passed: Server-signed session cookie issuance, verification, and tampering protections verified.');
 
   console.log('\n==================================================');
   console.log('ALL SECTION 6 RATE LIMITING & SECURITY TESTS PASSED!');

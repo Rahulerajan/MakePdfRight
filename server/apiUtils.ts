@@ -27,9 +27,6 @@ export function getAI(): GoogleGenAI {
 export function validateEnvironment(): void {
   const isProd = process.env.NODE_ENV === 'production';
   if (isProd) {
-    if (!process.env.API_ACCESS_KEY) {
-      throw new Error('Production boot failed: API_ACCESS_KEY environment variable is required in production.');
-    }
     if (!process.env.WORKER_SECRET) {
       throw new Error('Production boot failed: WORKER_SECRET environment variable is required in production.');
     }
@@ -37,6 +34,11 @@ export function validateEnvironment(): void {
       throw new Error('Production boot failed: APP_SECRET or SESSION_SECRET environment variable is required in production.');
     }
   }
+}
+
+// Automatically invoke environment validation at module load in production (serverless entrypoints)
+if (process.env.NODE_ENV === 'production') {
+  validateEnvironment();
 }
 
 export function getSessionSecret(): string {
@@ -77,6 +79,22 @@ export function verifySignedSessionToken(token: string): string | null {
   return null;
 }
 
+export function setSessionCookie(res: any, signedToken: string): void {
+  if (!res || typeof res.setHeader !== 'function') return;
+  const cookieValue = `sid=${encodeURIComponent(signedToken)}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Strict; Secure`;
+
+  const existing = (typeof res.getHeader === 'function' ? res.getHeader('Set-Cookie') : null) || res.headers?.['set-cookie'];
+  if (existing) {
+    if (Array.isArray(existing)) {
+      res.setHeader('Set-Cookie', [...existing, cookieValue]);
+    } else {
+      res.setHeader('Set-Cookie', [existing, cookieValue]);
+    }
+  } else {
+    res.setHeader('Set-Cookie', cookieValue);
+  }
+}
+
 export function applyCors(req: VercelRequest, res: VercelResponse): boolean {
   const rawAllowed = process.env.ALLOWED_ORIGINS;
   const allowedOrigins = rawAllowed
@@ -114,16 +132,25 @@ export function applyCors(req: VercelRequest, res: VercelResponse): boolean {
   return false;
 }
 
-export function getOwnerId(req: VercelRequest | any): string {
+export function getOwnerId(req: VercelRequest | any, res?: VercelResponse | any): string {
+  // If already derived and attached to req in this request lifecycle, reuse it
+  if (req.ownerId && typeof req.ownerId === 'string') {
+    return req.ownerId;
+  }
+
+  let hasProvidedCookie = false;
+
   // 1. Check signed session cookie (sid or session_id)
   const cookieHeader = req.headers?.cookie || req.headers?.Cookie;
   if (cookieHeader && typeof cookieHeader === 'string') {
-    const cookies = cookieHeader.split(';').map(c => c.trim());
+    const cookies = cookieHeader.split(';').map((c: string) => c.trim());
     for (const c of cookies) {
       const [name, val] = c.split('=');
       if ((name === 'sid' || name === 'session_id') && val) {
+        hasProvidedCookie = true;
         const verifiedId = verifySignedSessionToken(decodeURIComponent(val));
         if (verifiedId) {
+          req.ownerId = verifiedId;
           return verifiedId;
         }
       }
@@ -140,25 +167,35 @@ export function getOwnerId(req: VercelRequest | any): string {
     if (hdr && typeof hdr === 'string') {
       const verifiedId = verifySignedSessionToken(hdr.trim());
       if (verifiedId) {
+        req.ownerId = verifiedId;
         return verifiedId;
       }
     }
   }
 
-  // 3. Fallback to low-trust anonymous IP+UA hash
+  // 3. If no cookie was provided (fresh request) and response object is available, issue a new signed session cookie
+  if (res && !hasProvidedCookie) {
+    const newSessionId = crypto.randomUUID();
+    const signedToken = signSessionId(newSessionId);
+    setSessionCookie(res, signedToken);
+    req.ownerId = newSessionId;
+    return newSessionId;
+  }
+
+  // 4. Fallback to low-trust anonymous IP+UA hash (for tampered/forged cookies or when res is not provided)
   const clientIp = (req.headers?.['x-forwarded-for'] as string) || req.socket?.remoteAddress || '127.0.0.1';
   const userAgent = (req.headers?.['user-agent'] as string) || 'unknown-client';
-  return 'anon_' + crypto.createHash('sha256').update(`${clientIp}_${userAgent}`).digest('hex').substring(0, 16);
+  const anonId = 'anon_' + crypto.createHash('sha256').update(`${clientIp}_${userAgent}`).digest('hex').substring(0, 16);
+  req.ownerId = anonId;
+  return anonId;
+}
+
+export function ensureSession(req: VercelRequest | any, res?: VercelResponse | any): string {
+  return getOwnerId(req, res);
 }
 
 export function verifyAuth(req: VercelRequest, res: VercelResponse): boolean {
-  const isProd = process.env.NODE_ENV === 'production';
   const accessKey = process.env.API_ACCESS_KEY;
-
-  if (isProd && !accessKey) {
-    res.status(500).json({ status: "error", statusCode: 500, error: "Server configuration error: API_ACCESS_KEY must be set in production." });
-    return false;
-  }
 
   if (accessKey) {
     const authHeader = req.headers['authorization'] as string | undefined;

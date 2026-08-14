@@ -74,7 +74,8 @@ export const PDFToExcelTool: React.FC<PDFToExcelToolProps> = ({ file, onReset })
     setError(null);
     setIsProcessing(true);
     try {
-      const XLSX = await import('xlsx');
+      const excelJsModule: any = await import('exceljs');
+      const WorkbookClass = excelJsModule.Workbook || excelJsModule.default?.Workbook || excelJsModule.default;
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       const allData: any[][] = [];
@@ -123,12 +124,14 @@ export const PDFToExcelTool: React.FC<PDFToExcelToolProps> = ({ file, onReset })
         allData.push([]);
       }
 
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(allData);
-      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      const workbook = new WorkbookClass();
+      const worksheet = workbook.addWorksheet('Sheet1');
+      allData.forEach(row => {
+        worksheet.addRow(row);
+      });
       
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: 'application/octet-stream' });
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       
       HistoryService.addHistoryItem({

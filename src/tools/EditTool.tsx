@@ -965,6 +965,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file, onReset }) => {
       const res = await fetch('/api/pdf-tools?action=editor-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ promptType, selectedText, customPrompt, enableThinking })
       });
       const data = await res.json();
@@ -989,6 +990,7 @@ export const EditTool: React.FC<EditToolProps> = ({ file, onReset }) => {
       const res = await fetch('/api/pdf-tools?action=editor-ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ imageBase64: pageBase64 })
       });
       const data = await res.json();

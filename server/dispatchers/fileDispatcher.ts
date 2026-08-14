@@ -39,7 +39,7 @@ export async function dispatchFileAction(req: any, res: any) {
 async function handleUploadUrl(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
 
   const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'upload', 'upload-url');
   if (!rateCheck.allowed) {
@@ -56,7 +56,7 @@ async function handleUploadUrl(req: any, res: any) {
     throw new AppError('File size parameter is required and must be a positive number.', 400);
   }
 
-  const cleanFilename = filename.trim().replace(/[^a-zA-Z0-9._-]/g, '_');
+  const cleanFilename = ValidationService.sanitizeFilename(filename);
   const mime = (contentType || 'application/pdf').toLowerCase().trim();
 
   // Validate supported extensions and MIME types
@@ -168,7 +168,7 @@ async function handleDownload(req: any, res: any) {
 
   const key = req.query?.key as string;
   const token = req.query?.token as string;
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
 
   const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'general', 'download');
   if (!rateCheck.allowed) {
@@ -197,11 +197,12 @@ async function handleDownload(req: any, res: any) {
   }
 
   const buffer = await provider.download(key);
-  const originalFilename = metadata.originalFilename || path.basename(key);
+  const rawOriginalFilename = metadata.originalFilename || path.basename(key);
+  const originalFilename = ValidationService.sanitizeFilename(rawOriginalFilename);
 
   res.setHeader('Content-Type', metadata.contentType || 'application/pdf');
   res.setHeader('Content-Length', buffer.length.toString());
-  res.setHeader('Content-Disposition', `attachment; filename="${originalFilename}"`);
+  res.setHeader('Content-Disposition', ValidationService.formatContentDisposition(originalFilename));
   res.setHeader('Cache-Control', 'private, no-store, max-age=0');
 
   return res.status(200).send(buffer);
@@ -216,7 +217,7 @@ async function handleDownloadUrl(req: any, res: any) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
 
   const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'general', 'download-url');
   if (!rateCheck.allowed) {
@@ -253,7 +254,7 @@ async function handleDownloadUrl(req: any, res: any) {
  * User Right: Deletes an individual owned storage object file immediately.
  */
 async function handleDeleteFile(req: any, res: any) {
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
   const key = req.body?.key || req.query?.key || req.body?.objectKey || req.query?.objectKey;
 
   if (!key || typeof key !== 'string' || !key.trim()) {
@@ -283,7 +284,7 @@ async function handlePurgeUserData(req: any, res: any) {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
   if (!ownerId || ownerId === 'anonymous') {
     throw new AppError('Explicit user identity required to purge user data.', 400);
   }

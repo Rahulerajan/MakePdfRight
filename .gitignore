@@ -4,5 +4,8 @@ dist/
 coverage/
 .DS_Store
 *.log
+*.zip
+*.tar.gz
+.cache/
 .env*
 !.env.example

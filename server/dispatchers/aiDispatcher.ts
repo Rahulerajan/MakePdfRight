@@ -8,7 +8,7 @@ export async function dispatchAiAction(req: any, res: any) {
   const rawAction = (req.query?.action as string) || (req.body?.action as string) || '';
   const action = rawAction.toLowerCase().replace(/[^a-z0-9_-]/g, '');
 
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
   const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'ai', action || 'ai-operation');
   if (!rateCheck.allowed) {
     return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);

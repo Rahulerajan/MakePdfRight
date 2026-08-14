@@ -13,6 +13,7 @@ import { OCRService } from './OCRService.js';
 import { getAI } from '../apiUtils.js';
 import { LoggingService } from './LoggingService.js';
 import { AppError } from './ErrorHandler.js';
+import { ValidationService } from './ValidationService.js';
 
 export class WorkerService {
   private static store: IJobStore;
@@ -89,14 +90,14 @@ export class WorkerService {
           const provider = StorageService.getStorageProvider();
           const inputBuf = await provider.download(inputObjectKey);
           const meta = await provider.getMetadata(inputObjectKey);
-          const inputName = meta?.originalFilename || 'document.pdf';
+          const inputName = ValidationService.sanitizeFilename(meta?.originalFilename || 'document.pdf');
 
           const tempIn = StorageService.writeTempFile(inputBuf, inputName);
           tempInputPaths.push(tempIn);
 
           const compressResult = await CompressionService.compressPDF(tempIn, level || 'recommended', customValue || 50);
           outputBuffer = compressResult.pdfBuffer;
-          outputName = `compressed_${inputName}`;
+          outputName = ValidationService.sanitizeFilename(`compressed_${inputName}`);
 
           resultPayload = {
             originalSize: compressResult.originalSize,
@@ -237,16 +238,17 @@ export class WorkerService {
         const provider = StorageService.getStorageProvider();
         outputObjectKey = StorageService.generateObjectKey(ownerId, 'outputs', '.pdf');
 
+        const safeOutputName = ValidationService.sanitizeFilename(outputName, 'output.pdf');
         await provider.upload(outputObjectKey, outputBuffer, {
           ownerId,
           contentType: 'application/pdf',
-          originalFilename: outputName
+          originalFilename: safeOutputName
         });
 
         downloadUrl = await provider.createSignedDownloadUrl(outputObjectKey, 1800); // 30 mins signed URL
         resultPayload.output = {
           objectKey: outputObjectKey,
-          filename: outputName,
+          filename: safeOutputName,
           size: outputBuffer.length,
           downloadUrl
         };

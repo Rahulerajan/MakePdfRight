@@ -39,7 +39,7 @@ export async function dispatchPdfAction(req: any, res: any) {
     }
   }
 
-  const ownerId = getOwnerId(req);
+  const ownerId = getOwnerId(req, res);
 
   // Enforce Rate Limits by Category
   if (action === 'job-create') {
@@ -128,9 +128,10 @@ async function resolveInputPdfBuffer(req: any, ownerId: string, customObjectKey?
     const provider = StorageService.getStorageProvider();
     const buffer = await provider.download(targetKey);
     const meta = await provider.getMetadata(targetKey);
+    const rawName = meta?.originalFilename || filename || 'document.pdf';
     return {
       buffer,
-      filename: meta?.originalFilename || filename || 'document.pdf'
+      filename: ValidationService.sanitizeFilename(rawName, 'document.pdf')
     };
   }
 
@@ -144,7 +145,7 @@ async function resolveInputPdfBuffer(req: any, ownerId: string, customObjectKey?
     ValidationService.validatePDFBuffer(buffer);
     return {
       buffer,
-      filename: filename || 'document.pdf'
+      filename: ValidationService.sanitizeFilename(filename, 'document.pdf')
     };
   }
 
@@ -157,18 +158,19 @@ async function resolveInputPdfBuffer(req: any, ownerId: string, customObjectKey?
 async function saveOutputAndGetResult(ownerId: string, outputBuffer: Buffer, defaultName: string = 'output.pdf') {
   const provider = StorageService.getStorageProvider();
   const outputKey = StorageService.generateObjectKey(ownerId, 'outputs', '.pdf');
+  const safeFilename = ValidationService.sanitizeFilename(defaultName, 'output.pdf');
 
   await provider.upload(outputKey, outputBuffer, {
     ownerId,
     contentType: 'application/pdf',
-    originalFilename: defaultName
+    originalFilename: safeFilename
   });
 
   const downloadUrl = await provider.createSignedDownloadUrl(outputKey, 1800);
 
   return {
     objectKey: outputKey,
-    filename: defaultName,
+    filename: safeFilename,
     size: outputBuffer.length,
     downloadUrl
   };

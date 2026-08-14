@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import fs from 'fs';
+import { ValidationService } from './ValidationService.js';
 
 export class DownloadService {
   static sendAsAttachment(res: Response, filePath: string, clientFilename: string) {
@@ -7,7 +8,7 @@ export class DownloadService {
       return res.status(404).json({ error: 'File not found or expired.' });
     }
     
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(clientFilename)}"`);
+    res.setHeader('Content-Disposition', ValidationService.formatContentDisposition(clientFilename));
     res.setHeader('Content-Type', 'application/pdf');
     
     const stream = fs.createReadStream(filePath);

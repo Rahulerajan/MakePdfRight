@@ -39,6 +39,7 @@ export const Contact: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),

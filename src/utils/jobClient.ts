@@ -70,6 +70,7 @@ export class JobClient {
       const createRes = await fetch('/api/pdf-tools?action=job-create', {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify({ type, payload, idempotencyKey }),
         signal
       });
@@ -112,6 +113,7 @@ export class JobClient {
 
       try {
         const statusRes = await fetch(`/api/pdf-tools?action=job-status&id=${encodeURIComponent(jobId)}`, {
+          credentials: 'include',
           signal
         });
 
@@ -189,7 +191,8 @@ export class JobClient {
   static async cancelJob(jobId: string): Promise<boolean> {
     try {
       const res = await fetch(`/api/pdf-tools?action=job-cancel&id=${encodeURIComponent(jobId)}`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include'
       });
       return res.ok;
     } catch {

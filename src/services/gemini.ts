@@ -8,6 +8,7 @@ export const chatWithPDF = async (pdfBase64: string, message: string, enableThin
   const response = await fetch("/api/ai-tools?action=chat-pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ pdfBase64, message, enableThinking }),
   });
 
@@ -25,6 +26,7 @@ export const analyzeImage = async (imageBase64: string, mimeType: string, prompt
   const response = await fetch("/api/ai-tools?action=analyze-image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ imageBase64, mimeType, prompt, enableThinking }),
   });
 
@@ -47,6 +49,7 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
   const response = await fetch("/api/ai-tools?action=generate-image", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ prompt, aspectRatio }),
   });
 
@@ -78,6 +81,7 @@ export const transcribeAudio = async (
   const response = await fetch("/api/ai-tools?action=transcribe-audio", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ audioBase64, mimeType, language }),
   });
 
@@ -94,6 +98,7 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
   const response = await fetch("/api/ai-tools?action=generate-speech", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ text }),
   });
 
@@ -111,6 +116,7 @@ export const complexQuery = async (prompt: string): Promise<string> => {
   const response = await fetch("/api/ai-tools?action=complex-query", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ prompt }),
   });
 

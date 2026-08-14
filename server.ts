@@ -44,9 +44,6 @@ const PORT = 3000;
 export function validateEnvironment() {
   const isProd = process.env.NODE_ENV === "production";
   if (isProd) {
-    if (!process.env.API_ACCESS_KEY) {
-      throw new Error("Production boot failed: API_ACCESS_KEY environment variable is required in production.");
-    }
     if (!process.env.WORKER_SECRET) {
       throw new Error("Production boot failed: WORKER_SECRET environment variable is required in production.");
     }
@@ -90,12 +87,7 @@ declare global {
 }
 
 function authMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const isProd = process.env.NODE_ENV === "production";
   const accessKey = process.env.API_ACCESS_KEY;
-
-  if (isProd && !accessKey) {
-    return res.status(500).json({ status: "error", statusCode: 500, error: "Server configuration error: API_ACCESS_KEY must be set in production." });
-  }
 
   if (accessKey) {
     const authHeader = req.headers['authorization'];
@@ -106,8 +98,8 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
     }
   }
 
-  // Derive verified owner ID from signed session token/cookie, or anonymous fallback
-  req.ownerId = getOwnerId(req);
+  // Derive verified owner ID from signed session token/cookie, or issue new signed session cookie
+  req.ownerId = getOwnerId(req, res);
 
   next();
 }
@@ -262,6 +254,12 @@ async function startServer() {
   };
 
   // --- API Endpoints ---
+
+  // Session management endpoint
+  app.all("/api/session", (req, res) => {
+    const ownerId = getOwnerId(req, res);
+    res.json({ success: true, sessionId: ownerId });
+  });
 
   // Health check (Non-disclosing)
   app.get("/api/health", (req, res) => {

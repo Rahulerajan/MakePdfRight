@@ -13,6 +13,7 @@ describe('Compress PDF Result Screen & Authorized Download Suite', () => {
   const tempDir = path.join(os.tmpdir(), `test_compress_dl_${Date.now()}`);
 
   before(() => {
+    process.env.SESSION_SECRET = 'test_secret_for_compression_download_suite_32bytes';
     fs.mkdirSync(tempDir, { recursive: true });
     StorageService.getStorageProvider();
   });
