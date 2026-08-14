@@ -70,6 +70,66 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     description: 'Combine PDF files online for free without watermarks or formatting loss. Learn how to join multiple PDFs into one unified file in seconds.',
     ogImage: '/og-merge.png'
   },
+  '/merge-pdf-files-free': {
+    title: 'Merge PDF Files Free – No Sign-Up, No Watermark | MakePDFRight',
+    description: 'Merge PDF files online for free. No sign-up, no watermark, no file limits. Fast, secure, and works in your browser.',
+    ogImage: '/og-merge.png'
+  },
+  '/combine-pdf-files-online': {
+    title: 'Combine PDF Files Online in Seconds – No Install | MakePDFRight',
+    description: 'Combine multiple PDF files into one document online — no installation required. Fast, free, and browser-based.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-multiple-pdf-files-into-one': {
+    title: 'Merge Multiple PDF Files Into One Document | MakePDFRight',
+    description: 'Combine 3, 10, or more PDF files into a single document. Free online tool, no file limits.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-pdf-and-word-into-one-file': {
+    title: 'Merge PDF and Word Files Into One PDF Document Free | MakePDFRight',
+    description: 'Combine PDF and Word (DOCX) files into a single PDF document online for free.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-scanned-pdf-pages': {
+    title: 'Merge Scanned PDF Pages Into One Document | MakePDFRight',
+    description: 'Combine multiple scanned PDF pages or phone scans into a single PDF, free and online.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-pdf-on-iphone': {
+    title: 'How to Merge PDF Files on iPhone | MakePDFRight',
+    description: 'Merge PDF files on your iPhone — no app needed. Free, fast, works right in Safari or Chrome.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-pdf-in-order': {
+    title: 'Merge PDFs While Keeping Your Page Order | MakePDFRight',
+    description: 'Combine PDF files in the exact order you choose. Drag and drop to reorder before merging — free online.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-protected-pdf-files': {
+    title: 'How to Merge Password-Protected PDF Files | MakePDFRight',
+    description: 'Learn how to merge PDF files that are password-protected or locked, free and online.',
+    ogImage: '/og-merge.png'
+  },
+  '/how-to-merge-pdf-files': {
+    title: 'How to Merge PDF Files (Free, No Software Needed) | MakePDFRight',
+    description: 'Step-by-step guide to merging PDF files online for free. No software installation required.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-jpg-and-pdf-into-one-file': {
+    title: 'Merge JPG and PDF Files Into One Document | MakePDFRight',
+    description: 'Combine JPG images and PDF files into a single PDF document, free and online.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-pdf-without-software': {
+    title: 'Merge PDF Files Without Installing Any Software | MakePDFRight',
+    description: 'Combine PDF files online without downloading or installing anything. Works on any device, including locked-down work computers.',
+    ogImage: '/og-merge.png'
+  },
+  '/merge-pdf-keep-bookmarks': {
+    title: 'Merge PDFs Without Losing Bookmarks or Formatting | MakePDFRight',
+    description: 'Combine PDF files while preserving bookmarks, formatting, and document structure.',
+    ogImage: '/og-merge.png'
+  },
   '/merge-pdf-without-losing-quality': {
     title: 'Merge PDF Without Losing Quality Free – High-Fidelity PDF Merger | MakePDFRight',
     description: 'Combine multiple PDF files into one high-fidelity document without quality loss. Preserve original vector graphics, crisp text, images, and formatting for free online.',

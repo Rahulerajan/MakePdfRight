@@ -190,7 +190,7 @@ export const ToolSEOContent: React.FC<ToolSEOContentProps> = ({ data }) => {
             <FileText className="w-5 h-5 text-primary" />
             Explore Related PDF & AI Tools
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
             {data.relatedTools.map((rt, i) => (
               <Link 
                 key={i} 

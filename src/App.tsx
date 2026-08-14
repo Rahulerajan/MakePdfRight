@@ -72,6 +72,124 @@ export default function App() {
                 </ToolPage>
               } />
               <Route path="/merge-pdf" element={<Navigate to="/merge" replace />} />
+              <Route path="/merge-pdf-files-free" element={
+                <ToolPage 
+                  title="Merge PDF Files Free — No Sign-Up, No Watermark" 
+                  description="Merge PDF files online for free. No sign-up, no watermark, no file limits. Fast, secure, and works in your browser."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/combine-pdf-files-online" element={
+                <ToolPage 
+                  title="Combine PDF Files Online in Seconds" 
+                  description="Combine multiple PDF files into one document online — no installation required. Fast, free, and browser-based."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-multiple-pdf-files-into-one" element={
+                <ToolPage 
+                  title="Merge Multiple PDF Files Into One Document" 
+                  description="Combine 3, 10, or more PDF files into a single document. Free online tool, no file limits."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-pdf-and-word-into-one-file" element={
+                <ToolPage 
+                  title="Merge PDF and Word Files Into One PDF" 
+                  description="Combine PDF and Word (DOCX) files into a single PDF document online for free."
+                  multiple
+                  accept={{ 
+                    'application/pdf': ['.pdf'], 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'], 
+                    'application/msword': ['.doc'], 
+                    'image/*': ['.jpg', '.jpeg', '.png'] 
+                  }}
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-scanned-pdf-pages" element={
+                <ToolPage 
+                  title="Merge Scanned PDF Pages Into One Document" 
+                  description="Combine multiple scanned PDF pages or phone scans into a single PDF, free and online."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-pdf-on-iphone" element={
+                <ToolPage 
+                  title="How to Merge PDF Files on iPhone" 
+                  description="Merge PDF files on your iPhone — no app needed. Free, fast, works right in Safari or Chrome."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-pdf-in-order" element={
+                <ToolPage 
+                  title="Merge PDFs While Keeping Your Page Order" 
+                  description="Combine PDF files in the exact order you choose. Drag and drop to reorder before merging — free online."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-protected-pdf-files" element={
+                <ToolPage 
+                  title="How to Merge Password-Protected PDF Files" 
+                  description="Learn how to merge PDF files that are password-protected or locked, free and online."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/how-to-merge-pdf-files" element={
+                <ToolPage 
+                  title="How to Merge PDF Files (Free, No Software Needed)" 
+                  description="Step-by-step guide to merging PDF files online for free. No software installation required."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-jpg-and-pdf-into-one-file" element={
+                <ToolPage 
+                  title="Merge JPG and PDF Files Into One Document" 
+                  description="Combine JPG images and PDF files into a single PDF document, free and online."
+                  multiple
+                  accept={{ 
+                    'application/pdf': ['.pdf'], 
+                    'image/*': ['.jpg', '.jpeg', '.png', '.webp'] 
+                  }}
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-pdf-without-software" element={
+                <ToolPage 
+                  title="Merge PDF Files Without Installing Any Software" 
+                  description="Combine PDF files online without downloading or installing anything. Works on any device, including locked-down work computers."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/merge-pdf-keep-bookmarks" element={
+                <ToolPage 
+                  title="Merge PDFs Without Losing Bookmarks or Formatting" 
+                  description="Combine PDF files while preserving bookmarks, formatting, and document structure."
+                  multiple
+                >
+                  {(files, onReset) => <MergeTool initialFiles={files} onReset={onReset} />}
+                </ToolPage>
+              } />
               <Route path="/merge-pdf-without-losing-quality" element={
                 <ToolPage 
                   title="Merge PDF Without Losing Quality" 

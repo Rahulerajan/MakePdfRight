@@ -77,6 +77,474 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
     ]
   },
+  '/merge-pdf-files-free': {
+    toolName: 'Merge PDF Files Free',
+    category: 'PDF Tools',
+    overview: 'Looking to merge pdf files free without hidden fees, mandatory registration, or watermark stamps? MakePDFRight provides an unrestricted, 100% free online PDF merger that works directly in your web browser. Combine unlimited PDF documents, tax forms, receipts, or portfolios into one clean document with zero cost and complete privacy.',
+    topBody: [
+      'Looking to merge pdf files free without getting hit with sudden paywalls, mandatory account registrations, or branded watermarks across your finished pages? MakePDFRight gives you full, unrestricted access to combine PDF documents directly in your web browser at zero cost. Whether you are assembling tax returns, consolidating multi-page homework assignments, or stitching together business contracts, our tool delivers instant document merging with zero strings attached. There are no credit cards required, no trial countdowns, no daily document quotas, and never any watermarks stamped onto your files.',
+      'Unlike other PDF websites that lure you in only to lock your download behind an email form or paid subscription, MakePDFRight processes your files directly in client memory. Your original vector text, font formatting, and image resolution remain 100% intact, and all files are automatically wiped from processing memory to ensure your private documents stay completely confidential.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Free PDF Files', desc: 'Select or drag and drop all the PDF files you want to combine. No account or sign-up required.' },
+      { step: 2, title: 'Reorder File Sequence', desc: 'Drag and drop file cards to arrange pages in your exact preferred sequence.' },
+      { step: 3, title: 'Merge & Download Free', desc: 'Click "Merge PDF" to generate your combined document instantly with zero watermarks.' }
+    ],
+    benefits: [
+      { title: '100% Free With No Paywalls', desc: 'Combine PDF files as often as you want without surprise paywalls, monthly subscription limits, or credit card requirements.' },
+      { title: 'Zero Watermarks or Logos', desc: 'Your combined PDF comes out clean, pristine, and professional without promotional branding or watermark overlays.' },
+      { title: 'No Sign-Up or Email Collection', desc: 'Start merging immediately without creating an account, sharing your email address, or verifying passwords.' },
+      { title: 'High-Speed Browser Privacy', desc: 'Files are processed locally and securely in isolated temporary buffers, with automatic purging for complete confidentiality.' }
+    ],
+    useCases: [
+      'Merging annual tax forms and scanned donation receipts for accountant review',
+      'Combining school essays, references, and appendices into a single PDF submission',
+      'Bundling resume, cover letter, and recommendation letters into a job application',
+      'Assembling multi-page legal contracts and affidavits without software fees'
+    ],
+    faqs: [
+      { question: 'Is this tool really free to use with no hidden catch?', answer: 'Yes, MakePDFRight is 100% free with no hidden fees, trial periods, or subscription traps. You can merge as many PDF files as you need without entering credit card details or signing up.' },
+      { question: 'Is there a file size or file count limit when merging free PDFs?', answer: 'There are no arbitrary file count restrictions. You can combine 2, 10, or 20+ PDF files simultaneously. For optimal browser performance, individual files up to 100MB are supported effortlessly.' },
+      { question: 'Will my merged PDF have a watermark or logo on the pages?', answer: 'No. MakePDFRight never adds watermarks, logos, or headers to your documents. Your output PDF will look exactly like your original source files.' },
+      { question: 'Do I need to create an account or provide my email address?', answer: 'No account or registration is required. You simply drop your PDF files into the tool, arrange them, and download your merged document immediately.' },
+      { question: 'Are my uploaded PDF files kept private and secure?', answer: 'Yes. All processing is protected by SSL encryption and executed in short-lived memory sessions. Your files are automatically deleted and are never stored or shared.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/combine-pdf-files-online': {
+    toolName: 'Combine PDF Files Online',
+    category: 'PDF Tools',
+    overview: 'You can combine pdf files online in seconds directly inside your web browser without downloading desktop software or installing complex printer drivers. Fast, secure, and cross-platform on Windows, Mac, Chromebook, and mobile.',
+    topBody: [
+      'You can combine pdf files online in seconds directly inside your web browser without downloading heavy desktop software, waiting on bloated installers, or configuring complex print drivers. MakePDFRight provides an agile, browser-based PDF combiner that works effortlessly on Windows, macOS, Linux, ChromeOS, iOS, and Android. Whether you are on a locked-down work laptop or a lightweight mobile device, you can join multiple PDF documents into a single organized file anywhere with an internet connection.',
+      'Traditional desktop PDF editors like Adobe Acrobat require costly licenses, disk space, and system updates. By contrast, our online PDF combiner uses high-performance web technology to assemble document object streams in real time. You get instant thumbnail reordering, lossless vector text preservation, and rapid downloads without taking up disk space or installing third-party utilities.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Drop Files in Browser', desc: 'Drag and drop your PDF documents into the online upload zone from any computer or mobile phone.' },
+      { step: 2, title: 'Organize Online Grid', desc: 'Use the interactive visual preview to arrange your files in the exact order you need.' },
+      { step: 3, title: 'Instant Online Merge', desc: 'Click "Merge PDF" to stitch files together and download your combined document in seconds.' }
+    ],
+    benefits: [
+      { title: 'Zero Installation Required', desc: 'Works 100% inside your web browser with no executable downloads, plugins, or software setup.' },
+      { title: 'Universal Cross-Device Access', desc: 'Seamlessly combine PDFs on Mac, Windows, Linux, Chromebook, iPhone, iPad, and Android tablets.' },
+      { title: 'No Bloatware or System Slowdown', desc: 'Saves disk space and system memory by processing documents in-browser without background services.' },
+      { title: 'High-Performance Stream Stitching', desc: 'Merges document object trees directly without re-compression or loss of visual clarity.' }
+    ],
+    useCases: [
+      'Combining work reports on corporate laptops where software installation is restricted',
+      'Merging homework PDFs and syllabus handouts on a school Chromebook',
+      'Joining receipts and photos into a single PDF while on the go via mobile browser',
+      'Consolidating project blueprints and client briefs on Mac or Windows workstations'
+    ],
+    faqs: [
+      { question: 'Why should I combine PDF files online instead of installing desktop software?', answer: 'Online PDF merging requires zero disk space, no expensive software licenses (like Adobe Acrobat), and no software updates. It works instantly across any computer, tablet, or smartphone directly in your web browser.' },
+      { question: 'Do I need to install browser plugins or extensions to use this?', answer: 'No. MakePDFRight operates natively using modern web standards. You do not need any browser extensions, Java applets, or third-party add-ons.' },
+      { question: 'Does this online PDF combiner work on mobile phones and tablets?', answer: 'Yes! The interface is fully responsive and optimized for touchscreens on iOS (iPhone/iPad) and Android devices without requiring an app store download.' },
+      { question: 'What web browsers are compatible with MakePDFRight?', answer: 'Our online tool works on Google Chrome, Apple Safari, Mozilla Firefox, Microsoft Edge, Opera, and all other modern HTML5 web browsers.' },
+      { question: 'How fast does the online PDF merging process take?', answer: 'Most PDF combinations take less than 3 seconds to complete. The files are assembled rapidly in browser memory and made available for instant download.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-multiple-pdf-files-into-one': {
+    toolName: 'Merge Multiple PDF Files Into One',
+    category: 'PDF Tools',
+    overview: 'When you need to merge multiple pdf files into one document—whether you have 3, 10, 20, or dozens of files—MakePDFRight makes batch PDF consolidation effortless with no file limits and zero quality loss.',
+    topBody: [
+      'When you need to merge multiple pdf files into one document—whether you have 3, 10, 20, or even more separate PDFs—MakePDFRight makes batch document consolidation seamless and stress-free. Many online PDF tools place strict caps that restrict you to merging only two or three files at a time, forcing you into tedious repetitive steps. MakePDFRight removes those barriers by letting you upload and combine large collections of PDF documents in a single streamlined batch.',
+      'Our multi-document processor handles extensive multi-page binders, annual financial dossiers, real estate portfolios, and medical record batches with high stability. Drag and drop dozens of files at once, organize them intuitively on the visual grid, and assemble one comprehensive master PDF document with consistent formatting throughout.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Batch Upload All PDFs', desc: 'Select multiple PDF files simultaneously (3, 10, 20+ documents) and drop them into the tool.' },
+      { step: 2, title: 'Visual Batch Sorting', desc: 'Drag and drop file cards to arrange your documents in chronological, numerical, or custom order.' },
+      { step: 3, title: 'Create Single Master PDF', desc: 'Click "Merge PDF" to unite all documents into a single consolidated PDF file.' }
+    ],
+    benefits: [
+      { title: 'Large Batch Multi-File Support', desc: 'Combine dozens of PDF files simultaneously in one swift pass without repetitive single-file merges.' },
+      { title: 'No Arbitrary Document Caps', desc: 'Merge 3, 10, 20, or 50+ files without hitting arbitrary paywalls or trial quotas.' },
+      { title: 'Intuitive Multi-Item Reordering', desc: 'Easily manage large batches with draggable thumbnail cards and instant sequence adjustments.' },
+      { title: 'Memory-Efficient Engine', desc: 'Engineered to handle high document volumes smoothly without crashing your browser or dropping pages.' }
+    ],
+    useCases: [
+      'Combining 12 monthly bank or credit card statements into an annual accounting archive',
+      'Merging dozens of medical records, test results, and doctor notes into a patient binder',
+      'Consolidating real estate purchase contracts, inspection reports, and title deeds',
+      'Bundling multi-chapter educational textbooks and course materials into a master study guide'
+    ],
+    faqs: [
+      { question: 'How many PDF files can I merge into one document at the same time?', answer: 'You can merge 3, 10, 20, or even 50+ PDF files in a single batch. MakePDFRight has no artificial file count restrictions, allowing you to combine as many files as your workflow requires.' },
+      { question: 'What is the maximum file size limit for merging multiple PDFs?', answer: 'You can comfortably upload individual files up to 100MB each and combine multi-hundred-megabyte batches directly in your browser without performance degradation.' },
+      { question: 'How do I ensure the multiple PDFs stay in the right chronological order?', answer: 'Once your files are uploaded, our visual grid displays each document with a preview card. Simply drag and drop the cards into your desired chronological or numerical order before clicking merge.' },
+      { question: 'Can I combine PDFs that have different page orientations (portrait and landscape)?', answer: 'Yes. Each document in your batch preserves its original page dimensions and orientation. Portrait and landscape pages blend seamlessly into the final unified PDF.' },
+      { question: 'Will merging 10+ PDF files into one make the output file too large to email?', answer: 'Combining many files naturally creates a larger document. If your merged PDF exceeds email attachment limits, you can run it through our free Compress PDF tool to shrink the size while keeping text sharp.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-pdf-and-word-into-one-file': {
+    toolName: 'Merge PDF and Word Into One File',
+    category: 'PDF Tools',
+    overview: 'Looking to merge pdf and word document files into a single unified PDF? Combine PDF, Word (DOCX), and image files together online for free without having to convert each file individually first.',
+    topBody: [
+      'Looking for a fast, free way to merge pdf and word document files into a single unified PDF without manually converting each file first? Most traditional PDF merging tools only accept pure PDF files, forcing you to find a Word converter, convert every .docx file, and then combine the results. MakePDFRight eliminates that hassle by providing multi-format document merging that lets you combine PDF documents, Microsoft Word files (.docx, .doc), and image attachments (.jpg, .png) together in one step.',
+      'Whether you need to combine a Word cover letter with a PDF resume, attach Word contract amendments to a signed PDF agreement, or append photo receipts to a project proposal, our tool unifies your mixed-format files seamlessly into one professional PDF document.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF & Word Files', desc: 'Select your PDF documents alongside Word (.docx, .doc) files and images (JPG, PNG).' },
+      { step: 2, title: 'Organize Mixed Formats', desc: 'Drag and drop file cards to arrange your Word documents, PDFs, and images in exact order.' },
+      { step: 3, title: 'Merge to Unified PDF', desc: 'Click "Merge PDF" to assemble your mixed files into a single, polished master PDF document.' }
+    ],
+    benefits: [
+      { title: 'Mixed-Format Document Support', desc: 'Combine PDF, DOCX, DOC, JPG, JPEG, and PNG files together without preliminary conversion steps.' },
+      { title: 'Saves Time & Eliminates Workflows', desc: 'Avoid having to convert Word to PDF first and then merge; do it all in a single click.' },
+      { title: 'Preserves Layout & Visual Structure', desc: 'Maintains clear document presentation, margins, and typography across all combined sections.' },
+      { title: '100% Free & Browser-Based', desc: 'No Microsoft Office installation, Adobe subscription, or account registration required.' }
+    ],
+    useCases: [
+      'Combining a Word cover letter (.docx) with a PDF resume and portfolio attachments',
+      'Merging a Word legal agreement with signed PDF signature pages and scanned ID images',
+      'Consolidating Word project proposals with PDF financial statements and charts',
+      'Attaching JPG/PNG photo receipts and invoices to a Word expense report'
+    ],
+    faqs: [
+      { question: 'Which file formats can I merge together into a single PDF?', answer: 'You can combine PDF documents, Microsoft Word files (.docx, .doc), and image files (JPG, JPEG, PNG, WebP) together into one unified master PDF.' },
+      { question: 'Do I need Microsoft Word installed on my computer to merge DOCX with PDF?', answer: 'No. The entire process takes place online inside your web browser. You do not need Microsoft Office, Word, or any third-party desktop software installed.' },
+      { question: 'How does the tool convert Word documents into PDF format during merging?', answer: 'Our system automatically processes and formats Word document structures into standard PDF pages before stitching them with your other PDF and image files in your chosen order.' },
+      { question: 'Can I also include JPG or PNG image files alongside my PDF and Word files?', answer: 'Yes! You can mix image files (such as scanned receipts, photos, or diagrams) with your Word documents and PDFs in any sequence you prefer.' },
+      { question: 'Will the original fonts and formatting in my Word document be preserved?', answer: 'Yes. The generated PDF preserves clean typography, paragraph formatting, and clear page layout, ensuring your final combined document looks neat and professional.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-scanned-pdf-pages': {
+    toolName: 'Merge Scanned PDF Pages',
+    category: 'PDF Tools',
+    overview: 'Easily merge scanned pdf pages or mobile camera captures into one unified document with high visual fidelity, crisp contrast, and zero compression degradation.',
+    topBody: [
+      'If you need to merge scanned pdf pages from a flatbed scanner, office copier, or smartphone scanning app, MakePDFRight preserves every visual detail without pixelation or destructive re-compression. Scanned documents often consist of high-resolution raster images that conventional merging tools degrade through aggressive re-encoding. Our specialized scanning assembly engine joins multi-page paper scans, signed receipts, and architectural blueprints into one cohesive file while maintaining full DPI sharpness and readable text contrast.',
+      'Whether your scans are in color, grayscale, or black-and-white, MakePDFRight maintains uniform page dimensions, clears up page sequences, and ensures every stamp, signature, and barcode remains crisp and legible for archival or official submission.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Scanned Documents', desc: 'Select your individual scanned PDF pages or mobile camera scan files.' },
+      { step: 2, title: 'Verify & Reorder Pages', desc: 'Check page thumbnails and drag cards to match the physical document page order.' },
+      { step: 3, title: 'Assemble & Download', desc: 'Click "Merge PDF" to produce a single high-resolution scanned document.' }
+    ],
+    benefits: [
+      { title: 'Zero Re-compression Artifacts', desc: 'Maintains original scan resolution (300+ DPI) without adding blurriness or JPEG artifacting.' },
+      { title: 'Preserves Signatures & Barcodes', desc: 'Ensures handwritten signatures, fine-line stamps, and 2D barcodes remain razor-sharp.' },
+      { title: 'Consistent Page Geometry', desc: 'Harmonizes varying scan sizes (Letter, Legal, A4) into a clean, uniform multi-page PDF.' },
+      { title: '100% Client-Side Confidentiality', desc: 'Sensitive paper scans (medical bills, tax forms, IDs) are processed privately without server storage.' }
+    ],
+    useCases: [
+      'Combining individual pages of a multi-page handwritten contract or lease agreement',
+      'Merging smartphone scans of receipts, medical invoices, and reimbursement forms',
+      'Consolidating scanned historical archives, certificates, and genealogical records',
+      'Assembling multi-page architectural blueprints or engineering schematics'
+    ],
+    faqs: [
+      { question: 'Will merging my scanned PDF pages reduce the scan quality or make text blurry?', answer: 'No. MakePDFRight merges document page streams losslessly without re-encoding your scanned images. All original DPI resolutions, sharp text edges, and fine line work remain 100% intact.' },
+      { question: 'Can I combine scans from my iPhone or Android camera with regular PDFs?', answer: 'Yes. You can mix scanned PDFs created with mobile scanning apps (like Apple Notes, Adobe Scan, or Google Drive) with standard PDF files in any order.' },
+      { question: 'What happens if my scanned pages have different dimensions or orientations?', answer: 'Our merge engine preserves each page’s individual dimensions and orientation (portrait or landscape). You can also use our Organize PDF tool if you need to rotate any upside-down scans.' },
+      { question: 'Is there a limit on how many scanned pages I can combine into one PDF?', answer: 'There is no strict page limit. You can merge dozens of high-resolution scanned pages at once without arbitrary batch caps or watermarks.' },
+      { question: 'Are my confidential paper scans protected when using MakePDFRight?', answer: 'Yes. Your scans are processed securely in temporary local browser buffers and automatically wiped from memory upon completion.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-pdf-on-iphone': {
+    toolName: 'Merge PDF on iPhone',
+    category: 'PDF Tools',
+    overview: 'Learn how to merge pdf on iphone in seconds using your mobile web browser without downloading third-party apps from the App Store or paying monthly in-app subscriptions.',
+    topBody: [
+      'Need to merge pdf on iphone without downloading ad-heavy App Store apps, paying recurring subscriptions, or wrestling with complex shortcut automations? MakePDFRight works directly inside mobile Safari, Chrome, and iOS web browsers. You can seamlessly access files stored in your iCloud Drive, Apple Files app, or local device storage, organize them with intuitive touch gestures, and download a unified PDF file right back to your iPhone in seconds.',
+      'iOS users frequently encounter roadblocks trying to combine documents on the go. Our touch-optimized mobile interface eliminates these headaches with responsive drag-and-drop file sorting, instant thumbnail rendering, and immediate saving directly to your Files app.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Open in Safari or Chrome', desc: 'Visit MakePDFRight on your iPhone and tap the upload area to browse files from your Apple Files app or iCloud.' },
+      { step: 2, title: 'Touch-Reorder Documents', desc: 'Tap and hold document cards to arrange your files in the exact sequence you want.' },
+      { step: 3, title: 'Merge & Save to iPhone', desc: 'Tap "Merge PDF" and instantly save the combined document to your Downloads or iCloud Drive.' }
+    ],
+    benefits: [
+      { title: 'No App Store Downloads', desc: 'Runs directly in Safari, Chrome, or Firefox without installing extra apps or using phone storage.' },
+      { title: 'Full iCloud & Files App Integration', desc: 'Directly select documents from iCloud Drive, Google Drive, Dropbox, or "On My iPhone".' },
+      { title: 'Touch-Optimized Responsive UI', desc: 'Fluid mobile touch targets and gesture-based sorting designed specifically for iOS screens.' },
+      { title: 'Zero In-App Purchases or Subscriptions', desc: '100% free with no trial paywalls, subscription popups, or export limitations.' }
+    ],
+    useCases: [
+      'Combining flight tickets, hotel reservations, and travel itineraries while at the airport',
+      'Merging class notes, homework PDFs, and lecture slides directly on your iPhone or iPad',
+      'Stitching together signed client documents and photos while working in the field',
+      'Consolidating monthly bank statements downloaded from mobile banking apps'
+    ],
+    faqs: [
+      { question: 'Do I need to download an app from the App Store to merge PDFs on iPhone?', answer: 'No! MakePDFRight works 100% in mobile Safari, Chrome, or any iOS web browser. You do not need to install any apps or pay for App Store subscriptions.' },
+      { question: 'How do I upload PDFs from my iPhone Files app or iCloud Drive?', answer: 'Simply tap the upload zone in Safari. Your iPhone will open the native iOS file picker, allowing you to select PDFs from iCloud Drive, Google Drive, Dropbox, or "On My iPhone".' },
+      { question: 'Where does the merged PDF save on my iPhone?', answer: 'When you tap download, Safari saves the file to your iPhone’s "Downloads" folder in the Files app. You can view, share, AirDrop, or email it immediately.' },
+      { question: 'Can I reorder PDF files using touch controls on an iPhone screen?', answer: 'Yes! The file list is touch-responsive. Simply touch and drag any file thumbnail to rearrange the document order before merging.' },
+      { question: 'Does merging PDFs on iPhone work on iPad as well?', answer: 'Yes. MakePDFRight works identically on iPadOS in Safari with full support for Apple Pencil, split-screen multitasking, and drag-and-drop.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-pdf-in-order': {
+    toolName: 'Merge PDF in Order',
+    category: 'PDF Tools',
+    overview: 'MakePDFRight lets you merge pdf in order with precise visual sequence control. Drag and drop thumbnail cards to set your exact page hierarchy and ensure no pages are scrambled.',
+    topBody: [
+      'When assembling a critical presentation, legal submission, or financial binder, you need to merge pdf in order without worrying about scrambled pages or inverted chapters. Many basic merging tools blindly concatenate files based on unpredictable upload timestamps or operating system file names. MakePDFRight gives you full manual and visual control: upload your documents, view clear visual thumbnails, and simply drag and drop the cards into your exact desired order before generating the final PDF.',
+      'Our interactive sequencing grid prevents accidental page inversions and pagination mismatches. You can preview file names, page counts, and cover thumbnails in real time, giving you total confidence that your combined document will read seamlessly from page 1 to the end.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload All Documents', desc: 'Drop all your PDF files into the tool at once. Each file appears as a movable card.' },
+      { step: 2, title: 'Drag & Drop to Sequence', desc: 'Drag cards left, right, up, or down to establish the exact sequential page flow you desire.' },
+      { step: 3, title: 'Generate Ordered PDF', desc: 'Click "Merge PDF" to bind your files in the exact visual sequence displayed on screen.' }
+    ],
+    benefits: [
+      { title: 'Intuitive Drag-and-Drop Sorting', desc: 'Effortlessly rearrange document sequence using visual cards and smooth animation feedback.' },
+      { title: 'Real-Time Thumbnail Previews', desc: 'Inspect first-page visual thumbnails to verify document contents and avoid ordering mistakes.' },
+      { title: 'Zero Scrambling or Pagination Errors', desc: 'Merges documents strictly in the exact visual order shown on your screen without alteration.' },
+      { title: 'Add & Remove Files Dynamically', desc: 'Easily insert additional files into the middle of your queue or remove unwanted items in one click.' }
+    ],
+    useCases: [
+      'Arranging chapters, table of contents, and appendices for an academic thesis or book',
+      'Sequencing monthly financial statements and tax documents in strict chronological order',
+      'Ordering cover letter, resume, work samples, and references for a job application package',
+      'Structuring discovery documents, affidavits, and exhibits in numbered legal bundles'
+    ],
+    faqs: [
+      { question: 'How do I change the order of files before merging them?', answer: 'Once your PDF files are uploaded, each file appears as a card on screen. Simply click and drag (or touch and drag on mobile) any card to move it forward or backward in the sequence.' },
+      { question: 'Can I add another file into the middle of the list after uploading?', answer: 'Yes. You can add more files at any time and drag the newly added cards to any position in your sequence before clicking "Merge PDF".' },
+      { question: 'Will the internal page order of each individual PDF file remain intact?', answer: 'Yes. Every individual PDF maintains its exact internal page sequence (e.g., page 1, 2, 3...) while being joined in the master order you arranged.' },
+      { question: 'What happens if I accidentally upload files in reverse order?', answer: 'You don’t have to re-upload. Simply drag the cards on screen to reverse or reorganize the entire sequence in seconds.' },
+      { question: 'Can I delete a specific file from the order if I made a mistake?', answer: 'Yes. Each document card has a quick remove button (trash/X icon) allowing you to take out any file without starting over.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-protected-pdf-files': {
+    toolName: 'Merge Password Protected PDF',
+    category: 'PDF Tools',
+    overview: 'Learn how to merge password protected pdf files and secured documents online for free. Combine unlocked PDFs or remove master passwords safely for seamless consolidation.',
+    topBody: [
+      'Attempting to merge password protected pdf files or secured PDF documents often results in error messages or blocked uploads because the file contents are cryptographically encrypted. To merge locked PDFs, the document must first have its owner or user password entered or removed so that our tool can parse and combine the page streams into a unified document. MakePDFRight provides clear, seamless workflows to help you consolidate secured PDF files safely in your browser.',
+      'If your PDF is protected by an open password, simply enter the password or unlock the document before combining. Once authorized, our merger integrates the pages seamlessly while preserving text clarity, bookmarks, and layout fidelity with zero data leaks.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Unlock or Provide Password', desc: 'Ensure you have the authorization password for any password-protected PDF files.' },
+      { step: 2, title: 'Upload & Arrange Files', desc: 'Drop your PDF documents into the upload grid and organize them into your desired order.' },
+      { step: 3, title: 'Merge to Consolidated PDF', desc: 'Click "Merge PDF" to generate a clean, consolidated master document with all pages unified.' }
+    ],
+    benefits: [
+      { title: 'Safe Cryptographic Handling', desc: 'Processes PDF encryption algorithms (AES-128, AES-256) securely in browser memory.' },
+      { title: 'Zero Password Storage or Logging', desc: 'Passwords and sensitive keys are never saved, logged, or transmitted to third parties.' },
+      { title: 'Consolidates Mixed Security Docs', desc: 'Combine previously protected financial statements, payslips, and standard PDFs into one file.' },
+      { title: 'High-Fidelity Page Output', desc: 'Produces a pristine, uncorrupted master PDF ready for printing, archiving, or sharing.' }
+    ],
+    useCases: [
+      'Merging password-protected monthly bank e-statements and utility bills into an annual audit file',
+      'Combining encrypted payroll payslips and tax W-2 forms for accounting records',
+      'Consolidating password-locked medical health reports into a unified personal record',
+      'Joining encrypted real estate escrow files and mortgage disclosures into a single binder'
+    ],
+    faqs: [
+      { question: 'Can I merge a PDF that is password-protected?', answer: 'Yes, provided you know the document password or unlock the file first. PDF encryption prevents automated tools from reading pages without valid authorization.' },
+      { question: 'Why do merging tools fail when uploading a locked PDF?', answer: 'Encrypted PDFs use cryptographic keys (like AES-256) that scramble the file content. Without unlocking the document first, the page streams cannot be read or merged into a new PDF.' },
+      { question: 'How do I unlock a password-protected PDF before merging?', answer: 'Open the PDF in your browser or PDF viewer, enter your password, and choose "Print to PDF" or "Save As" without a password. Then upload the unlocked PDF to MakePDFRight to merge it.' },
+      { question: 'Does MakePDFRight store my PDF passwords or documents?', answer: 'No. MakePDFRight never logs, stores, or transmits your passwords or file data. All processing occurs in temporary, isolated browser sessions.' },
+      { question: 'Can I set a new password on the merged PDF file after combining?', answer: 'Yes. Once your PDF documents are merged and downloaded, you can apply new password protection or encryption to your master file.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/how-to-merge-pdf-files': {
+    toolName: 'How to Merge PDF Files',
+    category: 'PDF Tools',
+    overview: 'Learn how to merge pdf files into a single document in 3 easy steps online for free. No software downloads, registration, or technical expertise required.',
+    topBody: [
+      'Learning how to merge pdf files into one document is one of the most common digital tasks, yet traditional software like Adobe Acrobat often makes it frustrating by charging expensive monthly subscriptions. With MakePDFRight, combining your files takes just a few seconds and works directly inside any web browser. You do not need to download executables, sign up for an account, or possess technical skills.',
+      'Simply follow these quick steps: First, select or drag and drop all the PDF documents you want to join into the tool above. Second, drag and drop the preview cards on screen to set your desired page sequence. Third, click the "Merge PDF" button to download your combined, perfectly ordered PDF document immediately.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Your PDF Files', desc: 'Drag and drop two or more PDF documents into the upload zone above from your PC, Mac, or phone.' },
+      { step: 2, title: 'Arrange Document Order', desc: 'Drag the visual thumbnail cards to organize your files in the exact sequence you want them to appear.' },
+      { step: 3, title: 'Download Merged PDF', desc: 'Click "Merge PDF" to combine all pages into a single file and download it instantly.' }
+    ],
+    benefits: [
+      { title: 'Zero Software Installation', desc: 'Works 100% inside your web browser on Windows, Mac, iOS, Android, and Linux without installers.' },
+      { title: 'Simple 3-Step Workflow', desc: 'Intuitive drag-and-drop interface makes combining documents quick and effortless for anyone.' },
+      { title: 'No Account or Sign-Up Needed', desc: 'Start merging files immediately without creating an account or providing your email address.' },
+      { title: 'High-Fidelity Document Preservation', desc: 'Preserves your original fonts, layouts, vector illustrations, and high-resolution images intact.' }
+    ],
+    useCases: [
+      'Combining individual contract sections and appendix pages into a master agreement',
+      'Joining multiple school or university assignments and research papers into one submission',
+      'Assembling monthly bank statements and expense receipts for tax season preparation',
+      'Merging job application documents including resume, cover letter, and reference letters'
+    ],
+    faqs: [
+      { question: 'What is the fastest way to merge PDF files for free?', answer: 'The fastest way is using an online browser-based tool like MakePDFRight. Simply upload your PDF files to the drop zone above, arrange them in your desired order, and click "Merge PDF" to download the finished document in seconds.' },
+      { question: 'How do I merge two PDF files into one without Adobe Acrobat?', answer: 'You do not need Adobe Acrobat. MakePDFRight provides full PDF combining functionality directly in your browser for free, without requiring paid licenses or desktop software installations.' },
+      { question: 'Can I merge PDF files on both Windows and Mac using the same method?', answer: 'Yes! Because MakePDFRight runs inside any modern web browser (such as Chrome, Safari, Edge, or Firefox), the merging process is identical across Windows, macOS, Chromebooks, and Linux.' },
+      { question: 'How do I combine PDF files on my mobile phone?', answer: 'Open MakePDFRight in Safari on iPhone or Chrome on Android, tap the upload area to select PDFs from your device storage or cloud drive, arrange the cards, and tap "Merge PDF".' },
+      { question: 'Will merging PDF files alter or compress my original formatting?', answer: 'No. The merging engine stitches existing PDF page object trees directly, preserving all vector typography, page dimensions, color profiles, and embedded graphics exactly as in your original files.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-jpg-and-pdf-into-one-file': {
+    toolName: 'Merge JPG and PDF Into One File',
+    category: 'PDF Tools',
+    overview: 'Easily merge jpg and pdf into one file online for free. Combine photos, scanned receipts, and PDF documents together without preliminary image conversions.',
+    topBody: [
+      'When you need to merge jpg and pdf into one file, MakePDFRight eliminates the hassle of converting your images to standalone PDFs beforehand. Traditional workflows force you to convert every JPG, JPEG, or PNG image with one tool and then open another tool to merge them with your existing PDFs. Our unified document processor accepts both PDF files and image formats simultaneously in a single upload stream.',
+      'Each image is automatically scaled to standard document dimensions while preserving high photographic clarity and color depth. Whether you are assembling photo receipts with expense reports or adding photographic ID scans to a signed contract, you get a clean, continuous PDF document ready for sharing.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload JPG & PDF Files', desc: 'Select and upload your JPG/PNG images alongside your standard PDF documents in one batch.' },
+      { step: 2, title: 'Arrange Mixed Sequence', desc: 'Drag and drop the thumbnail cards to position your photos and PDF pages in your exact preferred order.' },
+      { step: 3, title: 'Generate Single PDF', desc: 'Click "Merge PDF" to convert photos to PDF pages and bind everything into a unified document.' }
+    ],
+    benefits: [
+      { title: 'Mixed-Format Uploads', desc: 'Upload JPG, JPEG, PNG, and PDF files together without separate conversion steps.' },
+      { title: 'Auto-Scaling & Alignment', desc: 'Smart aspect-ratio scaling fits photographs and scans neatly onto standardized PDF pages.' },
+      { title: 'High Photo Resolution', desc: 'Preserves sharp photographic detail and contrast without blurring or aggressive downsampling.' },
+      { title: 'Fast Browser Processing', desc: 'Files are processed locally and securely in isolated browser memory with zero permanent server storage.' }
+    ],
+    useCases: [
+      'Attaching JPG photo receipts and invoices directly behind a PDF expense claim report',
+      'Combining scanned driver’s license or passport photos with PDF loan applications',
+      'Inserting high-resolution site inspection photos into a PDF architectural report',
+      'Bundling artwork samples, certificates, and written PDF recommendations for portfolios'
+    ],
+    faqs: [
+      { question: 'How do I combine JPG images and PDF files together in one document?', answer: 'Simply drag and drop both your JPG images and PDF files into the upload area above. Arrange them in your preferred sequence using the interactive preview cards, then click "Merge PDF" to generate your combined file.' },
+      { question: 'Do I need to convert my JPG images to PDF before merging them?', answer: 'No. MakePDFRight automatically converts and embeds your JPG and PNG images into standard PDF page objects during the merge process, saving you from doing manual preliminary conversions.' },
+      { question: 'Can I adjust the order of images and PDF pages before creating the file?', answer: 'Yes! Each uploaded image and PDF file is represented by a movable card. You can drag and drop cards to place images before, after, or between your PDF documents.' },
+      { question: 'What other image formats are supported besides JPG?', answer: 'You can upload JPG, JPEG, PNG, and WebP image formats alongside your PDF files.' },
+      { question: 'What is the difference between this tool and the Image to PDF tool?', answer: 'The Image to PDF tool is optimized for converting collections of standalone photos into a PDF, whereas this page allows you to mix existing multi-page PDF documents and images together in any sequence.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Image to PDF', path: '/image-to-pdf', desc: 'Convert JPG, PNG, and photos into a PDF document.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' }
+    ]
+  },
+  '/merge-pdf-without-software': {
+    toolName: 'Merge PDF Without Software',
+    category: 'PDF Tools',
+    overview: 'Looking to merge pdf without installing software on locked-down work laptops or school computers? Combine PDF files 100% online directly in your browser with zero administrator rights required.',
+    topBody: [
+      'If you need to merge pdf without installing software on a restricted work computer, school Chromebook, or shared public terminal, MakePDFRight offers a 100% browser-based solution. Enterprise IT departments often lock down employee devices with strict group policies that block software downloads, third-party executable files, and administrative installation privileges. Our web tool runs entirely inside standard web browsers without requiring elevated permissions or setup packages.',
+      'You can combine multi-page corporate reports, legal documents, and project proposals without waiting for IT ticket approvals or purchasing software licenses. Everything is processed directly in browser memory with enterprise-grade SSL encryption and automatic session purging.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Access in Any Browser', desc: 'Open MakePDFRight in Chrome, Edge, Safari, or Firefox without installing desktop apps.' },
+      { step: 2, title: 'Upload & Order Files', desc: 'Drag your PDF documents into the browser window and arrange the file sequence visually.' },
+      { step: 3, title: 'Instant In-Browser Merge', desc: 'Click "Merge PDF" to stitch pages together and download your completed file immediately.' }
+    ],
+    benefits: [
+      { title: 'No Admin Privileges Needed', desc: 'Bypasses IT installation restrictions on locked-down corporate laptops and educational devices.' },
+      { title: 'Zero Disk Space Used', desc: 'Requires no local hard drive installation, background services, or registry modifications.' },
+      { title: 'Universal Browser Compatibility', desc: 'Operates smoothly across Chrome, Microsoft Edge, Safari, Firefox, Opera, and Brave.' },
+      { title: 'Strict Enterprise Privacy', desc: 'Sensitive corporate documents are handled in memory buffers and never retained or shared.' }
+    ],
+    useCases: [
+      'Merging workplace reports on locked-down corporate laptops where downloads are blocked',
+      'Combining student essays and syllabus documents on managed school Chromebooks',
+      'Consolidating PDF files on shared public computers or library workstations',
+      'Joining client documents on temporary loaner devices or virtual desktop environments (VDI)'
+    ],
+    faqs: [
+      { question: 'Can I merge PDF files on a work computer without administrator rights?', answer: 'Yes! MakePDFRight runs 100% inside your standard web browser (Chrome, Edge, Safari, Firefox). It does not require administrative privileges, software downloads, or executable installations.' },
+      { question: 'Will my company’s firewall block this online PDF merger?', answer: 'MakePDFRight uses standard secure HTTPS web protocols (port 443), making it accessible across typical enterprise networks and corporate firewalls without special network configuration.' },
+      { question: 'Is it safe to merge sensitive business documents online without software?', answer: 'Yes. All file processing occurs using client-side memory buffers and secure encrypted sessions. Your files are never stored, logged, or indexed on external servers.' },
+      { question: 'Do I need to install any browser plugins, Java, or Flash to use this tool?', answer: 'No. MakePDFRight is built with modern HTML5 web standards and requires zero browser extensions, plugins, or legacy runtime environments.' },
+      { question: 'How does merging without software compare to desktop applications like Adobe Acrobat?', answer: 'Online merging provides the same high output quality and page structure as desktop tools like Adobe Acrobat, but works instantly on any device with zero software cost or disk space usage.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' }
+    ]
+  },
+  '/merge-pdf-keep-bookmarks': {
+    toolName: 'Merge PDF Keep Bookmarks',
+    category: 'PDF Tools',
+    overview: 'Learn how to merge pdf keep bookmarks, hyperlinks, and document formatting intact. Combine structured PDF files while preserving crisp vector typography and layout hierarchy.',
+    topBody: [
+      'When preparing complex legal briefs, technical documentation, or academic dissertations, being able to merge pdf keep bookmarks and maintain strict document structure is essential for clear navigation. Many basic merging tools strip away page metadata, corrupt internal hyperlinks, or flatten high-resolution vector text during the combination process. MakePDFRight preserves the internal object architecture of your PDF documents with high fidelity.',
+      'Our document joining engine transfers original page tree structures, embedded OpenType/TrueType fonts, color spaces, and vector assets directly into the unified master PDF. This ensures your tables of contents, page numbers, and reading order flow smoothly without visual distortion or formatting degradation.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Structured PDFs', desc: 'Upload your formatted PDF documents, manuals, or multi-chapter guides.' },
+      { step: 2, title: 'Verify Sequence & Layout', desc: 'Arrange document cards to match your master table of contents and chapter sequence.' },
+      { step: 3, title: 'Merge with High Fidelity', desc: 'Click "Merge PDF" to combine all page trees while preserving vector clarity and formatting.' }
+    ],
+    benefits: [
+      { title: 'Document Stream Preservation', desc: 'Maintains original vector outlines, embedded fonts, and page object hierarchies.' },
+      { title: 'Preserves Internal Page Links', desc: 'Retains intra-page references, link annotations, and text flow across merged sections.' },
+      { title: 'Zero Formatting or Margin Shifts', desc: 'Prevents text reflow, margin clipping, and page coordinate distortion across joined files.' },
+      { title: 'Professional Output Standard', desc: 'Generates ISO-compliant PDF documents ready for formal legal filing and commercial publishing.' }
+    ],
+    useCases: [
+      'Combining book chapters and appendices while preserving exact typographic layout and styling',
+      'Assembling complex legal discovery binders and court exhibits with strict pagination integrity',
+      'Merging technical engineering manuals, schematics, and parts catalogs with vector precision',
+      'Consolidating corporate governance charters, board resolutions, and financial schedules'
+    ],
+    faqs: [
+      { question: 'Will merging my PDF files preserve existing bookmarks and outlines?', answer: 'MakePDFRight preserves page object trees, font encodings, and layout metadata. When joining multiple distinct documents, each file’s page stream and visual formatting are integrated sequentially to maintain clean document navigation.' },
+      { question: 'Will internal links and annotations in my PDF still work after merging?', answer: 'Yes. Page-level annotations, external hyperlinks, and intra-page references within each document section are preserved during the merge process.' },
+      { question: 'Does merging PDFs cause font substitution or text reflow?', answer: 'No. MakePDFRight copies embedded font dictionaries directly into the output document, preventing font substitutions, missing glyphs, or unintended text reflow.' },
+      { question: 'Can I merge PDFs that have custom page sizes and trim boxes?', answer: 'Yes. Each source PDF’s specific MediaBox, CropBox, and page orientation are preserved individually so that standard, widescreen, or oversized pages display accurately.' },
+      { question: 'Is the final merged PDF compliant with standard PDF readers?', answer: 'Yes. The output is a standard, fully compliant PDF file that opens seamlessly in Adobe Acrobat Reader, Apple Preview, Google Chrome, web viewers, and commercial printing systems.' }
+    ],
+    relatedTools: [
+      { name: 'Merge PDF', path: '/merge', desc: 'Standard PDF merger for fast document combination.' },
+      { name: 'Organize PDF', path: '/organise', desc: 'Reorder, rotate, or delete individual pages within a PDF.' },
+      { name: 'Split PDF', path: '/split', desc: 'Extract or separate individual PDF pages into new documents.' },
+      { name: 'Compress PDF', path: '/compress', desc: 'Reduce PDF file size for easy emailing and storage.' }
+    ]
+  },
   '/split': {
     toolName: 'Split PDF',
     category: 'PDF Tools',

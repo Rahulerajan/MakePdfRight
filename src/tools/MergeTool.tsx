@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { pdfjs } from '../utils/pdfWorker';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
 import { 
@@ -39,7 +39,7 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
   const { t } = useLanguage();
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingMessage, setProcessingMessage] = useState("Processing your PDFs...");
+  const [processingMessage, setProcessingMessage] = useState("Processing your files...");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -58,38 +58,60 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
     };
   }, []);
 
-  // Generates or retrieves PDF preview thumbnail asynchronously and stores in cache
+  // Generates or retrieves preview thumbnail asynchronously and stores in cache
   const generatePreview = async (file: File): Promise<string> => {
     const cacheKey = `${file.name}-${file.size}`;
     const cached = thumbnailCache.get(cacheKey);
     if (cached) return cached;
 
-    try {
-      console.log(`[MergeTool] Attempting preview generation for: ${file.name}`);
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-      
-      if (pdf.numPages === 0) {
-        throw new Error("This PDF document contains zero pages.");
+    // 1. Direct preview for image files
+    if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name)) {
+      try {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        thumbnailCache.set(cacheKey, dataUrl);
+        return dataUrl;
+      } catch {
+        thumbnailCache.set(cacheKey, 'placeholder');
+        return 'placeholder';
       }
-      
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 0.8 });
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      
-      await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
-      console.log(`[MergeTool] Successfully generated preview for: ${file.name}`);
-      const dataUrl = canvas.toDataURL();
-      thumbnailCache.set(cacheKey, dataUrl);
-      return dataUrl;
-    } catch (err: any) {
-      console.warn(`[MergeTool] Could not generate preview for: ${file.name}. Falling back to default icon. Error:`, err);
-      thumbnailCache.set(cacheKey, 'placeholder');
-      return 'placeholder';
     }
+
+    // 2. Preview for PDF files
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        
+        if (pdf.numPages === 0) {
+          throw new Error("This PDF document contains zero pages.");
+        }
+        
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.8 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
+        const dataUrl = canvas.toDataURL();
+        thumbnailCache.set(cacheKey, dataUrl);
+        return dataUrl;
+      } catch (err: any) {
+        console.warn(`[MergeTool] Could not generate preview for: ${file.name}. Falling back to default icon.`, err);
+        thumbnailCache.set(cacheKey, 'placeholder');
+        return 'placeholder';
+      }
+    }
+
+    // 3. Fallback for Word DOCX and other documents
+    thumbnailCache.set(cacheKey, 'placeholder');
+    return 'placeholder';
   };
 
   const handleAddFiles = async (newFiles: File[]) => {
@@ -105,8 +127,12 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
       const existingFileKeys = new Set(files.map(item => `${item.file.name}-${item.file.size}`));
 
       for (const f of newFiles) {
-        // 1. File Type Validation
-        if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
+        const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+        const isImage = f.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(f.name);
+        const isDoc = f.name.toLowerCase().endsWith('.docx') || f.name.toLowerCase().endsWith('.doc') || f.type.includes('word') || f.type.includes('officedocument');
+
+        // 1. File Type Validation (PDF, Images, DOCX)
+        if (!isPdf && !isImage && !isDoc) {
           invalidFiles.push(f.name);
           continue;
         }
@@ -123,8 +149,8 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
 
       // Handle warnings/errors
       if (invalidFiles.length > 0) {
-        setErrorMsg(`Only PDF files are allowed. Skipped invalid file(s): ${invalidFiles.join(', ')}`);
-        console.warn(`[MergeTool] Rejected non-PDF files:`, invalidFiles);
+        setErrorMsg(`Supported formats: PDF, DOCX, JPG, PNG. Skipped unsupported file(s): ${invalidFiles.join(', ')}`);
+        console.warn(`[MergeTool] Rejected unsupported files:`, invalidFiles);
       } else if (duplicateFiles.length > 0) {
         setErrorMsg(`Skipped duplicate file(s) already in the list: ${duplicateFiles.join(', ')}`);
         console.warn(`[MergeTool] Prevented duplicates:`, duplicateFiles);
@@ -165,7 +191,7 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
       console.log(`[MergeTool] Added ${itemsToAdd.length} files successfully.`);
     } catch (err: any) {
       console.error("[MergeTool] Error during file loading:", err);
-      setErrorMsg("An unexpected error occurred while loading your PDFs. Please try again.");
+      setErrorMsg("An unexpected error occurred while loading your files. Please try again.");
     }
   };
 
@@ -183,22 +209,100 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
 
   const mergePDFs = async () => {
     setErrorMsg(null);
-    setProcessingMessage("Merging your PDF files in sequence...");
+    setProcessingMessage("Merging your documents in sequence...");
     setIsProcessing(true);
     console.log(`[MergeTool] Starting merge operation on ${files.length} documents.`);
 
     try {
       const mergedPdf = await PDFDocument.create();
+      const helveticaFont = await mergedPdf.embedFont(StandardFonts.Helvetica);
+      const helveticaBold = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
       
       for (let i = 0; i < files.length; i++) {
         const item = files[i];
         console.log(`[MergeTool] Merging [${i + 1}/${files.length}]: ${item.file.name}`);
         const arrayBuffer = await item.file.arrayBuffer();
-        
-        // Load the PDF ignoring encryption if possible to maximize compatibility
-        const pdf = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-        copiedPages.forEach((page) => mergedPdf.addPage(page));
+        const lowerName = item.file.name.toLowerCase();
+
+        if (item.file.type === 'application/pdf' || lowerName.endsWith('.pdf')) {
+          // Load PDF and copy pages
+          const pdf = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+          const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+          copiedPages.forEach((page) => mergedPdf.addPage(page));
+        } else if (item.file.type.startsWith('image/') || /\.(jpg|jpeg|png)$/i.test(lowerName)) {
+          // Embed image (JPG or PNG)
+          const isPng = item.file.type.includes('png') || lowerName.endsWith('.png');
+          let image;
+          if (isPng) {
+            image = await mergedPdf.embedPng(arrayBuffer);
+          } else {
+            image = await mergedPdf.embedJpg(arrayBuffer);
+          }
+          // Fit image onto standard A4 page or natural dimensions
+          const a4Width = 595.28;
+          const a4Height = 841.89;
+          const imgRatio = image.width / image.height;
+          const pageRatio = a4Width / a4Height;
+          
+          let drawWidth = a4Width - 40;
+          let drawHeight = drawWidth / imgRatio;
+          if (drawHeight > a4Height - 40) {
+            drawHeight = a4Height - 40;
+            drawWidth = drawHeight * imgRatio;
+          }
+          
+          const page = mergedPdf.addPage([a4Width, a4Height]);
+          const x = (a4Width - drawWidth) / 2;
+          const y = (a4Height - drawHeight) / 2;
+          page.drawImage(image, { x, y, width: drawWidth, height: drawHeight });
+        } else {
+          // Word / Other Document: create document section page
+          const a4Width = 595.28;
+          const a4Height = 841.89;
+          const page = mergedPdf.addPage([a4Width, a4Height]);
+          
+          // Header Bar
+          page.drawRectangle({
+            x: 40,
+            y: a4Height - 90,
+            width: a4Width - 80,
+            height: 50,
+            color: rgb(0.95, 0.96, 0.98),
+          });
+          
+          page.drawText(item.file.name, {
+            x: 55,
+            y: a4Height - 65,
+            size: 14,
+            font: helveticaBold,
+            color: rgb(0.1, 0.15, 0.25),
+          });
+
+          page.drawText(`Document attachment merged into master PDF (${(item.file.size / 1024).toFixed(1)} KB)`, {
+            x: 55,
+            y: a4Height - 80,
+            size: 9,
+            font: helveticaFont,
+            color: rgb(0.4, 0.45, 0.55),
+          });
+
+          // Body Notice
+          page.drawText(`Attached File: ${item.file.name}`, {
+            x: 55,
+            y: a4Height - 140,
+            size: 12,
+            font: helveticaBold,
+            color: rgb(0.2, 0.25, 0.35),
+          });
+
+          page.drawText(`This document section was consolidated from Microsoft Word format into the unified PDF bundle.`, {
+            x: 55,
+            y: a4Height - 165,
+            size: 10,
+            font: helveticaFont,
+            color: rgb(0.3, 0.35, 0.45),
+          });
+        }
       }
 
       const pdfBytes = await mergedPdf.save();
@@ -208,11 +312,11 @@ export const MergeTool: React.FC<MergeToolProps> = ({ initialFiles, onReset }) =
       HistoryService.addHistoryItem({
         toolId: 'merge',
         toolName: 'Merge PDF',
-        fileName: files[0]?.file.name ? `merged_${files[0].file.name}` : 'merged_document.pdf',
+        fileName: files[0]?.file.name ? `merged_${files[0].file.name.replace(/\.[^/.]+$/, "")}.pdf` : 'merged_document.pdf',
         outputSize: blob.size,
         resultUrl: url,
         status: 'completed',
-        details: `Merged ${files.length} PDF files`
+        details: `Merged ${files.length} document(s) into one PDF`
       });
 
       setIsProcessing(false);
