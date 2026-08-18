@@ -88,6 +88,10 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file, onReset }) =
   }, [file]);
 
   const convertToWord = async () => {
+    if (hasTextLayer === false) {
+      setIsScannedDetected(true);
+      return;
+    }
     setError(null);
     setIsProcessing(true);
     try {
@@ -112,6 +116,7 @@ export const PDFToWordTool: React.FC<PDFToWordToolProps> = ({ file, onReset }) =
 
       // If document is scanned / image-based with no real text objects
       if (totalExtractableChars === 0) {
+        setHasTextLayer(false);
         setIsProcessing(false);
         setIsScannedDetected(true);
         return;
