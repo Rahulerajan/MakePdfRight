@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { preloadTool } from '../../utils/preloadTools';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -204,6 +205,8 @@ export const Header = () => {
                     <Link
                       key={tool.path}
                       to={tool.path}
+                      onMouseEnter={() => preloadTool(tool.path)}
+                      onFocus={() => preloadTool(tool.path)}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary transition-all group"
                     >
                       <span className="text-slate-400 group-hover:text-primary transition-colors">{tool.icon}</span>
@@ -321,6 +324,8 @@ export const Header = () => {
                       <Link
                         key={tool.path}
                         to={tool.path}
+                        onMouseEnter={() => preloadTool(tool.path)}
+                        onFocus={() => preloadTool(tool.path)}
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 transition-colors group"
                       >
@@ -398,12 +403,12 @@ export const Footer = () => {
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">PDF Tools</h4>
             <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
-              <li><Link to="/merge" className="hover:text-primary transition-colors">Merge PDF</Link></li>
-              <li><Link to="/split" className="hover:text-primary transition-colors">Split PDF</Link></li>
-              <li><Link to="/compress" className="hover:text-primary transition-colors">Compress PDF</Link></li>
-              <li><Link to="/edit" className="hover:text-primary transition-colors">Edit PDF</Link></li>
-              <li><Link to="/organise" className="hover:text-primary transition-colors">Organize PDF</Link></li>
-              <li><Link to="/rotate" className="hover:text-primary transition-colors">Rotate PDF</Link></li>
+              <li><Link to="/merge" onMouseEnter={() => preloadTool('/merge')} onFocus={() => preloadTool('/merge')} className="hover:text-primary transition-colors">Merge PDF</Link></li>
+              <li><Link to="/split" onMouseEnter={() => preloadTool('/split')} onFocus={() => preloadTool('/split')} className="hover:text-primary transition-colors">Split PDF</Link></li>
+              <li><Link to="/compress" onMouseEnter={() => preloadTool('/compress')} onFocus={() => preloadTool('/compress')} className="hover:text-primary transition-colors">Compress PDF</Link></li>
+              <li><Link to="/edit" onMouseEnter={() => preloadTool('/edit')} onFocus={() => preloadTool('/edit')} className="hover:text-primary transition-colors">Edit PDF</Link></li>
+              <li><Link to="/organise" onMouseEnter={() => preloadTool('/organise')} onFocus={() => preloadTool('/organise')} className="hover:text-primary transition-colors">Organize PDF</Link></li>
+              <li><Link to="/rotate" onMouseEnter={() => preloadTool('/rotate')} onFocus={() => preloadTool('/rotate')} className="hover:text-primary transition-colors">Rotate PDF</Link></li>
             </ul>
           </div>
 
@@ -411,12 +416,12 @@ export const Footer = () => {
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Convert & AI</h4>
             <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
-              <li><Link to="/pdf-to-word" className="hover:text-primary transition-colors">PDF to Word</Link></li>
-              <li><Link to="/pdf-to-excel" className="hover:text-primary transition-colors">PDF to Excel</Link></li>
-              <li><Link to="/pdf-to-jpg" className="hover:text-primary transition-colors">PDF to JPG</Link></li>
-              <li><Link to="/image-to-pdf" className="hover:text-primary transition-colors">Image to PDF</Link></li>
-              <li><Link to="/generate-image" className="hover:text-primary transition-colors flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-primary" />AI Image Gen</Link></li>
-              <li><Link to="/transcribe" className="hover:text-primary transition-colors flex items-center gap-1.5"><Mic className="w-3 h-3 text-cyan-500" />Audio Transcribe</Link></li>
+              <li><Link to="/pdf-to-word" onMouseEnter={() => preloadTool('/pdf-to-word')} onFocus={() => preloadTool('/pdf-to-word')} className="hover:text-primary transition-colors">PDF to Word</Link></li>
+              <li><Link to="/pdf-to-excel" onMouseEnter={() => preloadTool('/pdf-to-excel')} onFocus={() => preloadTool('/pdf-to-excel')} className="hover:text-primary transition-colors">PDF to Excel</Link></li>
+              <li><Link to="/pdf-to-jpg" onMouseEnter={() => preloadTool('/pdf-to-jpg')} onFocus={() => preloadTool('/pdf-to-jpg')} className="hover:text-primary transition-colors">PDF to JPG</Link></li>
+              <li><Link to="/image-to-pdf" onMouseEnter={() => preloadTool('/image-to-pdf')} onFocus={() => preloadTool('/image-to-pdf')} className="hover:text-primary transition-colors">Image to PDF</Link></li>
+              <li><Link to="/generate-image" onMouseEnter={() => preloadTool('/generate-image')} onFocus={() => preloadTool('/generate-image')} className="hover:text-primary transition-colors flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-primary" />AI Image Gen</Link></li>
+              <li><Link to="/transcribe" onMouseEnter={() => preloadTool('/transcribe')} onFocus={() => preloadTool('/transcribe')} className="hover:text-primary transition-colors flex items-center gap-1.5"><Mic className="w-3 h-3 text-cyan-500" />Audio Transcribe</Link></li>
             </ul>
           </div>
 

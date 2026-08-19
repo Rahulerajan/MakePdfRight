@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../components/LanguageContext';
 import { SEO } from '../components/common/SEO';
 import { SEO_DATA } from '../constants/seoData';
+import { preloadTool } from '../utils/preloadTools';
 import { 
   FileStack, 
   Scissors, 
@@ -192,6 +193,8 @@ export const Home = () => {
               >
                 <Link 
                   to={tool.path}
+                  onMouseEnter={() => preloadTool(tool.path)}
+                  onFocus={() => preloadTool(tool.path)}
                   className="group relative flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 transition-all duration-300 hover:border-primary/40 dark:hover:border-primary/40 hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] justify-between"
                 >
                   <div className="flex flex-col items-center text-center w-full">

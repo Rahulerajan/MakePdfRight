@@ -11,8 +11,13 @@ import { Header, Footer } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { ScrollToTop } from './components/common/ScrollToTop';
 
-// Lazy load tools and ToolPage container to optimize initial bundle size and loading speed
-const ToolPage = lazy(() => import('./components/common/ToolPage').then(m => ({ default: m.ToolPage })));
+// Synchronously import ToolPage so headers, titles, and upload zones render immediately without full-page loaders
+import { ToolPage } from './components/common/ToolPage';
+import { ImageGenPage } from './pages/ImageGenPage';
+import { AudioTranscribePage } from './pages/AudioTranscribePage';
+import { preloadPriorityTools } from './utils/preloadTools';
+
+// Lazy load heavy tool engines inside their own granular component Suspense boundaries
 const MergeTool = lazy(() => import('./tools/MergeTool').then(m => ({ default: m.MergeTool })));
 const SplitTool = lazy(() => import('./tools/SplitTool').then(m => ({ default: m.SplitTool })));
 const CompressTool = lazy(() => import('./tools/CompressTool').then(m => ({ default: m.CompressTool })));
@@ -23,8 +28,6 @@ const EditTool = lazy(() => import('./tools/EditTool').then(m => ({ default: m.E
 const OrganiseTool = lazy(() => import('./tools/OrganiseTool').then(m => ({ default: m.OrganiseTool })));
 const RotateTool = lazy(() => import('./tools/RotateTool').then(m => ({ default: m.RotateTool })));
 const ImageToPDFTool = lazy(() => import('./tools/ImageToPDFTool').then(m => ({ default: m.ImageToPDFTool })));
-const ImageGenTool = lazy(() => import('./tools/ImageGenTool').then(m => ({ default: m.ImageGenTool })));
-const AudioTranscribeTool = lazy(() => import('./tools/AudioTranscribeTool').then(m => ({ default: m.AudioTranscribeTool })));
 const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
 const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms })));
 const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
@@ -33,21 +36,11 @@ const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ defa
 const Disclaimer = lazy(() => import('./pages/Disclaimer').then(m => ({ default: m.Disclaimer })));
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
-// A sleek, minimal, high-performance page loader skeleton fallback
-const PageLoader = () => (
-  <div className="flex-1 min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-    <div className="relative w-10 h-10">
-      <svg className="w-full h-full animate-spin text-primary" viewBox="0 0 50 50">
-        <circle className="opacity-15" cx="25" cy="25" r="20" stroke="currentColor" strokeWidth="3.5" fill="none" />
-        <path className="opacity-90" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" d="M25,5a20,20 0 0,1 20,20" />
-      </svg>
-      <div className="absolute inset-0 m-auto w-2.5 h-2.5 bg-primary/20 dark:bg-primary/40 rounded-full animate-pulse" />
-    </div>
-    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 animate-pulse">Loading tool...</span>
-  </div>
-);
-
 export default function App() {
+  React.useEffect(() => {
+    preloadPriorityTools();
+  }, []);
+
   return (
     <ThemeProvider>
       <LanguageProvider>
@@ -56,10 +49,9 @@ export default function App() {
           <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300 text-slate-900 dark:text-slate-100 overflow-x-hidden">
             <Header />
         
-        <main className="flex-1 flex flex-col">
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<Home />} />
+            <main className="flex-1 flex flex-col">
+              <Routes>
+                <Route path="/" element={<Home />} />
               
               {/* Core PDF Tool Routes */}
               <Route path="/merge" element={
@@ -655,34 +647,21 @@ export default function App() {
                 </ToolPage>
               } />
 
-              <Route path="/generate-image" element={
-                <div className="min-h-[calc(100dvh-72px)] flex flex-col bg-slate-50 dark:bg-slate-900/50 transition-colors py-6 md:py-16 px-3 md:px-6">
-                  <div className="container-custom !px-1 md:!px-6">
-                    <ImageGenTool />
-                  </div>
-                </div>
-              } />
+              <Route path="/generate-image" element={<ImageGenPage />} />
               <Route path="/image-generator" element={<Navigate to="/generate-image" replace />} />
 
-              <Route path="/transcribe" element={
-                <div className="flex-1 flex flex-col justify-start bg-slate-50 dark:bg-slate-900/50 transition-colors py-4 md:py-8 px-4 md:px-8">
-                  <div className="max-w-6xl w-full mx-auto">
-                    <AudioTranscribeTool />
-                  </div>
-                </div>
-              } />
+              <Route path="/transcribe" element={<AudioTranscribePage />} />
               <Route path="/audio-transcribe" element={<Navigate to="/transcribe" replace />} />
 
               {/* Informational & Legal Pages */}
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/cookie-policy" element={<CookiePolicy />} />
-              <Route path="/disclaimer" element={<Disclaimer />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/about" element={<Suspense fallback={<div className="min-h-[50vh]" />}><About /></Suspense>} />
+              <Route path="/contact" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Contact /></Suspense>} />
+              <Route path="/privacy" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Privacy /></Suspense>} />
+              <Route path="/terms" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Terms /></Suspense>} />
+              <Route path="/cookie-policy" element={<Suspense fallback={<div className="min-h-[50vh]" />}><CookiePolicy /></Suspense>} />
+              <Route path="/disclaimer" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Disclaimer /></Suspense>} />
+              <Route path="*" element={<Suspense fallback={<div className="min-h-[50vh]" />}><NotFound /></Suspense>} />
             </Routes>
-          </Suspense>
         </main>
 
         <Footer />
