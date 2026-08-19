@@ -91,6 +91,8 @@ function injectMetadata(html: string, route: string, seo: { title?: string; desc
 
 // Generate static HTML files for every route in SEO_DATA
 let count = 0;
+const prerenderedSlugs: string[] = [];
+
 for (const [route, seo] of Object.entries(SEO_DATA)) {
   if (route === '/404') continue;
 
@@ -100,6 +102,7 @@ for (const [route, seo] of Object.entries(SEO_DATA)) {
     fs.writeFileSync(path.join(DIST_DIR, 'index.html'), html, 'utf-8');
   } else {
     const slug = route.replace(/^\//, '');
+    prerenderedSlugs.push(slug);
     const routeDir = path.join(DIST_DIR, slug);
     if (!fs.existsSync(routeDir)) {
       fs.mkdirSync(routeDir, { recursive: true });
@@ -111,3 +114,55 @@ for (const [route, seo] of Object.entries(SEO_DATA)) {
 }
 
 console.log(`[Prerender] Successfully generated static prerendered HTML with metadata for ${count} routes!`);
+
+// Automatically sync vercel.json rewrites with prerendered slugs
+function syncVercelRewrites(slugs: string[]) {
+  const vercelJsonPath = path.join(process.cwd(), 'vercel.json');
+  if (!fs.existsSync(vercelJsonPath)) {
+    console.warn('[Prerender] vercel.json not found, skipping rewrite auto-sync.');
+    return;
+  }
+
+  try {
+    const vercelConfig = JSON.parse(fs.readFileSync(vercelJsonPath, 'utf-8'));
+    
+    // Sort slugs by length descending so more specific paths match before general ones
+    const sortedSlugs = Array.from(new Set(slugs)).sort((a, b) => b.length - a.length);
+    const slugPattern = sortedSlugs.join('|');
+
+    if (!Array.isArray(vercelConfig.rewrites)) {
+      vercelConfig.rewrites = [];
+    }
+
+    // Locate or create the prerendered HTML rewrite rule
+    const prerenderRewriteIndex = vercelConfig.rewrites.findIndex(
+      (r: any) => r.destination === '/:path/index.html'
+    );
+
+    const updatedPrerenderRule = {
+      source: `/:path(${slugPattern})`,
+      destination: '/:path/index.html'
+    };
+
+    if (prerenderRewriteIndex >= 0) {
+      vercelConfig.rewrites[prerenderRewriteIndex] = updatedPrerenderRule;
+    } else {
+      // Insert right before the SPA catch-all rule (destination '/index.html')
+      const spaCatchAllIndex = vercelConfig.rewrites.findIndex(
+        (r: any) => r.destination === '/index.html'
+      );
+      if (spaCatchAllIndex >= 0) {
+        vercelConfig.rewrites.splice(spaCatchAllIndex, 0, updatedPrerenderRule);
+      } else {
+        vercelConfig.rewrites.push(updatedPrerenderRule);
+      }
+    }
+
+    fs.writeFileSync(vercelJsonPath, JSON.stringify(vercelConfig, null, 2) + '\n', 'utf-8');
+    console.log(`[Prerender] 🔄 Auto-synced vercel.json: Updated prerender rewrite regex with ${sortedSlugs.length} slugs!`);
+  } catch (error: any) {
+    console.error('[Prerender] Failed to auto-sync vercel.json rewrites:', error.message);
+  }
+}
+
+syncVercelRewrites(prerenderedSlugs);
