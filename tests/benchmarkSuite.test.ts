@@ -1,4 +1,5 @@
 import assert from 'assert';
+import test from 'node:test';
 import { PDFDocument, rgb, StandardFonts, PDFName, PDFDict } from 'pdf-lib';
 import sharp from 'sharp';
 import fs from 'fs';
@@ -174,7 +175,6 @@ async function runBenchmark() {
   console.log('\n✅ All 10 representative document benchmarks executed and validated successfully!\n');
 }
 
-runBenchmark().catch(err => {
-  console.error('❌ Benchmark failed:', err);
-  process.exit(1);
+test('Representative Document Benchmarks Suite', async () => {
+  await runBenchmark();
 });

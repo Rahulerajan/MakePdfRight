@@ -1,4 +1,5 @@
 import assert from 'assert';
+import test from 'node:test';
 import { fork } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -32,10 +33,8 @@ if (process.argv[2] === '--child-worker') {
       process.exit(1);
     });
 } else {
-  // Main test suite runner
-  runDistributedConcurrencyTests().catch((err) => {
-    console.error('❌ Distributed Concurrency tests failed:', err);
-    process.exit(1);
+  test('Distributed Worker Locking & Conditional Write Tests', async () => {
+    await runDistributedConcurrencyTests();
   });
 }
 
@@ -198,5 +197,4 @@ async function runDistributedConcurrencyTests() {
   StorageService.setStorageProvider(new LocalStorageProvider());
 
   console.log('\n🎉 ALL SECTION 4.2 DISTRIBUTED WORKER LOCKING & CONDITIONAL WRITE TESTS PASSED SUCCESSFULLY! 🎉\n');
-  process.exit(0);
 }

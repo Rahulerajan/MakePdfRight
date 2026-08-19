@@ -1,8 +1,9 @@
 import assert from 'assert';
+import test from 'node:test';
 import { StorageJobStore } from '../server/storage/StorageJobStore.js';
 import { WorkerService } from '../server/services/WorkerService.js';
 
-async function runWorkerConcurrencyTests() {
+test('Worker Concurrency & Lease Claiming Tests', async () => {
   console.log('--- Running Section 4.1 Worker Concurrency & Lease Claiming Tests ---');
 
   const ownerId = 'usr_concurrency_test';
@@ -125,10 +126,4 @@ async function runWorkerConcurrencyTests() {
   console.log('✅ Test 4 Passed: Output race protection and duplicate completion rejection verified.');
 
   console.log('\n🎉 ALL SECTION 4.1 WORKER CONCURRENCY & CLAIMING TESTS PASSED SUCCESSFULLY! 🎉\n');
-  process.exit(0);
-}
-
-runWorkerConcurrencyTests().catch((err) => {
-  console.error('❌ Worker Concurrency tests failed:', err);
-  process.exit(1);
 });

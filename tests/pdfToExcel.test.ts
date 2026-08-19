@@ -1,8 +1,9 @@
 import assert from 'assert';
+import test from 'node:test';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import ExcelJS from 'exceljs';
 
-async function testPdfToExcelConversion() {
+test('PDF to Excel conversion with ExcelJS', async () => {
   console.log('Testing PDF to Excel conversion with ExcelJS...');
 
   // 1. Create a dummy PDF with tabular data
@@ -59,9 +60,4 @@ async function testPdfToExcelConversion() {
   assert.strictEqual(secondRow.getCell(3).value, '$150.00');
 
   console.log('✅ PDF to Excel conversion test passed! Generated valid XLSX buffer of size:', buffer.byteLength, 'bytes');
-}
-
-testPdfToExcelConversion().catch((err) => {
-  console.error('❌ PDF to Excel test failed:', err);
-  process.exit(1);
 });

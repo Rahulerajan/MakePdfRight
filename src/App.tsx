@@ -13,8 +13,10 @@ import { ScrollToTop } from './components/common/ScrollToTop';
 
 // Synchronously import ToolPage so headers, titles, and upload zones render immediately without full-page loaders
 import { ToolPage } from './components/common/ToolPage';
-import { ImageGenPage } from './pages/ImageGenPage';
-import { AudioTranscribePage } from './pages/AudioTranscribePage';
+
+// Lazy load AI tool pages and tools
+const ImageGenPage = lazy(() => import('./pages/ImageGenPage').then(m => ({ default: m.ImageGenPage })));
+const AudioTranscribePage = lazy(() => import('./pages/AudioTranscribePage').then(m => ({ default: m.AudioTranscribePage })));
 
 // Lazy load heavy tool engines inside their own granular component Suspense boundaries
 const MergeTool = lazy(() => import('./tools/MergeTool').then(m => ({ default: m.MergeTool })));
@@ -642,10 +644,10 @@ export default function App() {
                 </ToolPage>
               } />
 
-              <Route path="/generate-image" element={<ImageGenPage />} />
+              <Route path="/generate-image" element={<Suspense fallback={<div className="min-h-[50vh]" />}><ImageGenPage /></Suspense>} />
               <Route path="/image-generator" element={<Navigate to="/generate-image" replace />} />
 
-              <Route path="/transcribe" element={<AudioTranscribePage />} />
+              <Route path="/transcribe" element={<Suspense fallback={<div className="min-h-[50vh]" />}><AudioTranscribePage /></Suspense>} />
               <Route path="/audio-transcribe" element={<Navigate to="/transcribe" replace />} />
 
               {/* Informational & Legal Pages */}

@@ -1,9 +1,10 @@
 import assert from 'assert';
+import test from 'node:test';
 import { StorageService } from '../server/services/StorageService';
 import { ValidationService } from '../server/services/ValidationService';
 import { JobService } from '../server/services/JobService';
 
-async function runSecurityTests() {
+test('Security Unit Tests', async () => {
   console.log('--- Running Security Unit Tests ---');
 
   // Test 1: StorageService Path Traversal Prevention
@@ -83,10 +84,4 @@ async function runSecurityTests() {
   console.log('✅ Test 4 Passed: Input boundary payload validation works as expected.');
 
   console.log('\n🎉 ALL SECURITY UNIT TESTS PASSED SUCCESSFULLY! 🎉\n');
-  process.exit(0);
-}
-
-runSecurityTests().catch((err) => {
-  console.error('❌ Security unit tests failed:', err);
-  process.exit(1);
 });

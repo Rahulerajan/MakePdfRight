@@ -1,11 +1,12 @@
 import assert from 'assert';
+import test from 'node:test';
 import { JobDispatcherFactory } from '../server/dispatchers/JobDispatcherFactory.js';
 import { LocalJobDispatcher } from '../server/dispatchers/LocalJobDispatcher.js';
 import { CloudTaskJobDispatcher } from '../server/dispatchers/CloudTaskJobDispatcher.js';
 import { ValidationService } from '../server/services/ValidationService.js';
 import { PDFDocument } from 'pdf-lib';
 
-async function runPerformanceRemediationTests() {
+test('Production Performance Remediation Verification', async () => {
   console.log('--- Running Section 7.6 Production Performance Remediation Verification ---');
 
   // Test 1: Job Dispatcher Abstraction & Factory Selection
@@ -48,10 +49,4 @@ async function runPerformanceRemediationTests() {
   console.log('✅ Test 3 Passed: Output validation sampling verified.');
 
   console.log('\n🎉 ALL SECTION 7.6 PERFORMANCE REMEDIATION TESTS PASSED SUCCESSFULLY! 🎉\n');
-  process.exit(0);
-}
-
-runPerformanceRemediationTests().catch((err) => {
-  console.error('❌ Performance remediation tests failed:', err);
-  process.exit(1);
 });

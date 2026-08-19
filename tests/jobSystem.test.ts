@@ -1,11 +1,12 @@
 import assert from 'assert';
+import test from 'node:test';
 import { StorageJobStore } from '../server/storage/StorageJobStore.js';
 import { JobService } from '../server/services/JobService.js';
 import { WorkerService } from '../server/services/WorkerService.js';
 import { StorageService } from '../server/services/StorageService.js';
 import { isValidJobTransition } from '../server/storage/IJobStore.js';
 
-async function runJobSystemTests() {
+test('Job Queue & Worker Unit Tests', async () => {
   console.log('--- Running Section 4 Job Queue & Worker Unit Tests ---');
 
   const ownerA = 'usr_test_owner_A';
@@ -116,10 +117,4 @@ async function runJobSystemTests() {
   console.log('✅ Test 7 Passed: Stale job recovery succeeded.');
 
   console.log('\n🎉 ALL SECTION 4 JOB QUEUE TESTS PASSED SUCCESSFULLY! 🎉\n');
-  process.exit(0);
-}
-
-runJobSystemTests().catch((err) => {
-  console.error('❌ Job Queue unit tests failed:', err);
-  process.exit(1);
 });

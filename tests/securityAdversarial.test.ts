@@ -1,4 +1,5 @@
 import assert from 'assert';
+import test from 'node:test';
 import { StorageService } from '../server/services/StorageService.js';
 import { ValidationService } from '../server/services/ValidationService.js';
 import { JobService } from '../server/services/JobService.js';
@@ -40,7 +41,7 @@ class MockResponse {
   }
 }
 
-async function runAdversarialSecuritySuite() {
+test('Adversarial Security Regression Suite', async () => {
   console.log('=====================================================');
   console.log('--- Running Adversarial Security Regression Suite ---');
   console.log('=====================================================\n');
@@ -411,10 +412,4 @@ async function runAdversarialSecuritySuite() {
   console.log('\n=====================================================');
   console.log('🎉 ALL 14 ADVERSARIAL SECURITY TESTS PASSED PERFECTLY! 🎉');
   console.log('=====================================================\n');
-  process.exit(0);
-}
-
-runAdversarialSecuritySuite().catch((err) => {
-  console.error('❌ Adversarial security test failed:', err);
-  process.exit(1);
 });

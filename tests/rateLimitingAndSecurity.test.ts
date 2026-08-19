@@ -1,4 +1,5 @@
 import assert from 'assert';
+import test from 'node:test';
 import { fork } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -65,10 +66,8 @@ if (process.argv[2] === '--child-rate-check') {
       process.exit(1);
     });
 } else {
-  // Execute test cases
-  runRateLimitingAndSecurityTests().catch((err) => {
-    console.error('❌ Rate Limiting & Security tests failed:', err);
-    process.exit(1);
+  test('Distributed Rate Limiting & Security Suite', async () => {
+    await runRateLimitingAndSecurityTests();
   });
 }
 
@@ -431,5 +430,4 @@ async function runRateLimitingAndSecurityTests() {
   console.log('\n==================================================');
   console.log('ALL SECTION 6 RATE LIMITING & SECURITY TESTS PASSED!');
   console.log('==================================================');
-  process.exit(0);
 }

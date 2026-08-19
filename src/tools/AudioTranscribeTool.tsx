@@ -40,7 +40,7 @@ export const AudioTranscribeTool: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [timer, setTimer] = useState(0);
-  const [permissionStatus, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const [permissionStatus, setPermissionStatus] = useState<'prompt' | 'granted' | 'denied' | 'no-device'>('prompt');
   
   // Upload States
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -73,6 +73,65 @@ export const AudioTranscribeTool: React.FC = () => {
       setDownloadUrl('');
     }
   }, [transcription]);
+
+  // Helper to generate a clean sample voice-like audio WAV blob for instant testing
+  const createSampleAudioWav = (): Blob => {
+    const sampleRate = 16000;
+    const numSeconds = 2.5;
+    const numSamples = Math.floor(sampleRate * numSeconds);
+    const buffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buffer);
+
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + numSamples * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM format
+    view.setUint16(22, 1, true); // 1 channel
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, numSamples * 2, true);
+
+    // Synthesize vocal formants / speech-like acoustic frequencies (F0 ~ 220Hz, F1 ~ 700Hz, F2 ~ 1200Hz)
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      const envelope = Math.sin((Math.PI * i) / numSamples);
+      const mod = 1 + 0.1 * Math.sin(2 * Math.PI * 5 * t);
+      const sample = (
+        Math.sin(2 * Math.PI * 220 * t * mod) * 0.45 +
+        Math.sin(2 * Math.PI * 660 * t) * 0.35 +
+        Math.sin(2 * Math.PI * 1320 * t) * 0.20
+      ) * envelope;
+      const clamped = Math.max(-1, Math.min(1, sample));
+      view.setInt16(44 + i * 2, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
+  };
+
+  const handleTestSampleAudio = async () => {
+    setError(null);
+    try {
+      const sampleBlob = createSampleAudioWav();
+      const sampleFile = new File([sampleBlob], 'sample_speech_recording.wav', { type: 'audio/wav' });
+      setUploadedFile(sampleFile);
+      setFileDuration(2.5);
+      await handleTranscribe(sampleBlob);
+    } catch (err: any) {
+      console.warn("Failed to transcribe sample audio:", err);
+      setError(err?.message || "Failed to process sample audio.");
+    }
+  };
 
   // Helper to map UI language option to BCP-47 tag for SpeechRecognition
   const getBcp47Lang = (lang: string): string => {
@@ -111,14 +170,36 @@ export const AudioTranscribeTool: React.FC = () => {
     }
   }, [transcription]);
 
-  // Check Permission status on mount
+  // Check Permission and audio devices on mount
   useEffect(() => {
+    // Check devices availability
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      navigator.mediaDevices.enumerateDevices()
+        .then((devices) => {
+          const hasAudioInput = devices.some(d => d.kind === 'audioinput');
+          if (!hasAudioInput && devices.length > 0) {
+            setPermissionStatus('no-device');
+          }
+        })
+        .catch((err) => {
+          console.warn("Could not enumerate audio devices:", err);
+        });
+    }
+
     if (navigator.permissions && navigator.permissions.query) {
       navigator.permissions.query({ name: 'microphone' as any })
-        .then((permissionStatus) => {
-          setPermissionStatus(permissionStatus.state as any);
-          permissionStatus.onchange = () => {
-            setPermissionStatus(permissionStatus.state as any);
+        .then((status) => {
+          if (status.state === 'denied') {
+            setPermissionStatus('denied');
+          } else if (status.state === 'granted') {
+            setPermissionStatus('granted');
+          }
+          status.onchange = () => {
+            if (status.state === 'denied') {
+              setPermissionStatus('denied');
+            } else if (status.state === 'granted') {
+              setPermissionStatus('granted');
+            }
           };
         })
         .catch((err) => {
@@ -332,10 +413,9 @@ export const AudioTranscribeTool: React.FC = () => {
         }
       }
     } catch (err: any) {
-      console.error('Failed to start recording:', err);
-      setPermissionStatus('denied');
       const errName = err?.name || '';
       const errMsg = String(err?.message || err || '');
+      console.warn('Audio capture exception:', errName, errMsg);
 
       if (
         errName === 'NotFoundError' || 
@@ -344,13 +424,15 @@ export const AudioTranscribeTool: React.FC = () => {
         errMsg.includes('DevicesNotFoundError') ||
         errMsg.includes('device not found')
       ) {
-        setError("No audio input device (microphone) detected. Please connect a microphone or upload an audio file directly.");
+        setPermissionStatus('no-device');
+        setError("No microphone detected on this device. You can upload an audio file directly or test with our sample audio recording.");
       } else if (
         errName === 'NotAllowedError' || 
         errName === 'PermissionDeniedError' || 
         errMsg.includes('Permission denied') ||
         errMsg.includes('Permission dismissed')
       ) {
+        setPermissionStatus('denied');
         setError("Microphone permission was denied. Please grant microphone access in your browser or upload an audio file directly.");
       } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
         setError("Microphone is currently occupied by another application. Please free your audio device and try again.");
@@ -861,15 +943,50 @@ export const AudioTranscribeTool: React.FC = () => {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={startRecording}
-                disabled={isProcessing}
-                className="w-20 h-20 rounded-full bg-[#E5322D] hover:bg-[#c92824] text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_20px_40px_-8px_rgba(229,50,45,0.45)] ring-8 ring-[#E5322D]/10"
-                title="Start Recording"
-              >
-                <Mic className="w-8 h-8" />
-              </button>
+              {permissionStatus === 'no-device' ? (
+                <div className="w-full bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 text-left space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs">
+                      <p className="font-bold text-slate-900 dark:text-slate-100">
+                        No microphone input device detected
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Your browser or system does not have an active audio recording input. You can upload an audio file directly or test with our sample audio file.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTab('upload'); setError(null); }}
+                      className="btn-primary flex-1 py-2 px-3 text-xs font-extrabold cursor-pointer"
+                    >
+                      <FileAudio className="w-3.5 h-3.5" />
+                      <span>Upload Audio File</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleTestSampleAudio}
+                      disabled={isProcessing}
+                      className="btn-secondary flex-1 py-2 px-3 text-xs font-extrabold cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Try Sample Audio</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startRecording}
+                  disabled={isProcessing}
+                  className="w-20 h-20 rounded-full bg-[#E5322D] hover:bg-[#c92824] text-white flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer shadow-[0_20px_40px_-8px_rgba(229,50,45,0.45)] ring-8 ring-[#E5322D]/10"
+                  title="Start Recording"
+                >
+                  <Mic className="w-8 h-8" />
+                </button>
+              )}
 
               {permissionStatus === 'denied' && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-xl text-xs text-red-500 dark:text-red-400 font-medium">
@@ -877,15 +994,40 @@ export const AudioTranscribeTool: React.FC = () => {
                   <span>Microphone blocked. Please grant access in browser settings.</span>
                 </div>
               )}
+
+              {permissionStatus !== 'no-device' && (
+                <button
+                  type="button"
+                  onClick={handleTestSampleAudio}
+                  disabled={isProcessing}
+                  className="text-xs text-slate-500 dark:text-slate-400 hover:text-[#E5322D] dark:hover:text-[#E5322D] font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer pt-1"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>No mic handy? Test with sample audio</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4 pt-2">
               {!uploadedFile ? (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
-                  <FileUpload 
-                    onFilesSelected={handleFileSelected} 
-                    accept={{ 'audio/*': ['.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.webm'], 'video/mp4': ['.mp4'] }}
-                  />
+                <div className="space-y-3">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+                    <FileUpload 
+                      onFilesSelected={handleFileSelected} 
+                      accept={{ 'audio/*': ['.mp3', '.wav', '.m4a', '.aac', '.flac', '.ogg', '.webm'], 'video/mp4': ['.mp4'] }}
+                    />
+                  </div>
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleTestSampleAudio}
+                      disabled={isProcessing}
+                      className="text-xs text-slate-500 dark:text-slate-400 hover:text-[#E5322D] dark:hover:text-[#E5322D] font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Try Sample Audio File</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl space-y-3">
