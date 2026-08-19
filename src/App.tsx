@@ -15,7 +15,6 @@ import { ScrollToTop } from './components/common/ScrollToTop';
 import { ToolPage } from './components/common/ToolPage';
 import { ImageGenPage } from './pages/ImageGenPage';
 import { AudioTranscribePage } from './pages/AudioTranscribePage';
-import { preloadPriorityTools } from './utils/preloadTools';
 
 // Lazy load heavy tool engines inside their own granular component Suspense boundaries
 const MergeTool = lazy(() => import('./tools/MergeTool').then(m => ({ default: m.MergeTool })));
@@ -37,10 +36,6 @@ const Disclaimer = lazy(() => import('./pages/Disclaimer').then(m => ({ default:
 const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 export default function App() {
-  React.useEffect(() => {
-    preloadPriorityTools();
-  }, []);
-
   return (
     <ThemeProvider>
       <LanguageProvider>

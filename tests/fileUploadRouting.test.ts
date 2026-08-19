@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { signSessionId } from '../server/apiUtils.js';
 import { dispatchFileAction } from '../server/dispatchers/fileDispatcher.js';
 import { dispatchPdfAction } from '../server/dispatchers/pdfDispatcher.js';
 import { StorageJobStore } from '../server/storage/StorageJobStore.js';
@@ -40,6 +41,7 @@ describe('Section 5.2 — File Upload Authorization & Routing Integration Suite'
   let samplePdfBytes: Buffer;
 
   before(async () => {
+    process.env.APP_SECRET = process.env.APP_SECRET || 'test_secret_for_suite_testing_only_12345';
     const doc = await PDFDocument.create();
     const page = doc.addPage([600, 800]);
     const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -190,13 +192,14 @@ describe('Section 5.2 — File Upload Authorization & Routing Integration Suite'
 
   it('End-to-End Compress Flow: Authorization -> Upload -> Job Creation -> Processing -> Download', async () => {
     const ownerId = 'usr_e2e_compress';
+    const sessionToken = signSessionId(ownerId);
 
     // 1. Request upload authorization
     const authReq: any = {
       method: 'POST',
       path: '/api/files/upload-url',
       url: '/api/files/upload-url',
-      headers: { 'x-owner-id': ownerId },
+      headers: { 'x-session-token': sessionToken },
       body: {
         filename: 'invoice_test.pdf',
         contentType: 'application/pdf',
@@ -222,7 +225,7 @@ describe('Section 5.2 — File Upload Authorization & Routing Integration Suite'
       url: uploadUrl,
       query: { token, key },
       headers: {
-        'x-owner-id': ownerId,
+        'x-session-token': sessionToken,
         'content-type': 'application/pdf'
       },
       body: samplePdfBytes
@@ -240,7 +243,7 @@ describe('Section 5.2 — File Upload Authorization & Routing Integration Suite'
       path: '/api/pdf/job/create',
       url: '/api/pdf/job/create',
       query: { action: 'job-create' },
-      headers: { 'x-owner-id': ownerId },
+      headers: { 'x-session-token': sessionToken },
       body: {
         type: 'compress',
         payload: {
@@ -275,7 +278,7 @@ describe('Section 5.2 — File Upload Authorization & Routing Integration Suite'
       path: `/api/pdf/job/status/${jobId}`,
       url: `/api/pdf/job/status/${jobId}`,
       query: { action: 'job-status', id: jobId },
-      headers: { 'x-owner-id': ownerId }
+      headers: { 'x-session-token': sessionToken }
     };
     const statusRes = new MockResponse();
     await dispatchPdfAction(statusReq, statusRes);
@@ -296,7 +299,7 @@ describe('Section 5.2 — File Upload Authorization & Routing Integration Suite'
       path: '/api/files/download',
       url: downloadUrl,
       query: { key: downloadKey, token: downloadToken },
-      headers: { 'x-owner-id': ownerId }
+      headers: { 'x-session-token': sessionToken }
     };
     const downloadRes = new MockResponse();
     await dispatchFileAction(downloadReq, downloadRes);

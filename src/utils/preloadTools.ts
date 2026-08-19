@@ -1,4 +1,4 @@
-// Tool chunk preloading utilities for instant cold-route transitions
+// Tool chunk preloading utilities for hover/focus transitions
 const toolChunkLoaders: Record<string, () => Promise<any>> = {
   '/merge': () => import('../tools/MergeTool'),
   '/split': () => import('../tools/SplitTool'),
@@ -41,24 +41,3 @@ export function preloadTool(path: string) {
   }
 }
 
-/**
- * Preloads the top 4 most frequently accessed tool routes during idle time.
- */
-export function preloadPriorityTools() {
-  if (typeof window === 'undefined') return;
-  
-  const priorityRoutes = ['/compress', '/merge', '/split', '/edit'];
-  const runPreload = () => {
-    priorityRoutes.forEach((route, index) => {
-      setTimeout(() => {
-        preloadTool(route);
-      }, index * 200);
-    });
-  };
-
-  if ('requestIdleCallback' in window) {
-    (window as any).requestIdleCallback(() => runPreload(), { timeout: 3000 });
-  } else {
-    setTimeout(runPreload, 1500);
-  }
-}
