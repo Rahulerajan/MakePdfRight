@@ -85,7 +85,7 @@ async function generateAssets() {
     <!-- Security Footer -->
     <g transform="translate(100, 480)">
       <rect x="0" y="0" width="1000" height="60" rx="16" fill="#020617" opacity="0.6" stroke="#1E293B" stroke-width="1.5" />
-      <text x="30" y="36" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="18" fill="#10B981">🔒 100% Private &amp; Secure — Files Auto-Deleted Shortly After Processing</text>
+      <text x="30" y="36" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="18" fill="#10B981">🔒 In-Browser &amp; Ephemeral Processing — Automatic 15-Minute Cleanup</text>
     </g>
   </svg>
   `;

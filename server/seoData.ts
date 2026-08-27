@@ -442,6 +442,11 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Audio to Text Converter Online Free – Speech to Text | MakePDFRight',
     description: 'Transcribe voice recordings, interviews, and audio files to text online for free with AI speech recognition. Fast, accurate, and multi-language.'
   },
+  '/resources': {
+    title: 'PDF & Document Processing Resources & Guides | MakePDFRight',
+    description: 'Technical guides, conversion standards, compression principles, and best practices for PDF, spreadsheet, and digital document workflows.',
+    ogImage: '/og-image.png'
+  },
   '/about': {
     title: 'About Us – Mission & Technology | MakePDFRight',
     description: 'Learn about MakePDFRight, our commitment to 100% private document processing, and modern browser-first software.'

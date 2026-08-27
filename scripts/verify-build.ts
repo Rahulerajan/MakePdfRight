@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { SEO_DATA } from '../server/seoData.ts';
+import { PRIMARY_INDEXABLE_ROUTES, publishingPolicyFor } from '../src/constants/publishing.ts';
 
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const VERCEL_JSON_PATH = path.join(process.cwd(), 'vercel.json');
@@ -11,9 +12,9 @@ export function verifyBuildIntegrity(): boolean {
   let hasErrors = false;
 
   const seoRoutes = Object.keys(SEO_DATA).filter(r => r !== '/404');
-  console.log(`[Integrity Safeguard] Found ${seoRoutes.length} SEO routes to validate.`);
+  console.log(`[Integrity Safeguard] Found ${seoRoutes.length} total routes to validate.`);
 
-  // 1. Check all SEO routes have prerendered HTML files in dist/
+  // 1. Check all routes have prerendered HTML files in dist/
   const missingPrerenderFiles: string[] = [];
   for (const route of seoRoutes) {
     if (route === '/') {
@@ -35,7 +36,7 @@ export function verifyBuildIntegrity(): boolean {
     missingPrerenderFiles.forEach(f => console.error(`  - ${f}`));
     hasErrors = true;
   } else {
-    console.log(`✅ All ${seoRoutes.length} SEO routes have valid prerendered HTML files on disk.`);
+    console.log(`✅ All ${seoRoutes.length} routes have valid prerendered HTML files on disk.`);
   }
 
   // 2. Validate against vercel.json rewrites
@@ -80,39 +81,76 @@ export function verifyBuildIntegrity(): boolean {
     }
   }
 
-  // 3. Validate sitemap.xml against SEO_DATA
+  // 3. Validate sitemap.xml against PRIMARY_INDEXABLE_ROUTES
   if (fs.existsSync(SITEMAP_PATH)) {
     const sitemapXml = fs.readFileSync(SITEMAP_PATH, 'utf-8');
     const missingInSitemap: string[] = [];
-    const NON_CANONICAL_EXCLUSIONS = new Set([
-      '/compress-pdf',
-      '/merge-pdf',
-      '/split-pdf',
-      '/edit-pdf',
-      '/rotate-pdf',
-      '/word-to-pdf',
-      '/organize',
-      '/audio-transcribe',
-      '/image-generator',
-      '/pdf-editor',
-      '/404'
-    ]);
+    const nonIndexableInSitemap: string[] = [];
 
-    for (const route of seoRoutes) {
-      if (NON_CANONICAL_EXCLUSIONS.has(route)) continue;
+    // Verify all primary indexable routes are in sitemap.xml
+    for (const route of PRIMARY_INDEXABLE_ROUTES) {
       const expectedUrl = `https://www.makepdfright.com${route === '/' ? '' : route}`;
       if (!sitemapXml.includes(`<loc>${expectedUrl}</loc>`)) {
         missingInSitemap.push(expectedUrl);
       }
     }
 
+    // Verify NO non-indexable or thin routes are in sitemap.xml
+    for (const route of seoRoutes) {
+      const policy = publishingPolicyFor(route);
+      if (!policy.indexable) {
+        const forbiddenUrl = `https://www.makepdfright.com${route}`;
+        if (sitemapXml.includes(`<loc>${forbiddenUrl}</loc>`)) {
+          nonIndexableInSitemap.push(forbiddenUrl);
+        }
+      }
+    }
+
     if (missingInSitemap.length > 0) {
-      console.error(`\n❌ [Integrity Failure] ${missingInSitemap.length} canonical routes missing from sitemap.xml:`);
+      console.error(`\n❌ [Integrity Failure] ${missingInSitemap.length} primary indexable routes missing from sitemap.xml:`);
       missingInSitemap.forEach(u => console.error(`  - ${u}`));
       hasErrors = true;
     } else {
-      console.log('✅ All canonical SEO routes are present in sitemap.xml.');
+      console.log(`✅ All ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes are present in sitemap.xml.`);
     }
+
+    if (nonIndexableInSitemap.length > 0) {
+      console.error(`\n❌ [Integrity Failure] ${nonIndexableInSitemap.length} non-indexable/thin routes incorrectly found in sitemap.xml:`);
+      nonIndexableInSitemap.forEach(u => console.error(`  - ${u}`));
+      hasErrors = true;
+    } else {
+      console.log('✅ Zero non-indexable or thin routes in sitemap.xml (AdSense & Search Console compliant).');
+    }
+  }
+
+  // 4. Verify Raw HTML Visible Content (H1, Meaningful content, FAQs) for all primary indexable routes
+  console.log('\n[Integrity Safeguard] Verifying raw HTML visible content without running JavaScript...');
+  const missingVisibleContent: string[] = [];
+  for (const route of PRIMARY_INDEXABLE_ROUTES) {
+    const slug = route === '/' ? '' : route.replace(/^\//, '');
+    const htmlPath = route === '/' 
+      ? path.join(DIST_DIR, 'index.html')
+      : path.join(DIST_DIR, slug, 'index.html');
+
+    if (fs.existsSync(htmlPath)) {
+      const html = fs.readFileSync(htmlPath, 'utf-8');
+      const rootMatch = html.match(/<div id="root">([\s\S]*?)<\/div>\s*<\/body>/i) || html.match(/<div id="root">([\s\S]*?)<\/div>/i);
+      const rootContent = rootMatch ? rootMatch[1].trim() : '';
+
+      if (!rootContent || !/<h1[^>]*>[\s\S]*?<\/h1>/i.test(rootContent)) {
+        missingVisibleContent.push(`${route}: Missing prerendered <h1> or body content inside #root`);
+      }
+    } else {
+      missingVisibleContent.push(`${route}: HTML file missing at ${htmlPath}`);
+    }
+  }
+
+  if (missingVisibleContent.length > 0) {
+    console.error(`❌ [Integrity Failure] ${missingVisibleContent.length} routes lack raw prerendered visible body content:`);
+    missingVisibleContent.forEach(m => console.error(`  - ${m}`));
+    hasErrors = true;
+  } else {
+    console.log(`✅ All ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes contain genuine prerendered visible body content & <h1>.`);
   }
 
   if (hasErrors) {

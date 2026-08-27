@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { publishingPolicyFor } from '../../constants/publishing';
 
 export type AdFormat = 'top-banner' | 'in-content' | 'sidebar' | 'sticky-mobile' | 'responsive' | 'native' | 'thin-banner' | 'skyscraper';
 
@@ -23,6 +24,14 @@ export const AdUnit: React.FC<AdUnitProps> = ({
   style,
   label = 'Advertisement'
 }) => {
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const policy = publishingPolicyFor(currentPath);
+
+  // Strict Policy Check: AdSense disallowed on non-monetizable pages (contact, privacy, terms, cookie-policy, disclaimer, thin routes, 404)
+  if (!policy.monetizable) {
+    return null;
+  }
+
   const adRef = useRef<HTMLDivElement>(null);
   const publisherId = import.meta.env.VITE_ADSENSE_PUB_ID || '';
   const isDev = import.meta.env.DEV || !publisherId;

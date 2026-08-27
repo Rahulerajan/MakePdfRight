@@ -1,36 +1,27 @@
 import fs from 'fs';
 import path from 'path';
-import { SEO_DATA } from '../src/constants/seoData';
+import { PRIMARY_INDEXABLE_ROUTES, publishingPolicyFor } from '../src/constants/publishing';
 
 function generateSitemap() {
   const baseUrl = 'https://www.makepdfright.com';
-  const NON_CANONICAL_ROUTES = new Set([
-    '/compress-pdf',
-    '/merge-pdf',
-    '/split-pdf',
-    '/edit-pdf',
-    '/rotate-pdf',
-    '/word-to-pdf',
-    '/organize',
-    '/audio-transcribe',
-    '/image-generator',
-    '/pdf-editor',
-    '/404'
-  ]);
 
-  const canonicalRoutes = Object.keys(SEO_DATA).filter(route => !NON_CANONICAL_ROUTES.has(route));
-
-  const urls = canonicalRoutes.map((route) => {
+  // Only include verified, indexable, self-canonical HTTP 200 routes
+  const urls = PRIMARY_INDEXABLE_ROUTES.map((route) => {
+    const policy = publishingPolicyFor(route);
     const loc = `${baseUrl}${route === '/' ? '' : route}`;
+    
     let priority = '0.8';
     let changefreq = 'weekly';
 
     if (route === '/') {
       priority = '1.0';
       changefreq = 'daily';
-    } else if (route === '/privacy' || route === '/terms' || route === '/cookie-policy' || route === '/disclaimer') {
-      priority = '0.3';
+    } else if (['/privacy', '/terms', '/cookie-policy', '/disclaimer', '/contact', '/about'].includes(route)) {
+      priority = '0.4';
       changefreq = 'monthly';
+    } else if (route === '/resources') {
+      priority = '0.9';
+      changefreq = 'weekly';
     }
 
     return `  <url>
@@ -53,7 +44,7 @@ ${urls.join('\n')}
 
   const sitemapPath = path.join(publicDir, 'sitemap.xml');
   fs.writeFileSync(sitemapPath, sitemapXml, 'utf-8');
-  console.log(`[Sitemap] Successfully generated ${sitemapPath} with ${Object.keys(SEO_DATA).length} routes.`);
+  console.log(`[Sitemap] Successfully generated ${sitemapPath} with ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes.`);
 }
 
 generateSitemap();

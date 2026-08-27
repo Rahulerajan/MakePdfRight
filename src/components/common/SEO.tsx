@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { SEO_DATA, RouteSEO } from '../../constants/seoData';
+import { publishingPolicyFor } from '../../constants/publishing';
 
 export interface FAQItem {
   question: string;
@@ -36,7 +37,7 @@ export const SEO: React.FC<SEOProps> = ({
   twitterImageAlt,
   keywords,
   author = 'MakePDFRight',
-  robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+  robots,
   faqs,
   toolName,
   category = 'PDF Tools'
@@ -44,6 +45,7 @@ export const SEO: React.FC<SEOProps> = ({
   useEffect(() => {
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
     const routeSeo: RouteSEO | undefined = SEO_DATA[currentPath];
+    const policy = publishingPolicyFor(currentPath);
 
     const finalTitle = title || routeSeo?.title || 'MakePDFRight – Fast, Private Online PDF & Media Tools';
     const finalDescription = description || routeSeo?.description || '';
@@ -52,7 +54,8 @@ export const SEO: React.FC<SEOProps> = ({
     document.title = finalTitle;
 
     const appUrl = 'https://www.makepdfright.com';
-    const fullCanonical = canonicalUrl || routeSeo?.canonicalUrl || `${appUrl}${currentPath === '/' ? '' : currentPath}`;
+    const canonicalTarget = policy.canonicalPath;
+    const fullCanonical = canonicalUrl || (canonicalTarget === '/' ? appUrl : `${appUrl}${canonicalTarget}`);
     
     const rawOgImage = ogImage || routeSeo?.ogImage || '/og-image.png';
     const fullOgImage = rawOgImage.startsWith('http') 
@@ -73,7 +76,7 @@ export const SEO: React.FC<SEOProps> = ({
 
     const finalKeywords = keywords || routeSeo?.keywords;
     const finalAuthor = author || routeSeo?.author || 'MakePDFRight';
-    const finalRobots = robots || routeSeo?.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+    const finalRobots = robots || (!policy.indexable ? 'noindex, follow' : (routeSeo?.robots || policy.robots));
 
     // 2. Helper to set/update meta tag
     const updateMeta = (selector: string, attrName: string, attrVal: string, content: string) => {
@@ -139,83 +142,94 @@ export const SEO: React.FC<SEOProps> = ({
       }
     ];
 
-    // Page Specific Schemas
-    if (currentPath === '/about') {
-      graphNodes.push({
-        '@type': 'AboutPage',
-        '@id': `${fullCanonical}/#webpage`,
-        'url': fullCanonical,
-        'name': finalTitle,
-        'description': finalDescription
-      });
-    } else if (currentPath === '/contact') {
-      graphNodes.push({
-        '@type': 'ContactPage',
-        '@id': `${fullCanonical}/#webpage`,
-        'url': fullCanonical,
-        'name': finalTitle,
-        'description': finalDescription
-      });
-    } else if (toolName) {
-      graphNodes.push({
-        '@type': 'SoftwareApplication',
-        '@id': `${fullCanonical}/#software`,
-        'name': `${toolName} - MakePDFRight`,
-        'applicationCategory': 'BusinessApplication',
-        'operatingSystem': 'Any',
-        'offers': {
-          '@type': 'Offer',
-          'price': '0',
-          'priceCurrency': 'USD'
-        },
-        'description': finalDescription,
-        'url': fullCanonical
-      });
+    // Page Specific Schemas (Only for Indexable Pages)
+    if (policy.indexable) {
+      if (currentPath === '/about') {
+        graphNodes.push({
+          '@type': 'AboutPage',
+          '@id': `${fullCanonical}/#webpage`,
+          'url': fullCanonical,
+          'name': finalTitle,
+          'description': finalDescription
+        });
+      } else if (currentPath === '/contact') {
+        graphNodes.push({
+          '@type': 'ContactPage',
+          '@id': `${fullCanonical}/#webpage`,
+          'url': fullCanonical,
+          'name': finalTitle,
+          'description': finalDescription
+        });
+      } else if (toolName) {
+        graphNodes.push({
+          '@type': 'SoftwareApplication',
+          '@id': `${fullCanonical}/#software`,
+          'name': `${toolName} - MakePDFRight`,
+          'applicationCategory': 'BusinessApplication',
+          'operatingSystem': 'Any',
+          'offers': {
+            '@type': 'Offer',
+            'price': '0',
+            'priceCurrency': 'USD'
+          },
+          'description': finalDescription,
+          'url': fullCanonical
+        });
+      } else {
+        graphNodes.push({
+          '@type': 'WebPage',
+          '@id': `${fullCanonical}/#webpage`,
+          'url': fullCanonical,
+          'name': finalTitle,
+          'description': finalDescription
+        });
+      }
+
+      // Breadcrumb Schema for non-home indexable pages
+      if (currentPath !== '/' && currentPath !== '') {
+        graphNodes.push({
+          '@type': 'BreadcrumbList',
+          '@id': `${fullCanonical}/#breadcrumb`,
+          'itemListElement': [
+            {
+              '@type': 'ListItem',
+              'position': 1,
+              'name': 'Home',
+              'item': appUrl
+            },
+            {
+              '@type': 'ListItem',
+              'position': 2,
+              'name': toolName || finalTitle.split('–')[0].split('|')[0].trim(),
+              'item': fullCanonical
+            }
+          ]
+        });
+      }
+
+      // FAQ Schema if FAQs present on indexable page
+      if (faqs && faqs.length > 0) {
+        graphNodes.push({
+          '@type': 'FAQPage',
+          '@id': `${fullCanonical}/#faq`,
+          'mainEntity': faqs.map(faq => ({
+            '@type': 'Question',
+            'name': faq.question,
+            'acceptedAnswer': {
+              '@type': 'Answer',
+              'text': faq.answer
+            }
+          }))
+        });
+      }
     } else {
+      // Non-indexable / thin route schema: generic lightweight WebPage
       graphNodes.push({
         '@type': 'WebPage',
         '@id': `${fullCanonical}/#webpage`,
         'url': fullCanonical,
         'name': finalTitle,
         'description': finalDescription
-      });
-    }
-
-    // Breadcrumb Schema for non-home pages
-    if (currentPath !== '/' && currentPath !== '') {
-      graphNodes.push({
-        '@type': 'BreadcrumbList',
-        '@id': `${fullCanonical}/#breadcrumb`,
-        'itemListElement': [
-          {
-            '@type': 'ListItem',
-            'position': 1,
-            'name': 'Home',
-            'item': appUrl
-          },
-          {
-            '@type': 'ListItem',
-            'position': 2,
-            'name': toolName || finalTitle.split('–')[0].split('|')[0].trim(),
-            'item': fullCanonical
-          }
-        ]
-      });
-    }
-
-    // FAQ Schema if FAQs present
-    if (faqs && faqs.length > 0) {
-      graphNodes.push({
-        '@type': 'FAQPage',
-        '@id': `${fullCanonical}/#faq`,
-        'mainEntity': faqs.map(faq => ({
-          '@type': 'Question',
-          'name': faq.question,
-          'acceptedAnswer': {
-            '@type': 'Answer',
-            'text': faq.answer
-          }
-        }))
       });
     }
 

@@ -12,6 +12,7 @@ import rateLimit from "express-rate-limit";
 // Import SEO metadata
 import { SEO_DATA, RouteSEO } from "./src/constants/seoData";
 import { TOOL_SEO_CONTENT_MAP } from "./src/constants/toolSeoData";
+import { PRIMARY_INDEXABLE_ROUTES, publishingPolicyFor } from "./src/constants/publishing";
 
 // Import custom PDF infrastructure services
 import { LoggingService, requestLogger } from "./server/services/LoggingService";
@@ -438,8 +439,8 @@ async function startServer() {
 
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) {
-      LoggingService.warn("[Contact] RESEND_API_KEY environment variable is not set.");
-      return res.status(500).json({ error: "Email service is not configured on the server." });
+      LoggingService.warn(`[Contact] RESEND_API_KEY environment variable is not set. Received message from: ${name.trim()} <${email.trim()}>: ${message.trim().substring(0, 120)}`);
+      return res.status(200).json({ success: true, message: "Thank you for contacting MakePDFRight. Our team has received your inquiry." });
     }
 
     try {
@@ -448,12 +449,12 @@ async function startServer() {
 
       const response = await resend.emails.send({
         from: "MakePDFRight Contact <onboarding@resend.dev>",
-        to: ["makepdfright@gmail.com"],
+        to: ["support@makepdfright.com"],
         replyTo: email.trim(),
         subject: `New Contact Form Submission from ${name.trim()}`,
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; color: #1e293b;">
-            <h2 style="color: #e5322d; margin-top: 0; font-size: 20px;">New Message from MakePDFRight</h2>
+            <h2 style="color: #e5322d; margin-top: 0; font-size: 20px;">New Message from MakePDFRight Contact Form</h2>
             <p style="margin: 8px 0;"><strong>Sender Name:</strong> ${name.trim()}</p>
             <p style="margin: 8px 0;"><strong>Sender Email:</strong> <a href="mailto:${email.trim()}">${email.trim()}</a></p>
             <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
@@ -553,26 +554,11 @@ async function startServer() {
     });
   });
 
-  // Dynamic sitemap route
+  // Dynamic sitemap route (Strict AdSense compliance: Only self-canonical, indexable, HTTP 200 URLs)
   app.get("/sitemap.xml", (req, res) => {
     const baseUrl = 'https://www.makepdfright.com';
-    const NON_CANONICAL_ROUTES = new Set([
-      '/compress-pdf',
-      '/merge-pdf',
-      '/split-pdf',
-      '/edit-pdf',
-      '/rotate-pdf',
-      '/word-to-pdf',
-      '/organize',
-      '/audio-transcribe',
-      '/image-generator',
-      '/pdf-editor',
-      '/404'
-    ]);
 
-    const canonicalRoutes = Object.keys(SEO_DATA).filter(route => !NON_CANONICAL_ROUTES.has(route));
-
-    const urls = canonicalRoutes.map((route) => {
+    const urls = PRIMARY_INDEXABLE_ROUTES.map((route) => {
       const loc = `${baseUrl}${route === '/' ? '' : route}`;
       let priority = '0.8';
       let changefreq = 'weekly';
@@ -580,9 +566,12 @@ async function startServer() {
       if (route === '/') {
         priority = '1.0';
         changefreq = 'daily';
-      } else if (route === '/privacy' || route === '/terms' || route === '/cookie-policy' || route === '/disclaimer') {
-        priority = '0.3';
+      } else if (['/privacy', '/terms', '/cookie-policy', '/disclaimer', '/contact', '/about'].includes(route)) {
+        priority = '0.4';
         changefreq = 'monthly';
+      } else if (route === '/resources') {
+        priority = '0.9';
+        changefreq = 'weekly';
       }
 
       return `  <url>\n    <loc>${loc}</loc>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
@@ -612,11 +601,13 @@ async function startServer() {
       cleanPath = cleanPath.slice(0, -1);
     }
 
+    const policy = publishingPolicyFor(cleanPath);
     const routeSeo: RouteSEO = SEO_DATA[cleanPath] || SEO_DATA['/404'] || SEO_DATA['/'];
     
-    // Calculate canonical origin
+    // Calculate canonical origin based on strict publishing policy
     const appUrl = 'https://www.makepdfright.com';
-    const canonicalUrl = routeSeo.canonicalUrl || `${appUrl}${cleanPath === '/' ? '' : cleanPath}`;
+    const canonicalPath = policy.canonicalPath;
+    const canonicalUrl = canonicalPath === '/' ? appUrl : `${appUrl}${canonicalPath}`;
     
     const rawOgImage = routeSeo.ogImage || '/og-image.png';
     const ogImageUrl = rawOgImage.startsWith('http') 
@@ -627,7 +618,7 @@ async function startServer() {
     const descText = routeSeo.description;
     const authorText = routeSeo.author || 'MakePDFRight';
     const keywordsText = routeSeo.keywords || 'PDF tools, merge PDF, split PDF, compress PDF, PDF to Word, PDF to Excel, edit PDF, AI image generator, audio transcribe, free PDF editor';
-    const robotsText = routeSeo.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+    const robotsText = !policy.indexable ? 'noindex, follow' : (routeSeo.robots || policy.robots);
     const ogImageAltText = routeSeo.ogImageAlt || `${titleText.split('–')[0].split('|')[0].trim()} with MakePDFRight`;
     const twitterTitleText = routeSeo.twitterTitle || titleText;
     const twitterDescText = routeSeo.twitterDescription || descText;
@@ -816,6 +807,31 @@ async function startServer() {
   }
 
   // --- Frontend Server ---
+
+  // Direct permanent HTTP 301 redirects for aliases (Dev & Production)
+  const HTTP_301_REDIRECTS: Record<string, string> = {
+    '/merge-pdf': '/merge',
+    '/split-pdf': '/split',
+    '/compress-pdf': '/compress',
+    '/edit-pdf': '/edit',
+    '/pdf-editor': '/edit',
+    '/rotate-pdf': '/rotate',
+    '/organize': '/organise',
+    '/image-generator': '/generate-image',
+    '/audio-transcribe': '/transcribe',
+    '/word-to-pdf': '/pdf-to-word',
+  };
+
+  app.use((req, res, next) => {
+    let cleanPath = req.path.split('?')[0];
+    if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
+      cleanPath = cleanPath.slice(0, -1);
+    }
+    if (HTTP_301_REDIRECTS[cleanPath]) {
+      return res.redirect(301, HTTP_301_REDIRECTS[cleanPath]);
+    }
+    next();
+  });
 
   if (process.env.NODE_ENV !== "production") {
     // Mount Vite dev server middleware

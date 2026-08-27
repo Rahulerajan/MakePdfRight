@@ -37,7 +37,9 @@ export const ToolPageShell: React.FC<ToolPageShellProps> = ({
     'Edit PDF': 'edit',
     'Rotate PDF': 'rotate',
     'Organize PDF': 'organise',
-    'OCR PDF': 'ocr'
+    'OCR PDF': 'ocr',
+    'AI Image Generator': 'generate_image',
+    'Audio Transcribe': 'transcribe'
   };
   const baseKey = keyMap[title];
   const displayTitle = baseKey ? t(`tool.${baseKey}.title`) : title;

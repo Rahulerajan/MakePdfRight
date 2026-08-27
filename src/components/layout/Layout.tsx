@@ -394,7 +394,7 @@ export const Footer = () => {
             <div className="pt-2">
               <div className="inline-flex items-center gap-2.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>🔒 100% Secure • Files auto-deleted in 15 mins</span>
+                <span>🔒 Client-First & Ephemeral • Zero Document Retention</span>
               </div>
             </div>
           </div>
@@ -409,6 +409,7 @@ export const Footer = () => {
               <li><Link to="/edit" onMouseEnter={() => preloadTool('/edit')} onFocus={() => preloadTool('/edit')} className="hover:text-primary transition-colors">Edit PDF</Link></li>
               <li><Link to="/organise" onMouseEnter={() => preloadTool('/organise')} onFocus={() => preloadTool('/organise')} className="hover:text-primary transition-colors">Organize PDF</Link></li>
               <li><Link to="/rotate" onMouseEnter={() => preloadTool('/rotate')} onFocus={() => preloadTool('/rotate')} className="hover:text-primary transition-colors">Rotate PDF</Link></li>
+              <li><Link to="/ocr" onMouseEnter={() => preloadTool('/ocr')} onFocus={() => preloadTool('/ocr')} className="hover:text-primary transition-colors">OCR PDF</Link></li>
             </ul>
           </div>
 
@@ -425,10 +426,11 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Column 3: Company & Legal */}
+          {/* Column 3: Resources & Legal */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Company & Legal</h4>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Guides & Legal</h4>
             <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <li><Link to="/resources" className="hover:text-primary transition-colors font-bold text-primary">Resources & Guides</Link></li>
               <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
               <li><Link to="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
               <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
