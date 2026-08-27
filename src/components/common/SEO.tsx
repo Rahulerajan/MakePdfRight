@@ -113,14 +113,21 @@ export const SEO: React.FC<SEOProps> = ({
     updateMeta('meta[name="twitter:image"]', 'name', 'twitter:image', fullTwitterImage);
     updateMeta('meta[name="twitter:image:alt"]', 'name', 'twitter:image:alt', finalTwitterImageAlt);
 
-    // Canonical Link
+    // Canonical Link: Do NOT set canonical on 404 or unknown routes
+    const is404 = currentPath === '/404' || finalTitle.includes('Page Not Found');
     let link: HTMLLinkElement | null = document.querySelector('link[rel="canonical"]');
-    if (!link) {
-      link = document.createElement('link');
-      link.setAttribute('rel', 'canonical');
-      document.head.appendChild(link);
+    if (is404) {
+      if (link) {
+        link.remove();
+      }
+    } else {
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', 'canonical');
+        document.head.appendChild(link);
+      }
+      link.setAttribute('href', fullCanonical);
     }
-    link.setAttribute('href', fullCanonical);
 
     // 3. Structured Data (JSON-LD) Injection using @graph format
     const graphNodes: any[] = [

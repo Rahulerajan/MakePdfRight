@@ -3,17 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Inline Theme Initialization (Executes before first paint to prevent theme flash) -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = (saved === 'dark' || saved === 'light') ? saved : (prefersDark ? 'dark' : 'light');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <title>MakePDFRight - Fast, Private Online PDF &amp; AI Tools</title>
     
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3285688046173201"
-         crossorigin="anonymous"></script>
-
     <!-- Bing Webmaster Verification Tag -->
     <meta name="msvalidate.01" content="DBBFCBC417BF890F7C4535EDADA4E502" />
 
     <!-- SEO & Metadata -->
-    <meta name="description" content="MakePDFRight is a fast, free, and secure online PDF toolkit. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate AI images, and transcribe audio with automatic file deletion." />
+    <meta name="description" content="MakePDFRight provides fast, online PDF and document utilities. Merge, split, compress, edit, convert PDFs, and process documents with clear file lifecycle management." />
     <meta name="keywords" content="PDF tools, merge PDF, split PDF, compress PDF, PDF to Word, PDF to Excel, edit PDF, AI image generator, audio transcribe, free PDF editor" />
     <meta name="author" content="MakePDFRight" />
     <meta name="theme-color" content="#E5322D" />
@@ -41,15 +56,15 @@
     <!-- Open Graph Social Preview Card -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="MakePDFRight" />
-    <meta property="og:title" content="MakePDFRight – Fast, Private &amp; Free Online PDF &amp; Media Tools" />
-    <meta property="og:description" content="Merge, split, compress, convert, edit, and AI-enhance your PDFs securely in your browser. All files auto-deleted shortly after processing." />
+    <meta property="og:title" content="MakePDFRight – Online PDF &amp; Document Processing Tools" />
+    <meta property="og:description" content="Merge, split, compress, convert, edit, and process PDFs and media files online with browser-first and ephemeral server-assisted tools." />
     <meta property="og:url" content="https://www.makepdfright.com" />
     <meta property="og:image" content="https://www.makepdfright.com/og-image.png" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="MakePDFRight – Fast, Private &amp; Free Online PDF &amp; Media Tools" />
-    <meta name="twitter:description" content="Merge, split, compress, convert, edit, and AI-enhance your PDFs securely in your browser. All files auto-deleted shortly after processing." />
+    <meta name="twitter:title" content="MakePDFRight – Online PDF &amp; Document Processing Tools" />
+    <meta name="twitter:description" content="Merge, split, compress, convert, edit, and process PDFs and media files online with browser-first and ephemeral server-assisted tools." />
     <meta name="twitter:image" content="https://www.makepdfright.com/og-image.png" />
 
     <!-- Critical Above-The-Fold CSS -->
@@ -131,24 +146,6 @@
       @media (min-width: 1200px) { .tools-grid-responsive { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
       @media (min-width: 1600px) { .tools-grid-responsive { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; } }
     </style>
-
-    <script>
-      (function() {
-        try {
-          const saved = localStorage.getItem('theme');
-          const theme = saved || 'light';
-          if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.documentElement.setAttribute('data-theme', 'dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.setAttribute('data-theme', 'light');
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

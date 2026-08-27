@@ -227,6 +227,145 @@ export const Home = () => {
         </div>
       </section>
 
+      {/* Comprehensive Guides & Platform Overview */}
+      <section className="w-full py-16 bg-slate-50/50 dark:bg-slate-900/20 border-t border-slate-200/60 dark:border-slate-800/60">
+        <div className="container-custom max-w-5xl space-y-16">
+          
+          {/* Overview */}
+          <div className="space-y-4 text-center sm:text-left">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              A Complete, Browser-First Suite for Digital Document Management
+            </h2>
+            <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+              MakePDFRight provides accessible, high-performance web utilities designed to solve everyday document tasks without mandatory accounts, paywalls, or software installation. Whether you are assembling multi-part contract submissions, preparing academic research papers, optimizing scanned records for email attachments, or extracting structured data for analysis, our tools deliver accurate and predictable results directly in modern web browsers.
+            </p>
+          </div>
+
+          {/* Tool Categories & Workflows */}
+          <div className="space-y-6">
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              Core Document Tool Categories
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white">1. Document Assembly &amp; Organization</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Consolidate multiple PDF documents, reports, and appendices using our <Link to="/merge" className="text-primary font-medium hover:underline">Merge PDF</Link> tool. Divide large dossiers, isolate specific chapters, or delete blank pages with <Link to="/split" className="text-primary font-medium hover:underline">Split PDF</Link> and <Link to="/organise" className="text-primary font-medium hover:underline">Organize PDF</Link>. Correct orientation issues on scanned pages instantly using <Link to="/rotate" className="text-primary font-medium hover:underline">Rotate PDF</Link>.
+                </p>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white">2. File Size Optimization &amp; Compression</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Reduce heavy document sizes to comply with email attachment thresholds (e.g. 25MB) and government portal upload limits using our <Link to="/compress" className="text-primary font-medium hover:underline">Compress PDF</Link> tool. Our optimization algorithms analyze image streams and redundant structural objects, balancing compact file sizes with clear typography and legible figures.
+                </p>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white">3. Format Conversion &amp; Data Extraction</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Transform static PDF documents into editable formats. Convert reports into editable Microsoft Word documents with <Link to="/pdf-to-word" className="text-primary font-medium hover:underline">PDF to Word</Link>, extract structured tabular records into spreadsheets with <Link to="/pdf-to-excel" className="text-primary font-medium hover:underline">PDF to Excel</Link>, or convert pages to image formats using <Link to="/pdf-to-jpg" className="text-primary font-medium hover:underline">PDF to JPG</Link> and <Link to="/image-to-pdf" className="text-primary font-medium hover:underline">Image to PDF</Link>.
+                </p>
+              </div>
+
+              <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                <h4 className="text-lg font-bold text-slate-900 dark:text-white">4. Interactive Annotation &amp; Media Utilities</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Add notes, callouts, text blocks, and freehand signatures to documents with our in-browser <Link to="/edit" className="text-primary font-medium hover:underline">Edit PDF</Link> canvas. For multi-modal workflows, generate custom visual assets using our <Link to="/generate-image" className="text-primary font-medium hover:underline">AI Image Generator</Link> or transcribe recorded voice memos into text files with <Link to="/transcribe" className="text-primary font-medium hover:underline">Audio Transcription</Link>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Browser vs Server Processing Architecture */}
+          <div className="space-y-4 p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800">
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              Understanding Processing Architecture: Browser-Native vs. Server-Assisted
+            </h3>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+              MakePDFRight uses a hybrid processing model to optimize both performance and privacy:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-900 dark:text-white text-base">Client-Side Browser Execution</h4>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Tools like Merge, Split, Rotate, Organize, Compress, and Image-to-PDF run client-side in your browser's sandboxed WebAssembly and JavaScript environment. Your files are manipulated in local device memory without being uploaded to any server.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-900 dark:text-white text-base">Ephemeral Server-Assisted Operations</h4>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Complex conversion tasks (such as PDF to Word, PDF to Excel OCR, and AI media generation) require specialized server engines. Files uploaded for these operations are transferred over encrypted HTTPS, processed in isolated temporary memory buffers, and automatically purged by our cleanup daemon within 15 minutes.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Guide to Choosing the Right Tool */}
+          <div className="space-y-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              Guide: Choosing the Right Tool for Your Workflow
+            </h3>
+            <div className="space-y-3">
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-white text-sm">Need to send a heavy PDF via email or upload to a portal?</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Use Compress PDF to balance visual quality and reduced file size.</div>
+                </div>
+                <Link to="/compress" className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap">Open Compress</Link>
+              </div>
+
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-white text-sm">Need to combine statements, invoices, or signed contracts?</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Use Merge PDF to arrange and concatenate documents in precise sequence.</div>
+                </div>
+                <Link to="/merge" className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap">Open Merge</Link>
+              </div>
+
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-white text-sm">Need to pull data tables into Excel for analysis?</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Use PDF to Excel to extract tabular records into spreadsheet workbooks.</div>
+                </div>
+                <Link to="/pdf-to-excel" className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap">Open PDF to Excel</Link>
+              </div>
+
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-slate-900 dark:text-white text-sm">Need to revise text or restructure an article?</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Use PDF to Word to convert fixed layouts into editable flowable DOCX documents.</div>
+                </div>
+                <Link to="/pdf-to-word" className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap">Open PDF to Word</Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Technical Limitations & Best Practices */}
+          <div className="space-y-4 p-8 bg-slate-100/70 dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Technical Boundaries &amp; Realistic Limitations</h3>
+            <p>
+              While modern web technologies allow sophisticated document manipulations, certain physical and architectural constraints exist:
+            </p>
+            <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
+              <li><strong>Password-Protected Files:</strong> Encrypted or permission-locked PDFs must have passwords removed or verified prior to reorganization and conversion.</li>
+              <li><strong>Scanned Raster Documents:</strong> Flat image scans do not contain native vector text. Conversion to Word or Excel relies on optical character recognition (OCR), which depends on scan resolution and clarity.</li>
+              <li><strong>Post-Conversion Verification:</strong> Because PDF is a fixed-coordinate layout standard and Word is a reflowable layout standard, complex multi-column documents or non-standard fonts should be inspected post-conversion.</li>
+              <li><strong>Browser Memory Limits:</strong> Ultra-large files (exceeding 200MB) processed client-side may encounter memory constraints on mobile devices with limited RAM.</li>
+            </ul>
+          </div>
+
+          {/* Useful Resource & Information Links */}
+          <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+            <h4 className="font-bold text-slate-900 dark:text-white text-base">Helpful Information &amp; Policy Resources</h4>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              Explore our technical guides in <Link to="/resources" className="text-primary hover:underline font-medium">Resources</Link>, learn about our project history on <Link to="/about" className="text-primary hover:underline font-medium">About Us</Link>, reach out for questions via <Link to="/contact" className="text-primary hover:underline font-medium">Contact</Link>, or read our official policies in <Link to="/privacy" className="text-primary hover:underline font-medium">Privacy Policy</Link>, <Link to="/terms" className="text-primary hover:underline font-medium">Terms of Service</Link>, <Link to="/cookie-policy" className="text-primary hover:underline font-medium">Cookie Policy</Link>, and <Link to="/disclaimer" className="text-primary hover:underline font-medium">Disclaimer</Link>.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
       {/* Homepage FAQ Section */}
       <section className="w-full py-12 bg-white dark:bg-slate-900/40 border-t border-slate-200/60 dark:border-slate-800/60">
         <div className="container-custom max-w-4xl space-y-8">
@@ -235,36 +374,36 @@ export const Home = () => {
               Frequently Asked Questions
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
-              Everything you need to know about MakePDFRight tools and document security.
+              Everything you need to know about MakePDFRight tools, privacy architecture, and document workflows.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
-              <h3 className="font-bold text-slate-900 dark:text-white text-base">Are my PDF files kept private?</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">How are my uploaded PDF files handled?</h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Yes. All uploaded files are stored temporarily in isolated memory and automatically purged within 15 minutes. We never view, index, or sell document contents.
+                Core tools (Merge, Split, Rotate, Organize, Compress) execute client-side in your browser's RAM without server uploads. For server-assisted conversions, files are held temporarily in isolated memory and automatically purged within 15 minutes.
               </p>
             </div>
 
             <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
               <h3 className="font-bold text-slate-900 dark:text-white text-base">Is there any software installation required?</h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                No! All tools run directly in your web browser across desktop computers, tablets, and smartphones.
+                No software installation, plugins, or extensions are needed. All tools function directly in modern desktop and mobile web browsers including Chrome, Safari, Firefox, and Edge.
               </p>
             </div>
 
             <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
               <h3 className="font-bold text-slate-900 dark:text-white text-base">Is MakePDFRight free to use?</h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Yes! Every tool on MakePDFRight is 100% free with no registration or credit cards required.
+                Yes. MakePDFRight utilities are free to use without mandatory user registration, payment details, or hidden subscription paywalls.
               </p>
             </div>
 
             <div className="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2">
               <h3 className="font-bold text-slate-900 dark:text-white text-base">What file formats are supported?</h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                We support PDF, DOCX, XLSX, JPG, PNG, WEBP, BMP, MP3, WAV, M4A, and AAC audio files.
+                Supported formats include PDF, DOCX, XLSX, JPG, PNG, WEBP, BMP, MP3, WAV, M4A, and AAC audio files.
               </p>
             </div>
           </div>

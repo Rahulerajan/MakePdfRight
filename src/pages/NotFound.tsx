@@ -63,8 +63,8 @@ export const NotFound: React.FC = () => {
   return (
     <div className="min-h-[80vh] flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 py-12 px-4 sm:px-6 lg:px-8 transition-colors">
       <SEO 
-        title="Page Not Found (404) | MakePDFRight" 
-        description="The page you requested could not be found. Explore our free PDF tools including Merge PDF, Split PDF, Compress PDF, and PDF Editor." 
+        title="Page Not Found | MakePDFRight" 
+        description="The page you requested could not be found. Explore our PDF tools including Merge PDF, Split PDF, Compress PDF, and PDF Editor." 
       />
       <div className="max-w-4xl w-full mx-auto text-center space-y-10">
         

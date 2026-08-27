@@ -121,9 +121,59 @@ export function verifyBuildIntegrity(): boolean {
     } else {
       console.log('✅ Zero non-indexable or thin routes in sitemap.xml (AdSense & Search Console compliant).');
     }
+
+    const distSitemapPath = path.join(DIST_DIR, 'sitemap.xml');
+    if (fs.existsSync(distSitemapPath)) {
+      const distSitemapXml = fs.readFileSync(distSitemapPath, 'utf-8');
+      const urlCount = (distSitemapXml.match(/<url>/g) || []).length;
+      if (urlCount !== 21) {
+        console.error(`❌ [Integrity Failure] dist/sitemap.xml contains ${urlCount} URLs, expected exactly 21!`);
+        hasErrors = true;
+      } else {
+        console.log(`✅ dist/sitemap.xml contains exactly 21 URLs.`);
+      }
+    }
   }
 
-  // 4. Verify Raw HTML Visible Content (H1, Meaningful content, FAQs) for all primary indexable routes
+  // 4. Validate 404 page & Non-Monetizable Page AdSense Isolation
+  console.log('\n[Integrity Safeguard] Verifying 404 page and AdSense isolation rules...');
+  const notFoundHtmlPath = path.join(DIST_DIR, '404.html');
+  if (!fs.existsSync(notFoundHtmlPath)) {
+    console.error('❌ [Integrity Failure] dist/404.html is missing!');
+    hasErrors = true;
+  } else {
+    const notFoundHtml = fs.readFileSync(notFoundHtmlPath, 'utf-8');
+    if (notFoundHtml.includes('<link rel="canonical"')) {
+      console.error('❌ [Integrity Failure] dist/404.html must NOT contain a canonical tag!');
+      hasErrors = true;
+    }
+    if (!notFoundHtml.includes('noindex, follow')) {
+      console.error('❌ [Integrity Failure] dist/404.html must contain meta robots noindex, follow!');
+      hasErrors = true;
+    }
+    if (notFoundHtml.includes('adsbygoogle.js')) {
+      console.error('❌ [Integrity Failure] dist/404.html must NOT contain AdSense script!');
+      hasErrors = true;
+    }
+    console.log('✅ dist/404.html is correctly isolated (no canonical, noindex, no AdSense).');
+  }
+
+  // Check non-monetizable routes have no AdSense script
+  const nonMonetizableRoutes = ['/privacy', '/terms', '/cookie-policy', '/disclaimer', '/contact'];
+  for (const route of nonMonetizableRoutes) {
+    const slug = route.replace(/^\//, '');
+    const htmlPath = path.join(DIST_DIR, slug, 'index.html');
+    if (fs.existsSync(htmlPath)) {
+      const html = fs.readFileSync(htmlPath, 'utf-8');
+      if (html.includes('adsbygoogle.js')) {
+        console.error(`❌ [Integrity Failure] Non-monetizable route ${route} contains AdSense script!`);
+        hasErrors = true;
+      }
+    }
+  }
+  console.log('✅ All non-monetizable policy and contact routes are completely free of AdSense scripts.');
+
+  // 5. Verify Raw HTML Visible Content (H1, Meaningful content, FAQs) for all primary indexable routes
   console.log('\n[Integrity Safeguard] Verifying raw HTML visible content without running JavaScript...');
   const missingVisibleContent: string[] = [];
   for (const route of PRIMARY_INDEXABLE_ROUTES) {
@@ -134,8 +184,10 @@ export function verifyBuildIntegrity(): boolean {
 
     if (fs.existsSync(htmlPath)) {
       const html = fs.readFileSync(htmlPath, 'utf-8');
-      const rootMatch = html.match(/<div id="root">([\s\S]*?)<\/div>\s*<\/body>/i) || html.match(/<div id="root">([\s\S]*?)<\/div>/i);
-      const rootContent = rootMatch ? rootMatch[1].trim() : '';
+      const rootStartIndex = html.indexOf('<div id="root"');
+      const scriptIndex = html.indexOf('<script', rootStartIndex);
+      const rootEndIndex = scriptIndex !== -1 ? scriptIndex : html.indexOf('</body>', rootStartIndex);
+      const rootContent = rootStartIndex !== -1 && rootEndIndex !== -1 ? html.substring(rootStartIndex, rootEndIndex) : '';
 
       if (!rootContent || !/<h1[^>]*>[\s\S]*?<\/h1>/i.test(rootContent)) {
         missingVisibleContent.push(`${route}: Missing prerendered <h1> or body content inside #root`);

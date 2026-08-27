@@ -29,7 +29,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Make Your ',
     'hero_title_2': 'PDFs',
     'hero_title_3': ' Right.',
-    'hero_desc': 'Every tool you need to work with PDFs in one place. 100% free and secure',
+    'hero_desc': 'Essential tools to organize, convert, and optimize PDFs in your browser.',
     'ai_powered_tools_heading': 'Media & Audio Tools',
     'standard_pdf_tools_heading': 'Standard PDF Tools',
 
@@ -211,7 +211,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'अपने ',
     'hero_title_2': 'PDFs',
     'hero_title_3': ' को सही बनाएं।',
-    'hero_desc': 'PDFs के साथ काम करने के लिए आवश्यक हर टूल एक ही स्थान पर। 100% मुफ़्त और सुरक्षित।',
+    'hero_desc': 'ब्राउज़र में PDF को व्यवस्थित, रूपांतरित और अनुकूलित करने के लिए आवश्यक उपकरण।',
     'ai_powered_tools_heading': 'मीडिया और ऑडियो टूल्स',
     'standard_pdf_tools_heading': 'मानक PDF टूल्स',
 
@@ -393,7 +393,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Rendez vos ',
     'hero_title_2': 'PDF',
     'hero_title_3': ' Parfaits.',
-    'hero_desc': 'Tous les outils nécessaires pour travailler avec des PDF au même endroit. 100% gratuit et sécurisé.',
+    'hero_desc': 'Outils essentiels pour organiser, convertir et optimiser vos PDF directement dans votre navigateur.',
     'ai_powered_tools_heading': 'Outils Média & Audio',
     'standard_pdf_tools_heading': 'Outils PDF Standards',
 
@@ -575,7 +575,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Machen Sie Ihre ',
     'hero_title_2': 'PDFs',
     'hero_title_3': ' Richtig.',
-    'hero_desc': 'Jedes Tool, das Sie für die Arbeit mit PDFs benötigen, an einem Ort. 100% kostenlos und sicher.',
+    'hero_desc': 'Wichtige Tools zum Organisieren, Konvertieren und Optimieren von PDFs direkt in Ihrem Browser.',
     'ai_powered_tools_heading': 'Medien- & Audio-Tools',
     'standard_pdf_tools_heading': 'Standard PDF-Tools',
 
@@ -757,7 +757,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero_title_1': 'Haga bien sus ',
     'hero_title_2': 'PDF',
     'hero_title_3': '.',
-    'hero_desc': 'Todas las herramientas que necesita para trabajar con PDF en un solo lugar. 100% gratis y seguro.',
+    'hero_desc': 'Herramientas esenciales para organizar, convertir y optimizar documentos PDF en su navegador.',
     'ai_powered_tools_heading': 'Herramientas de Medios y Audio',
     'standard_pdf_tools_heading': 'Herramientas PDF Estándar',
 

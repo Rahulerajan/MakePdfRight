@@ -69,66 +69,97 @@ export const About: React.FC = () => {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">What is MakePDFRight?</h2>
             <p>
-              MakePDFRight is a web-based suite of digital document and media utilities. It provides essential tools for everyday document workflows—such as merging PDF contracts, splitting multi-page reports, compressing large files for email attachments, extracting tables to Excel, converting pages to Word, and rotating misaligned scans.
+              MakePDFRight is an independent suite of online digital document and media utilities. The platform was created to provide everyday users, students, professionals, and small organizations with immediate, barrier-free access to essential PDF manipulation tools.
             </p>
             <p>
-              Unlike legacy desktop software that requires license keys, software installations, or heavy background processes, MakePDFRight operates through standards-compliant web technologies, making it instantly accessible on Windows, macOS, Linux, iOS, and Android browsers.
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Who Maintains MakePDFRight?</h2>
-            <p>
-              MakePDFRight is built and maintained by independent web software developers and document technology enthusiasts. We are dedicated to maintaining lightweight, reliable web tools that respect user autonomy and privacy.
-            </p>
-            <p>
-              We continuously test browser compatibility across Chromium, WebKit (Safari), and Gecko (Firefox) engines, ensuring that updates to web standards do not disrupt your document workflows.
+              Traditional document software frequently locks fundamental capabilities behind steep subscription fees, complicated software installations, or intrusive user registration flows. MakePDFRight is engineered around open web standards, delivering fast and reliable document handling directly in modern desktop and mobile web browsers without demanding software licenses or email accounts.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">How We Process Files & Protect Privacy</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Project Ownership &amp; Mission</h2>
             <p>
-              We believe privacy is an architectural choice, not just a policy statement:
+              MakePDFRight is owned and maintained by an independent team of web software developers and document technology engineers based in Kerala, India. Our mission is to keep common digital utilities accessible, straightforward, and respectful of user autonomy.
+            </p>
+            <p>
+              We prioritize software stability, cross-browser compatibility (tested across Chromium, WebKit, and Gecko engines), and truthful communication regarding what browser-based document processing can achieve.
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Suite of Utilities Provided</h2>
+            <p>
+              MakePDFRight offers a structured set of document manipulation and conversion tools:
+            </p>
+            <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
+              <li><strong><Link to="/merge" className="text-primary hover:underline">Merge PDF</Link>:</strong> Combine multiple PDF files, statements, or report chapters into a single structured PDF document.</li>
+              <li><strong><Link to="/split" className="text-primary hover:underline">Split PDF</Link>:</strong> Extract individual pages, custom page ranges, or separate all pages into individual files.</li>
+              <li><strong><Link to="/compress" className="text-primary hover:underline">Compress PDF</Link>:</strong> Optimize PDF document sizes for email attachments and portal upload limits while balancing visual clarity.</li>
+              <li><strong><Link to="/pdf-to-word" className="text-primary hover:underline">PDF to Word</Link>:</strong> Convert PDF documents into editable Microsoft Word (.docx) documents with layout retention.</li>
+              <li><strong><Link to="/pdf-to-excel" className="text-primary hover:underline">PDF to Excel</Link>:</strong> Extract structured data tables into Microsoft Excel (.xlsx) spreadsheets.</li>
+              <li><strong><Link to="/pdf-to-jpg" className="text-primary hover:underline">PDF to JPG</Link> &amp; <Link to="/image-to-pdf" className="text-primary hover:underline">Image to PDF</Link>:</strong> Convert between PDF pages and image formats (JPG, PNG, WebP).</li>
+              <li><strong><Link to="/edit" className="text-primary hover:underline">Edit PDF</Link>, <Link to="/rotate" className="text-primary hover:underline">Rotate PDF</Link> &amp; <Link to="/organise" className="text-primary hover:underline">Organize PDF</Link>:</strong> Annotate, rotate, and reorder PDF pages interactively.</li>
+              <li><strong><Link to="/generate-image" className="text-primary hover:underline">AI Image Generator</Link> &amp; <Link to="/transcribe" className="text-primary hover:underline">Audio Transcription</Link>:</strong> Multi-modal utilities for creating visual assets and generating text transcripts from audio recordings.</li>
+            </ul>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Technical Architecture: Client-Side vs Server-Assisted</h2>
+            <p>
+              We design our tools to minimize unnecessary data transfer:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
               <li>
-                <strong>Client-Side Processing (Primary):</strong> Tools such as Merge, Split, Rotate, Organize, Compress, and Image-to-PDF utilize client-side WebAssembly, PDF.js, and pdf-lib. The actual document manipulation occurs directly in your browser's local RAM.
+                <strong>Browser-Native Processing (Client-Side):</strong> Tools such as Merge, Split, Rotate, Organize, Compress, and Image-to-PDF run directly in your browser's local sandbox using JavaScript and WebAssembly libraries (such as pdf-lib and PDF.js). File manipulation occurs in your device's memory without transmission to our backend.
               </li>
               <li>
-                <strong>Ephemeral Server-Assisted Tasks:</strong> For tools requiring server-side assistance (such as complex document conversions or AI generation), files are transmitted over secure TLS 1.3 encryption, held strictly in short-lived memory buffers during processing, and purged immediately upon completion.
-              </li>
-              <li>
-                <strong>No Data Harvesting:</strong> We do not log, retain, monetize, or train machine learning algorithms on your private documents.
+                <strong>Server-Assisted Conversion:</strong> Heavy document conversions (such as PDF to Word, PDF to Excel OCR, and AI media operations) utilize temporary backend processing containers. Uploaded files are transmitted over TLS 1.3 encryption, held in isolated temporary storage, and automatically purged by our cleanup daemon within 15 minutes.
               </li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Product Capabilities & Factual Limitations</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Engineering Limitations &amp; Best Practices</h2>
             <p>
-              We strive to be transparent about what our tools can and cannot do:
+              We maintain realistic standards regarding document conversion and compression:
             </p>
-            <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-              <li>
-                <strong>Born-Digital vs Scanned PDFs:</strong> Conversion tools work best with born-digital PDFs that have a native selectable text layer. Flat bitmap scans require OCR and may vary in accuracy depending on resolution, lighting, and language complexity.
-              </li>
-              <li>
-                <strong>Complex Layout Shifts:</strong> Highly intricate multi-column brochures, customized magazine layouts, or unusual font encodings may require minor manual adjustments after conversion to editable Word or Excel formats.
-              </li>
-              <li>
-                <strong>Encrypted Documents:</strong> Password-protected or DRM-locked PDFs must be unlocked before client-side manipulation tools can read their object streams.
-              </li>
+            <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
+              <li><strong>Vector vs. Raster Content:</strong> Born-digital PDFs convert with higher structural accuracy than scanned bitmap images, which rely on optical character recognition.</li>
+              <li><strong>Encrypted Documents:</strong> Password-protected PDFs must have security restrictions removed before client-side stream extraction can occur.</li>
+              <li><strong>Complex Formatting:</strong> Multi-column magazine layouts or specialized typography may experience minor formatting shifts upon conversion to editable Word documents.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Editorial Review & How to Report Issues</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Advertising &amp; Monetization Disclosure</h2>
             <p>
-              All technical guides, tool instructions, and troubleshooting tips on MakePDFRight are written and reviewed by our development team to ensure they accurately reflect actual tool functionality.
+              MakePDFRight is supported primarily through digital advertising, including Google AdSense. This allows us to offer document processing tools at no financial cost to users without requiring subscription payments.
             </p>
             <p>
-              If you encounter a bug, an unsupported document format, or have a suggestion for improving a tool, we welcome your feedback. Please visit our <Link to="/contact" className="text-primary font-semibold hover:underline">Contact Page</Link> or email us directly at <code>support@makepdfright.com</code> with your browser version and error details.
+              We strictly uphold Google Publisher Policies and user experience standards:
+            </p>
+            <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm">
+              <li>Advertisements are placed in dedicated layout zones outside functional document manipulation canvases and upload dropzones.</li>
+              <li>Advertisements and third-party ad scripts are completely excluded from sensitive informational and policy pages, including our <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>, <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>, <Link to="/cookie-policy" className="text-primary hover:underline">Cookie Policy</Link>, <Link to="/disclaimer" className="text-primary hover:underline">Disclaimer</Link>, and <Link to="/contact" className="text-primary hover:underline">Contact</Link> pages.</li>
+              <li>We never use deceptive ads, artificial download buttons, or intrusive pop-ups that interfere with document workflows.</li>
+            </ul>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Content Maintenance &amp; Reporting Errors</h2>
+            <p>
+              All technical guides, tool instructions, and educational resources on MakePDFRight are authored and maintained by our engineering team. We regularly audit our documentation against real-world browser behavior and tool updates.
+            </p>
+            <p>
+              If you encounter a bug, formatting issue, or unexpected behavior during document processing, please report it to our team at <a href="mailto:support@makepdfright.com" className="text-primary font-bold hover:underline">support@makepdfright.com</a> or via our <Link to="/contact" className="text-primary font-medium hover:underline">Contact Page</Link>. Include your browser type and a brief summary of the issue so we can investigate promptly.
+            </p>
+          </section>
+
+          {/* Legal & Policy Navigation */}
+          <section className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base">Policy &amp; Trust Links</h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Review our full policies: <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link> | <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link> | <Link to="/cookie-policy" className="text-primary hover:underline">Cookie Policy</Link> | <Link to="/disclaimer" className="text-primary hover:underline">Disclaimer</Link> | <Link to="/resources" className="text-primary hover:underline">Technical Resources</Link>.
             </p>
           </section>
 

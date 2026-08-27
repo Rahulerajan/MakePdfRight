@@ -1,5 +1,5 @@
-import {StrictMode} from 'react';
-import {createRoot} from 'react-dom/client';
+import { StrictMode } from 'react';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
@@ -15,9 +15,28 @@ if (typeof window !== 'undefined') {
   });
 }
 
-createRoot(document.getElementById('root')!).render(
+const container = document.getElementById('root');
+
+if (!container) {
+  throw new Error('Root container not found');
+}
+
+const application = (
   <StrictMode>
     <App />
-  </StrictMode>,
+  </StrictMode>
 );
+
+if (container.hasChildNodes() && container.dataset.prerendered === 'true') {
+  hydrateRoot(container, application, {
+    onRecoverableError(error, errorInfo) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[Hydration Recoverable Error]:', error, errorInfo);
+      }
+    }
+  });
+} else {
+  createRoot(container).render(application);
+}
+
 

@@ -8,16 +8,56 @@
     }
   },
   "redirects": [
-    { "source": "/merge-pdf", "destination": "/merge", "permanent": true },
-    { "source": "/split-pdf", "destination": "/split", "permanent": true },
-    { "source": "/compress-pdf", "destination": "/compress", "permanent": true },
-    { "source": "/edit-pdf", "destination": "/edit", "permanent": true },
-    { "source": "/pdf-editor", "destination": "/edit", "permanent": true },
-    { "source": "/rotate-pdf", "destination": "/rotate", "permanent": true },
-    { "source": "/organize", "destination": "/organise", "permanent": true },
-    { "source": "/image-generator", "destination": "/generate-image", "permanent": true },
-    { "source": "/audio-transcribe", "destination": "/transcribe", "permanent": true },
-    { "source": "/word-to-pdf", "destination": "/pdf-to-word", "permanent": true }
+    {
+      "source": "/merge-pdf",
+      "destination": "/merge",
+      "permanent": true
+    },
+    {
+      "source": "/split-pdf",
+      "destination": "/split",
+      "permanent": true
+    },
+    {
+      "source": "/compress-pdf",
+      "destination": "/compress",
+      "permanent": true
+    },
+    {
+      "source": "/edit-pdf",
+      "destination": "/edit",
+      "permanent": true
+    },
+    {
+      "source": "/pdf-editor",
+      "destination": "/edit",
+      "permanent": true
+    },
+    {
+      "source": "/rotate-pdf",
+      "destination": "/rotate",
+      "permanent": true
+    },
+    {
+      "source": "/organize",
+      "destination": "/organise",
+      "permanent": true
+    },
+    {
+      "source": "/image-generator",
+      "destination": "/generate-image",
+      "permanent": true
+    },
+    {
+      "source": "/audio-transcribe",
+      "destination": "/transcribe",
+      "permanent": true
+    },
+    {
+      "source": "/word-to-pdf",
+      "destination": "/pdf-to-word",
+      "permanent": true
+    }
   ],
   "rewrites": [
     {

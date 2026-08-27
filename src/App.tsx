@@ -4,7 +4,7 @@
  */
 
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeContext';
 import { LanguageProvider } from './components/LanguageContext';
 import { Header, Footer } from './components/layout/Layout';
@@ -14,9 +14,16 @@ import { ScrollToTop } from './components/common/ScrollToTop';
 // Synchronously import ToolPage so headers, titles, and upload zones render immediately without full-page loaders
 import { ToolPage } from './components/common/ToolPage';
 
-// Lazy load AI tool pages and tools
-const ImageGenPage = lazy(() => import('./pages/ImageGenPage').then(m => ({ default: m.ImageGenPage })));
-const AudioTranscribePage = lazy(() => import('./pages/AudioTranscribePage').then(m => ({ default: m.AudioTranscribePage })));
+// Import AI tool pages and informational/legal pages synchronously for clean SSR prerender and hydration
+import { ImageGenPage } from './pages/ImageGenPage';
+import { AudioTranscribePage } from './pages/AudioTranscribePage';
+import { About } from './pages/About';
+import { Contact } from './pages/Contact';
+import { Privacy } from './pages/Privacy';
+import { Terms } from './pages/Terms';
+import { CookiePolicy } from './pages/CookiePolicy';
+import { Disclaimer } from './pages/Disclaimer';
+import { NotFound } from './pages/NotFound';
 
 // Lazy load heavy tool engines inside their own granular component Suspense boundaries
 const MergeTool = lazy(() => import('./tools/MergeTool').then(m => ({ default: m.MergeTool })));
@@ -29,19 +36,20 @@ const EditTool = lazy(() => import('./tools/EditTool').then(m => ({ default: m.E
 const OrganiseTool = lazy(() => import('./tools/OrganiseTool').then(m => ({ default: m.OrganiseTool })));
 const RotateTool = lazy(() => import('./tools/RotateTool').then(m => ({ default: m.RotateTool })));
 const ImageToPDFTool = lazy(() => import('./tools/ImageToPDFTool').then(m => ({ default: m.ImageToPDFTool })));
-const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
-const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms })));
-const About = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
-const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
-const CookiePolicy = lazy(() => import('./pages/CookiePolicy').then(m => ({ default: m.CookiePolicy })));
-const Disclaimer = lazy(() => import('./pages/Disclaimer').then(m => ({ default: m.Disclaimer })));
-const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
-export default function App() {
+export interface AppProps {
+  initialPath?: string;
+}
+
+export function App({ initialPath }: AppProps = {}) {
+  const isServerOrMemory = initialPath !== undefined || typeof window === 'undefined';
+  const RouterComponent = isServerOrMemory ? MemoryRouter : BrowserRouter;
+  const routerProps = isServerOrMemory ? { initialEntries: [initialPath || '/'] } : {};
+
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <Router>
+        <RouterComponent {...routerProps}>
           <ScrollToTop />
           <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300 text-slate-900 dark:text-slate-100 overflow-x-hidden">
             <Header />
@@ -708,27 +716,29 @@ export default function App() {
                 </ToolPage>
               } />
 
-              <Route path="/generate-image" element={<Suspense fallback={<div className="min-h-[50vh]" />}><ImageGenPage /></Suspense>} />
+              <Route path="/generate-image" element={<ImageGenPage />} />
               <Route path="/image-generator" element={<Navigate to="/generate-image" replace />} />
 
-              <Route path="/transcribe" element={<Suspense fallback={<div className="min-h-[50vh]" />}><AudioTranscribePage /></Suspense>} />
+              <Route path="/transcribe" element={<AudioTranscribePage />} />
               <Route path="/audio-transcribe" element={<Navigate to="/transcribe" replace />} />
 
               {/* Informational & Legal Pages */}
-              <Route path="/about" element={<Suspense fallback={<div className="min-h-[50vh]" />}><About /></Suspense>} />
-              <Route path="/contact" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Contact /></Suspense>} />
-              <Route path="/privacy" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Privacy /></Suspense>} />
-              <Route path="/terms" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Terms /></Suspense>} />
-              <Route path="/cookie-policy" element={<Suspense fallback={<div className="min-h-[50vh]" />}><CookiePolicy /></Suspense>} />
-              <Route path="/disclaimer" element={<Suspense fallback={<div className="min-h-[50vh]" />}><Disclaimer /></Suspense>} />
-              <Route path="*" element={<Suspense fallback={<div className="min-h-[50vh]" />}><NotFound /></Suspense>} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/disclaimer" element={<Disclaimer />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
         </main>
 
         <Footer />
       </div>
-    </Router>
+    </RouterComponent>
    </LanguageProvider>
   </ThemeProvider>
   );
 }
+
+export default App;

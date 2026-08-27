@@ -15,43 +15,43 @@ export interface RouteSEO {
 
 export const SEO_DATA: Record<string, RouteSEO> = {
   '/': {
-    title: 'MakePDFRight – Fast, Private & Free Online PDF & Media Tools',
-    description: 'MakePDFRight is your all-in-one suite of online PDF and media tools. Merge, split, compress, edit, convert PDFs to Word/Excel/JPG, generate images, and transcribe audio securely in your browser.',
+    title: 'MakePDFRight – Online PDF & Document Processing Tools',
+    description: 'MakePDFRight provides online PDF and document utilities. Merge, split, compress, edit, convert PDFs, and process documents with browser-first and ephemeral workflows.',
     ogImage: '/og-image.png'
   },
   '/compress': {
     title: 'Compress PDF Online Free – Reduce PDF File Size | MakePDFRight',
-    description: 'Reduce PDF file size online for free. Learn how to shrink PDF files for email attachments without losing text clarity or visual quality.',
+    description: 'Reduce PDF file size online for free. Learn how to optimize and shrink PDF files for email attachments while balancing file size and visual clarity.',
     ogImage: '/og-compress.png'
   },
   '/compress-pdf-to-100kb': {
     title: 'Compress PDF to 100KB Online Free – Reduce File Size | MakePDFRight',
-    description: 'Compress PDF files down to 100KB online for free without losing essential quality or readability. Fast, private, browser-based compression with instant download.',
+    description: 'Compress PDF files toward 100KB online for free. Fast, private, browser-based compression with target-oriented optimization where document contents allow.',
     ogImage: '/og-compress.png'
   },
   '/compress-pdf-to-500kb': {
     title: 'Compress PDF to 500KB Online Free | MakePDFRight',
-    description: 'Shrink your PDF to 500KB for forms and uploads with mid-size limits. Free, instant, no signup.',
+    description: 'Shrink your PDF toward 500KB for forms and uploads with mid-size limits. Free, fast, no signup required.',
     ogImage: '/og-compress.png'
   },
   '/compress-pdf-to-1mb': {
     title: 'Compress PDF to 1MB Online Free | MakePDFRight',
-    description: 'Shrink your PDF to 1MB or smaller for uploads, forms, and email. Free, instant, no signup required.',
+    description: 'Shrink your PDF toward 1MB or smaller for uploads, forms, and email. Free, fast, no signup required.',
     ogImage: '/og-compress.png'
   },
   '/compress-pdf-without-losing-quality': {
-    title: 'Compress PDF Without Losing Quality | MakePDFRight',
-    description: 'Reduce file size while keeping text and images sharp. Smart compression, not blind quality loss. Free and instant.',
+    title: 'Compress PDF with Balanced Quality | MakePDFRight',
+    description: 'Reduce file size while balancing text and image clarity. Smart compression algorithms adjust image streams and remove redundant metadata.',
     ogImage: '/og-compress.png'
   },
   '/compress-pdf-for-whatsapp': {
     title: 'Compress PDF for WhatsApp Free | MakePDFRight',
-    description: 'Shrink your PDF to send smoothly over WhatsApp without failed uploads. Free and instant.',
+    description: 'Shrink your PDF to send smoothly over messaging apps without failed uploads. Free and instant.',
     ogImage: '/og-compress.png'
   },
   '/compress-pdf-for-job-application': {
     title: 'Compress PDF for Job Applications Free | MakePDFRight',
-    description: 'Get your resume or portfolio PDF under application portal size limits without losing quality. Free and instant.',
+    description: 'Reduce your resume or portfolio PDF file size for application portals while maintaining text readability. Free and instant.',
     ogImage: '/og-compress.png'
   },
   '/compress-multiple-pdf-files': {
@@ -146,7 +146,7 @@ export const SEO_DATA: Record<string, RouteSEO> = {
   },
   '/split': {
     title: 'Split PDF Online Free – Extract PDF Pages | MakePDFRight',
-    description: 'Split PDF into pages or extract page ranges online for free. Learn how to split large PDF files without losing quality or installing Acrobat.'
+    description: 'Split PDF into pages or extract page ranges online for free. Learn how to extract and reorganize large PDF files without installing software.'
   },
   '/split-pdf-by-page-number': {
     title: 'Split PDF by Page Number Free Online | MakePDFRight',
@@ -185,8 +185,8 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     description: 'Split and extract PDF pages on your iPhone or iPad directly in Safari. No app downloads, no watermarks, completely free.'
   },
   '/split-pdf-without-losing-quality': {
-    title: 'Split PDF Without Losing Quality Free | MakePDFRight',
-    description: 'Split PDF files without quality loss. Preserve 100% vector text, original image resolution, and page layouts.'
+    title: 'Split PDF with Preserved Quality Free | MakePDFRight',
+    description: 'Split PDF files with preserved vector text, original image resolution, and page layouts.'
   },
   '/split-pdf-without-acrobat': {
     title: 'Split PDF Without Acrobat Free Online | MakePDFRight',
@@ -242,7 +242,7 @@ export const SEO_DATA: Record<string, RouteSEO> = {
   },
   '/pdf-to-word': {
     title: 'Convert PDF to Word Online Free – Editable DOCX | MakePDFRight',
-    description: 'Convert PDF to Word online for free without formatting loss. Turn regular and scanned PDFs into fully editable DOCX files in seconds.'
+    description: 'Convert PDF to Word online for free. Turn regular and scanned PDFs into editable DOCX files with high layout and structural retention.'
   },
   '/pdf-to-word-without-losing-formatting': {
     title: 'Convert PDF to Word Without Losing Formatting | MakePDFRight',
@@ -449,7 +449,7 @@ export const SEO_DATA: Record<string, RouteSEO> = {
   },
   '/about': {
     title: 'About Us – Mission & Technology | MakePDFRight',
-    description: 'Learn about MakePDFRight, our commitment to 100% private document processing, and modern browser-first software.'
+    description: 'Learn about MakePDFRight, our independent suite of browser-first PDF utilities, file lifecycle rules, and technical architecture.'
   },
   '/contact': {
     title: 'Contact Us – Support & Feedback | MakePDFRight',
@@ -472,8 +472,8 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     description: 'Review legal disclaimers, document safety notices, and terms of service for MakePDFRight.'
   },
   '/404': {
-    title: 'Page Not Found (404) | MakePDFRight',
-    description: 'The page you requested could not be found. Explore our free PDF tools including Merge PDF, Split PDF, Compress PDF, and PDF Editor.'
+    title: 'Page Not Found | MakePDFRight',
+    description: 'The page you requested could not be found. Explore our PDF tools including Merge PDF, Split PDF, Compress PDF, and PDF Editor.'
   }
 };
 

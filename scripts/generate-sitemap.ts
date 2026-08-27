@@ -45,6 +45,13 @@ ${urls.join('\n')}
   const sitemapPath = path.join(publicDir, 'sitemap.xml');
   fs.writeFileSync(sitemapPath, sitemapXml, 'utf-8');
   console.log(`[Sitemap] Successfully generated ${sitemapPath} with ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes.`);
+
+  const distDir = path.join(process.cwd(), 'dist');
+  if (fs.existsSync(distDir)) {
+    const distSitemapPath = path.join(distDir, 'sitemap.xml');
+    fs.writeFileSync(distSitemapPath, sitemapXml, 'utf-8');
+    console.log(`[Sitemap] Successfully synced ${distSitemapPath} with ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes.`);
+  }
 }
 
 generateSitemap();
