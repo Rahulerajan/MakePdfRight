@@ -1203,13 +1203,13 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
   '/pdf-to-excel': {
     toolName: 'PDF to Excel',
     category: 'Convert',
-    overview: 'MakePDFRight PDF to Excel converter online allows you to extract tables, numerical data, and financial statements from PDF files directly into editable Microsoft Excel (.xlsx) spreadsheets. Turn static PDF invoices, bank statements, audit reports, and tables into structured spreadsheet rows and columns in seconds.',
+    overview: 'MakePDFRight PDF to Excel converter online allows you to extract tables, numerical data, and structured records from text-based PDF files directly into editable Microsoft Excel (.xlsx) spreadsheets. Turn static PDF invoices, bank statements, audit reports, and tables into structured spreadsheet rows and columns in seconds.',
     topBody: [
-      'Manual data entry from PDF invoices and financial reports into spreadsheets is slow and error-prone. MakePDFRight\'s automated table extraction engine detects border lines, cell boundaries, and numeric values within PDF documents, mapping them cleanly into Excel cells.',
-      'Whether analyzing quarterly balance sheets, importing scientific survey records, or organizing expense receipts, our free online tool converts PDF tables into editable Excel sheets with accurate column alignment.'
+      'Manual data entry from PDF invoices and financial reports into spreadsheets is slow and error-prone. MakePDFRight\'s table extraction engine detects tabular text alignments, cell boundaries, and numeric values within digital PDF documents, mapping them cleanly into Excel cells.',
+      'Whether analyzing quarterly balance sheets, importing scientific survey records, or organizing expense receipts, our free online tool converts text-based PDF tables into editable Excel sheets with accurate column alignment.'
     ],
     howItWorks: [
-      { step: 1, title: 'Upload PDF File', desc: 'Select a PDF containing tables or numerical data.' },
+      { step: 1, title: 'Upload PDF File', desc: 'Select a text-based PDF containing tables or numerical data.' },
       { step: 2, title: 'Extract Tables', desc: 'Automated table detection identifies rows, columns, and numeric cell values.' },
       { step: 3, title: 'Download XLSX', desc: 'Save as an openable spreadsheet ready for data analysis.' }
     ],
@@ -1224,15 +1224,295 @@ export const TOOL_SEO_CONTENT_MAP: Record<string, ToolSEOData> = {
       'Extracting scientific survey data tables into spreadsheets'
     ],
     faqs: [
-      { question: 'How do I pull a table from a PDF into Excel?', answer: 'Upload your PDF file containing data tables to MakePDFRight PDF to Excel. The tool will detect the table structure and output a clean, formatted .xlsx file where every row and column aligns into separate Excel cells.' },
-      { question: 'How can I convert a PDF invoice to Excel?', answer: 'Simply drop your PDF invoice into our converter. The tool automatically extracts item descriptions, quantities, unit prices, and total amounts directly into spreadsheet columns.' },
-      { question: 'Will my table columns align correctly in Excel?', answer: 'Yes! Our table recognition algorithm identifies vertical grid lines and whitespace gaps to ensure numbers and text sit in their proper spreadsheet columns.' },
-      { question: 'Does PDF to Excel conversion work on scanned files?', answer: 'Yes, our converter integrates OCR text recognition to identify table structures and text inside scanned image PDFs.' },
-      { question: 'Is there a limit on how many tables I can convert?', answer: 'No, you can convert multi-page PDFs containing numerous tables for free without page limits or subscriptions.' }
+      { question: 'How do I pull a table from a PDF into Excel?', answer: 'Upload your text-based PDF file containing data tables to MakePDFRight PDF to Excel. The tool detects the table layout and outputs a clean .xlsx file where rows and columns align into separate Excel cells.' },
+      { question: 'How can I convert a PDF invoice to Excel?', answer: 'Simply drop your digital PDF invoice into our converter. The tool automatically extracts item descriptions, quantities, unit prices, and total amounts directly into spreadsheet columns.' },
+      { question: 'Will my table columns align correctly in Excel?', answer: 'Yes, our table recognition algorithm identifies whitespace gaps and alignment patterns to ensure numbers and text sit in their proper spreadsheet columns.' },
+      { question: 'Does PDF to Excel conversion work on scanned files?', answer: 'This tool is optimized for digital and text-based PDFs. For scanned document images, please use our dedicated OCR PDF tool to extract the text first.' },
+      { question: 'Can I convert multi-page PDF documents into Excel?', answer: 'Yes, you can upload multi-page text-based PDF documents and extract tabular data across multiple pages directly into your Excel spreadsheet.' }
     ],
     relatedTools: [
       { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert entire document text to editable Word files.' },
       { name: 'OCR PDF', path: '/ocr', desc: 'Extract raw searchable text from scanned PDFs.' }
+    ]
+  },
+  '/extract-tables-from-pdf-to-excel': {
+    toolName: 'Extract Tables from PDF to Excel',
+    category: 'Convert',
+    overview: 'MakePDFRight Table Extractor allows you to extract tabular rows, columns, and data grids from text-based PDF documents directly into clean Microsoft Excel (.xlsx) spreadsheets. Eliminate manual retyping and turn structured PDF tables into editable spreadsheet cells.',
+    topBody: [
+      'Extracting table data trapped in PDF reports, price lists, or research sheets can take hours if copied manually cell-by-cell. MakePDFRight automatically recognizes text alignments, tabular column coordinates, and row spacing in digital PDFs to generate formatted Excel sheets.',
+      'This tool is optimized for native, text-based PDF documents with structured layouts. For general spreadsheet conversion, you can also explore our core PDF to Excel Converter at /pdf-to-excel.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF Document', desc: 'Select a digital, text-based PDF containing structured tables.' },
+      { step: 2, title: 'Extract Grid Data', desc: 'Our system maps tabular text into discrete rows and column cells.' },
+      { step: 3, title: 'Download Excel File', desc: 'Save your new .xlsx spreadsheet ready for sorting and formulas.' }
+    ],
+    benefits: [
+      { title: 'Automated Grid Parsing', desc: 'Detects row breaks and column separations for clean cell placement.' },
+      { title: 'Saves Manual Retyping', desc: 'Extracts dozens of table rows instantly into editable spreadsheet format.' },
+      { title: 'Zero Installation', desc: 'Runs directly in modern browsers on desktop, Mac, and mobile devices.' }
+    ],
+    useCases: [
+      'Exporting product price tables and catalog sheets into Excel',
+      'Extracting statistical data tables from digital research whitepapers',
+      'Converting inventory checklists and schedule tables into editable spreadsheets'
+    ],
+    faqs: [
+      { question: 'Can I extract tables from any PDF into Excel?', answer: 'The tool works best on digital, text-based PDF files where text is selectable. Scanned documents or image-only PDFs should be processed with our OCR tool first to recognize characters.' },
+      { question: 'Will the extracted tables keep separate rows and columns?', answer: 'Yes! The extraction algorithm identifies horizontal and vertical text alignments to keep your table rows and columns properly separated in Excel.' },
+      { question: 'Do I need Microsoft Excel installed on my computer?', answer: 'No, the generated .xlsx file is compatible with Microsoft Excel, Google Sheets, LibreOffice Calc, Apple Numbers, and web spreadsheet viewers.' },
+      { question: 'Is my document private when extracting tables?', answer: 'Yes, your files are processed securely in temporary memory with end-to-end encryption and are deleted automatically.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF documents to Excel spreadsheets.' },
+      { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert formatted PDF text into editable Word documents.' },
+      { name: 'OCR PDF', path: '/ocr', desc: 'Extract raw text from scanned image PDFs.' }
+    ]
+  },
+  '/pdf-bank-statement-to-excel': {
+    toolName: 'Convert PDF Bank Statement to Excel',
+    category: 'Convert',
+    overview: 'Convert text-based PDF bank statements to editable Excel (.xlsx) spreadsheets online with MakePDFRight. Easily import transaction dates, descriptions, deposits, withdrawals, and balances into structured spreadsheet columns for accounting and budgeting.',
+    topBody: [
+      'Monthly bank statements and credit card summaries are often delivered as read-only PDF files, making it tedious to calculate monthly spending or import transactions into accounting software. MakePDFRight converts digital PDF bank statements into editable Excel sheets with aligned columns for dates, descriptions, and amounts.',
+      'For optimal extraction accuracy, use official digital e-statement PDFs downloaded directly from your bank\'s online portal. You can also use our primary Convert PDF to Excel tool at /pdf-to-excel for other document types.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Bank Statement', desc: 'Choose your text-based electronic PDF bank or credit card statement.' },
+      { step: 2, title: 'Parse Transactions', desc: 'Transaction lines, reference numbers, and currency figures are structured into table rows.' },
+      { step: 3, title: 'Download Spreadsheet', desc: 'Open your .xlsx file in Excel or Google Sheets to filter, sort, and calculate.' }
+    ],
+    benefits: [
+      { title: 'Fast Financial Reconciliation', desc: 'Organize transaction history into filterable spreadsheet columns in seconds.' },
+      { title: 'Private & Confidential', desc: 'Bank statements contain sensitive data; our tool uses client-first secure processing.' },
+      { title: 'Compatible with Excel & Sheets', desc: 'Outputs standard .xlsx files ready for budgeting and accounting software.' }
+    ],
+    useCases: [
+      'Importing monthly checking account statements into financial models',
+      'Reconciling business expenses and credit card bills for tax preparation',
+      'Categorizing yearly spending transactions into personal budget templates'
+    ],
+    faqs: [
+      { question: 'How do I convert my PDF bank statement into an Excel sheet?', answer: 'Upload your electronic bank statement PDF to the converter. The tool identifies transaction dates, descriptions, and monetary amounts, organizing them into separate Excel columns.' },
+      { question: 'Is it safe to convert bank statements with financial details?', answer: 'Yes, MakePDFRight takes privacy seriously. Your files are processed securely in temporary memory with encryption and are removed automatically after conversion.' },
+      { question: 'Does this work on scanned paper bank receipts?', answer: 'This tool is specifically designed for digital, text-based PDF statements downloaded from online banking portals. Scanned paper receipts may require OCR preprocessing.' },
+      { question: 'Can I open the resulting file in Google Sheets?', answer: 'Yes, the exported .xlsx spreadsheet opens seamlessly in Microsoft Excel, Google Sheets, Apple Numbers, and LibreOffice.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF files to Excel spreadsheets.' },
+      { name: 'Financial Statement PDF to Excel', path: '/financial-statement-pdf-to-excel', desc: 'Convert balance sheets and accounting reports to Excel.' },
+      { name: 'Invoice PDF to Excel', path: '/invoice-pdf-to-excel', desc: 'Extract invoice line items and totals to Excel.' }
+    ]
+  },
+  '/invoice-pdf-to-excel': {
+    toolName: 'Convert Invoice PDF to Excel Online',
+    category: 'Convert',
+    overview: 'Convert PDF invoices to Excel spreadsheets online for free with MakePDFRight. Extract billing line items, quantities, unit costs, tax rates, invoice numbers, and payment totals into an editable .xlsx file for quick bookkeeping.',
+    topBody: [
+      'Managing vendor bills and client invoices requires transferring line-item details into bookkeeping systems. Rather than manually copying invoice totals and item descriptions, MakePDFRight converts text-based PDF invoices into structured Excel spreadsheets.',
+      'Our converter parses digital PDF invoices with consistent spacing, extracting transaction data into distinct spreadsheet columns. For broader table extraction needs, check out our standard PDF to Excel Converter at /pdf-to-excel.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Select PDF Invoice', desc: 'Upload your digital invoice PDF with visible text and itemized charges.' },
+      { step: 2, title: 'Extract Invoice Details', desc: 'Line items, unit pricing, dates, and invoice totals are mapped into table cells.' },
+      { step: 3, title: 'Download .XLSX File', desc: 'Export your new invoice spreadsheet for bookkeeping, expense logs, or ERP import.' }
+    ],
+    benefits: [
+      { title: 'Faster Expense Tracking', desc: 'Collect vendor invoice details into editable spreadsheets without typing errors.' },
+      { title: 'Clean Line-Item Structure', desc: 'Separates item descriptions, quantities, unit prices, and line totals.' },
+      { title: 'Free & No Account Needed', desc: 'Convert invoices immediately in any browser without registration.' }
+    ],
+    useCases: [
+      'Compiling supplier invoices into monthly accounts payable records',
+      'Extracting freelance client bills and expense receipts for tax season',
+      'Auditing purchase orders and shipping manifests against billing spreadsheets'
+    ],
+    faqs: [
+      { question: 'Can I extract multiple line items from an invoice PDF to Excel?', answer: 'Yes, if your invoice is a digital PDF containing selectable text, our converter extracts each line item into sequential rows in your Excel sheet.' },
+      { question: 'What file format will I receive after converting an invoice?', answer: 'You will receive a standard Microsoft Excel (.xlsx) spreadsheet that you can open and edit in Excel, Google Sheets, or Numbers.' },
+      { question: 'Does the invoice converter support scanned paper invoices?', answer: 'The tool is engineered for text-based electronic PDFs. For scanned paper invoices, run the file through our OCR PDF tool first.' },
+      { question: 'Are my billing details and customer data kept secure?', answer: 'Yes, your files are handled in temporary encrypted memory and deleted automatically upon completion.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF files to Excel spreadsheets.' },
+      { name: 'PDF Bank Statement to Excel', path: '/pdf-bank-statement-to-excel', desc: 'Convert bank transaction statements to Excel.' },
+      { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert invoices to editable Word documents.' }
+    ]
+  },
+  '/financial-statement-pdf-to-excel': {
+    toolName: 'Financial Statement PDF to Excel',
+    category: 'Convert',
+    overview: 'Convert financial statement PDFs into editable Microsoft Excel (.xlsx) spreadsheets online. Easily extract balance sheets, income statements, cash flow reports, and audit schedules into formatted spreadsheet tables.',
+    topBody: [
+      'Quarterly earnings reports, corporate balance sheets, and audit filings are frequently published as PDF documents. Analyzing financial ratios and updating forecast models requires converting these tables into editable Excel cells.',
+      'MakePDFRight helps financial analysts, accountants, and business owners extract numerical data from digital financial PDF statements into clean, formula-ready Excel workbooks. You can also use our core PDF to Excel Converter at /pdf-to-excel for any tabular document.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Financial Statement', desc: 'Upload your text-based PDF earnings report or balance sheet.' },
+      { step: 2, title: 'Extract Numerical Tables', desc: 'Our engine processes table headers, line items, and monetary figures.' },
+      { step: 3, title: 'Download Financial Model', desc: 'Open in Excel to build pivot tables, apply formulas, and run financial ratios.' }
+    ],
+    benefits: [
+      { title: 'Accelerate Financial Modeling', desc: 'Move reported metrics directly into valuation and forecasting models.' },
+      { title: 'Preserve Number Formatting', desc: 'Keeps figures, decimal points, and column groupings aligned.' },
+      { title: 'Private Client & Company Data', desc: 'Secure in-browser session processing protects confidential corporate metrics.' }
+    ],
+    useCases: [
+      'Importing quarterly 10-Q and 10-K balance sheets into financial models',
+      'Extracting revenue, EBITDA, and expense tables from corporate presentations',
+      'Auditing trial balances and ledger summaries across multi-page financial statements'
+    ],
+    faqs: [
+      { question: 'How do I convert a PDF balance sheet or income statement into Excel?', answer: 'Simply drag and drop your text-based financial PDF into the tool. The converter extracts the financial rows and columns into an editable .xlsx spreadsheet.' },
+      { question: 'Will negative numbers and parentheses format properly in Excel?', answer: 'Yes, numbers, currencies, and accounting notations are preserved in their corresponding table cells for easy calculation.' },
+      { question: 'Can I convert multi-page annual reports with financial tables?', answer: 'Yes, you can upload multi-page digital financial reports and convert tabular data across consecutive pages.' },
+      { question: 'Does this work on scanned annual report books?', answer: 'This converter works best on native digital PDF documents. For scanned printed annual reports, use our OCR tool to extract character data first.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF documents to Excel spreadsheets.' },
+      { name: 'PDF Bank Statement to Excel', path: '/pdf-bank-statement-to-excel', desc: 'Convert bank transaction statements to Excel.' },
+      { name: 'Multi-Page PDF to Excel', path: '/multi-page-pdf-to-excel', desc: 'Extract multi-page PDF documents into Excel.' }
+    ]
+  },
+  '/multi-page-pdf-to-excel': {
+    toolName: 'Convert Multi-Page PDF to Excel',
+    category: 'Convert',
+    overview: 'Convert multi-page PDF documents into editable Microsoft Excel (.xlsx) workbooks online. Extract tabular data and numerical lists spanning multiple PDF pages into a consolidated, clean spreadsheet.',
+    topBody: [
+      'When dealing with extensive reports, product catalogs, or annual transaction logs spanning dozens of PDF pages, copying each page individually is impractical. MakePDFRight processes multi-page digital PDFs to compile structured tables into an Excel file.',
+      'Our engine analyzes sequential page layouts in text-based PDFs to preserve row continuity across page breaks. To convert single-page tables or general documents, you can also access our main PDF to Excel Tool at /pdf-to-excel.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload Multi-Page PDF', desc: 'Select your digital PDF containing data tables across several pages.' },
+      { step: 2, title: 'Batch Process Pages', desc: 'The converter scans text coordinates and tabular rows page-by-page.' },
+      { step: 3, title: 'Export Combined XLSX', desc: 'Download a consolidated Excel spreadsheet containing data from all pages.' }
+    ],
+    benefits: [
+      { title: 'Unified Spreadsheet Output', desc: 'Compiles data across consecutive pages into one workable spreadsheet.' },
+      { title: 'No Desktop Software Required', desc: 'Process multi-page documents directly in your web browser.' },
+      { title: 'Maintains Data Alignment', desc: 'Ensures columns remain consistent throughout sequential pages.' }
+    ],
+    useCases: [
+      'Extracting long transaction histories spanning multiple statement pages',
+      'Converting multi-page inventory lists and warehouse manifests into Excel',
+      'Compiling multi-page research datasets and survey summaries into one workbook'
+    ],
+    faqs: [
+      { question: 'Can I convert a multi-page PDF document into a single Excel file?', answer: 'Yes, our converter parses multi-page text-based PDFs and compiles the extracted tabular data into a unified Excel spreadsheet.' },
+      { question: 'How does the tool handle tables that break across pages?', answer: 'The converter identifies column structures on each page to ensure rows continue seamlessly in the exported spreadsheet.' },
+      { question: 'Is there a fee for converting multi-page PDFs?', answer: 'No, MakePDFRight is 100% free with no hidden charges, watermarks, or subscription requirements.' },
+      { question: 'What type of multi-page PDFs work best?', answer: 'Digital PDFs with selectable text and consistent table headers yield the cleanest and most accurate spreadsheet output.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF documents to Excel spreadsheets.' },
+      { name: 'PDF to XLSX Online', path: '/pdf-to-xlsx-online', desc: 'Convert PDF data to native XLSX spreadsheets.' },
+      { name: 'Split PDF', path: '/split', desc: 'Separate specific page ranges before converting.' }
+    ]
+  },
+  '/pdf-to-excel-on-iphone': {
+    toolName: 'Convert PDF to Excel on iPhone',
+    category: 'Convert',
+    overview: 'Convert PDF to Excel on iPhone and iPad online using Safari or Chrome. Extract tables and data from text-based PDF documents directly into editable .xlsx spreadsheets without installing third-party apps.',
+    topBody: [
+      'Opening a PDF table on iOS and trying to edit figures can be frustrating on mobile devices. MakePDFRight provides a browser-based, mobile-friendly PDF to Excel converter that works directly within Safari on iPhone and iPad.',
+      'Easily upload PDFs from your iOS Files app, iCloud Drive, or email attachments, convert tables in seconds, and open the result directly in the Microsoft Excel or Apple Numbers app. You can also use our desktop-ready PDF to Excel Converter at /pdf-to-excel.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Choose PDF from Files', desc: 'Tap to select a PDF from your iPhone Files app, iCloud, or Downloads.' },
+      { step: 2, title: 'Convert on Mobile Safari', desc: 'Our responsive tool processes the table data directly in your browser.' },
+      { step: 3, title: 'Open in Numbers or Excel', desc: 'Download the .xlsx file and open it in Apple Numbers, Excel, or Google Sheets.' }
+    ],
+    benefits: [
+      { title: 'No App Store Downloads', desc: 'Works directly in Safari without downloading clunky third-party apps.' },
+      { title: 'Integrates with iOS Files', desc: 'Select documents directly from iCloud Drive, Google Drive, or Downloads.' },
+      { title: 'Fast Mobile Experience', desc: 'Streamlined interface designed for quick touch navigation and conversion.' }
+    ],
+    useCases: [
+      'Converting a PDF invoice received in Apple Mail directly on your iPhone',
+      'Reviewing a bank statement spreadsheet on iPad while traveling',
+      'Extracting price tables from a PDF document to Apple Numbers on iOS'
+    ],
+    faqs: [
+      { question: 'How do I convert a PDF to Excel on an iPhone without an app?', answer: 'Open Safari, visit MakePDFRight PDF to Excel on iPhone, upload your text-based PDF from the Files app, and tap download to receive your .xlsx file.' },
+      { question: 'Can I open the downloaded file in Apple Numbers?', answer: 'Yes, iOS supports opening .xlsx files natively in Apple Numbers as well as Microsoft Excel and Google Sheets.' },
+      { question: 'Does this work on iPad as well as iPhone?', answer: 'Yes, MakePDFRight is fully responsive and supports iPadOS in Safari, Chrome, and Firefox.' },
+      { question: 'Are my mobile files stored on the server?', answer: 'No, all files are processed in secure temporary memory and automatically deleted after conversion.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF documents to Excel spreadsheets.' },
+      { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert PDF documents to Word on iPhone.' },
+      { name: 'Image to PDF', path: '/image-to-pdf', desc: 'Convert iPhone camera photos into PDF documents.' }
+    ]
+  },
+  '/pdf-to-xlsx-online': {
+    toolName: 'Convert PDF to XLSX Online',
+    category: 'Convert',
+    overview: 'Convert PDF to XLSX online for free with MakePDFRight. Turn text-based PDF documents and tabular data into native Microsoft Excel (.xlsx) spreadsheets that you can edit, calculate, and format instantly.',
+    topBody: [
+      'The XLSX format is the universal standard for modern spreadsheet applications like Microsoft Excel, Google Sheets, and LibreOffice. MakePDFRight converts tabular data from digital PDF files directly into clean XLSX workbooks.',
+      'Enjoy fast, browser-first conversion that keeps data organized in distinct rows and columns without requiring software installations or user accounts. For additional conversion options, visit our primary PDF to Excel Converter at /pdf-to-excel.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF File', desc: 'Select the digital PDF containing text or numerical data to convert.' },
+      { step: 2, title: 'Generate XLSX Format', desc: 'Our engine compiles structured rows and columns into native XLSX format.' },
+      { step: 3, title: 'Download Spreadsheet', desc: 'Save your new .xlsx file ready for formulas, charts, and analysis.' }
+    ],
+    benefits: [
+      { title: 'Native XLSX Compatibility', desc: 'Guaranteed compatibility with modern Excel (2007-365) and Google Sheets.' },
+      { title: 'No File Conversion Fees', desc: '100% free tool with no hidden subscriptions or page caps.' },
+      { title: 'High-Speed Web Processing', desc: 'Fast in-browser processing delivers your spreadsheet in seconds.' }
+    ],
+    useCases: [
+      'Converting business reports into XLSX workbooks for quarterly review',
+      'Exporting numeric survey responses and census tables to XLSX format',
+      'Transitioning static PDF schedule sheets into editable Excel workbooks'
+    ],
+    faqs: [
+      { question: 'What is the difference between XLS and XLSX?', answer: 'XLSX is the modern, XML-based spreadsheet format used by Microsoft Excel since 2007. It supports larger datasets, better compression, and enhanced security compared to older .xls files.' },
+      { question: 'Can I edit the converted XLSX file in Google Sheets?', answer: 'Yes, XLSX files open natively in Google Sheets, Microsoft Excel, Apple Numbers, and LibreOffice Calc.' },
+      { question: 'Does the converter work on text-based PDFs?', answer: 'Yes, our tool is optimized to extract tabular data from digital, text-based PDF documents with high accuracy.' },
+      { question: 'Do I need to register an email address to download the XLSX file?', answer: 'No, you can download your converted spreadsheet immediately without providing an email address or creating an account.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF documents to Excel spreadsheets.' },
+      { name: 'Convert PDF Data to Excel', path: '/convert-pdf-data-to-excel', desc: 'Turn PDF text and figures into Excel rows and columns.' },
+      { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert PDF documents to editable DOCX files.' }
+    ]
+  },
+  '/convert-pdf-data-to-excel': {
+    toolName: 'Convert PDF Data to Excel Online',
+    category: 'Convert',
+    overview: 'Convert PDF data to Excel online with MakePDFRight. Turn static text, numerical lists, and tabular information from digital PDF files into structured Excel rows and columns without manual data entry.',
+    topBody: [
+      'Manually retyping data from PDF documents into spreadsheets leads to typing errors and wasted working hours. MakePDFRight extracts textual and numerical information from digital PDF documents, mapping it directly into editable Excel cells.',
+      'Whether you are consolidating research metrics, tracking business KPIs, or organizing inventory numbers, our tool helps you transfer PDF data into Excel quickly. Explore our standard PDF to Excel Converter at /pdf-to-excel for additional spreadsheet tools.'
+    ],
+    howItWorks: [
+      { step: 1, title: 'Upload PDF with Data', desc: 'Select your text-based PDF containing the figures or data you wish to extract.' },
+      { step: 2, title: 'Structure Data Cells', desc: 'The converter scans text positions and aligns data into table rows and columns.' },
+      { step: 3, title: 'Export to Excel', desc: 'Download the clean .xlsx file and begin analyzing your data with formulas.' }
+    ],
+    benefits: [
+      { title: 'Eliminate Typing Errors', desc: 'Automated data transfer ensures numbers and text are captured accurately.' },
+      { title: 'Formula-Ready Output', desc: 'Numeric values are placed in separate cells ready for SUM, AVERAGE, and formulas.' },
+      { title: 'Private & Confidential', desc: 'All data processing happens securely in temporary memory with automatic deletion.' }
+    ],
+    useCases: [
+      'Transferring sales metrics and KPI figures from PDF summaries to Excel dashboards',
+      'Importing scientific measurement logs and experiment tables into spreadsheets',
+      'Extracting customer directory lists or roster data into editable Excel sheets'
+    ],
+    faqs: [
+      { question: 'How does the tool convert PDF data into Excel cells?', answer: 'Our parser analyzes the spatial coordinates of text and numbers within the PDF, grouping horizontal items into rows and vertical alignments into distinct spreadsheet columns.' },
+      { question: 'What type of PDF data can be converted to Excel?', answer: 'The tool works best on digital PDFs with selectable text, such as financial statements, invoices, data logs, price lists, and survey results.' },
+      { question: 'Can I apply Excel formulas to the extracted numbers?', answer: 'Yes, extracted numeric data is placed in standard cells so you can immediately apply Excel formulas, create charts, and build pivot tables.' },
+      { question: 'Does the tool support scanned image documents?', answer: 'This tool is optimized for digital text PDFs. If your PDF contains flat images or scanned pages, please use our OCR tool to extract the text first.' }
+    ],
+    relatedTools: [
+      { name: 'Convert PDF to Excel', path: '/pdf-to-excel', desc: 'Convert general text-based PDF documents to Excel spreadsheets.' },
+      { name: 'Extract Tables from PDF to Excel', path: '/extract-tables-from-pdf-to-excel', desc: 'Extract table rows and columns from PDF to Excel.' },
+      { name: 'PDF to Word', path: '/pdf-to-word', desc: 'Convert PDF documents to editable Word files.' }
     ]
   },
   '/pdf-to-jpg': {

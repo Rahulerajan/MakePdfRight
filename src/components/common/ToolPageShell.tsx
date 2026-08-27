@@ -33,6 +33,7 @@ export const ToolPageShell: React.FC<ToolPageShellProps> = ({
     'Image to PDF': 'image_to_pdf',
     'PDF to Word': 'pdf_to_word',
     'PDF to Excel': 'pdf_to_excel',
+    'Convert PDF to Excel': 'pdf_to_excel',
     'Edit PDF': 'edit',
     'Rotate PDF': 'rotate',
     'Organize PDF': 'organise',
@@ -45,13 +46,23 @@ export const ToolPageShell: React.FC<ToolPageShellProps> = ({
   const routeSeo = SEO_DATA[location.pathname];
   const seoTitle = routeSeo?.title || `${title} – Online Free | MakePDFRight`;
   const seoDesc = routeSeo?.description || description;
-  const toolSeoContent = TOOL_SEO_CONTENT_MAP[location.pathname] || (baseKey ? TOOL_SEO_CONTENT_MAP[`/${baseKey}`] : undefined);
+  const toolSeoContent = TOOL_SEO_CONTENT_MAP[location.pathname] || (baseKey ? TOOL_SEO_CONTENT_MAP[`/${baseKey}`] : (baseKey === 'pdf_to_excel' ? TOOL_SEO_CONTENT_MAP['/pdf-to-excel'] : undefined));
 
   return (
     <div className={`flex flex-col bg-slate-50 dark:bg-slate-900/50 transition-colors ${!isWorkspaceActive ? 'min-h-[calc(100dvh-72px)]' : 'h-[calc(100dvh-72px)] overflow-hidden'}`}>
       <SEO 
         title={seoTitle} 
         description={seoDesc} 
+        canonicalUrl={routeSeo?.canonicalUrl}
+        ogImage={routeSeo?.ogImage}
+        ogImageAlt={routeSeo?.ogImageAlt}
+        twitterTitle={routeSeo?.twitterTitle}
+        twitterDescription={routeSeo?.twitterDescription}
+        twitterImage={routeSeo?.twitterImage}
+        twitterImageAlt={routeSeo?.twitterImageAlt}
+        keywords={routeSeo?.keywords}
+        author={routeSeo?.author}
+        robots={routeSeo?.robots}
         toolName={title}
         faqs={toolSeoContent?.faqs}
       />

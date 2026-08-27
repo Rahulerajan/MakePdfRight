@@ -2,6 +2,15 @@ export interface RouteSEO {
   title: string;
   description: string;
   ogImage?: string;
+  ogImageAlt?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  twitterImageAlt?: string;
+  canonicalUrl?: string;
+  keywords?: string;
+  author?: string;
+  robots?: string;
 }
 
 export const SEO_DATA: Record<string, RouteSEO> = {
@@ -284,8 +293,130 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     description: 'Learn how to convert a locked or password-protected PDF into an editable Word document, free and online.'
   },
   '/pdf-to-excel': {
-    title: 'PDF to Excel Converter Online – Extract Tables | MakePDFRight',
-    description: 'Extract tables from PDF to Excel spreadsheets online for free. Turn PDF invoices, financial reports, and data grids into editable XLSX files.'
+    title: 'PDF to Excel Converter – PDF to XLSX | MakePDFRight',
+    description: 'Convert text-based PDF tables and data into editable Excel (.xlsx) spreadsheets online for free. Fast, private, and no sign-up required.',
+    canonicalUrl: 'https://www.makepdfright.com/pdf-to-excel',
+    author: 'MakePDFRight',
+    keywords: 'PDF to Excel, PDF to XLSX, convert PDF to Excel, extract PDF tables, PDF spreadsheet converter, PDF data extraction',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert PDF data to an editable Excel spreadsheet with MakePDFRight',
+    twitterTitle: 'PDF to Excel Converter – PDF to XLSX | MakePDFRight',
+    twitterDescription: 'Convert text-based PDF tables and data into editable Excel spreadsheets online for free.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'MakePDFRight PDF to Excel converter'
+  },
+  '/extract-tables-from-pdf-to-excel': {
+    title: 'Extract Tables from PDF to Excel | MakePDFRight',
+    description: 'Extract rows, columns, and table data from text-based PDF files into editable Excel spreadsheets online. Free, private, and easy to use.',
+    canonicalUrl: 'https://www.makepdfright.com/extract-tables-from-pdf-to-excel',
+    author: 'MakePDFRight',
+    keywords: 'extract tables from PDF to Excel, PDF table extractor, export PDF table to Excel, PDF table to XLSX, extract data from PDF table',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Extract tables from PDF to Excel with MakePDFRight',
+    twitterTitle: 'Extract Tables from PDF to Excel | MakePDFRight',
+    twitterDescription: 'Extract rows, columns, and table data from text-based PDF files into editable Excel spreadsheets online.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Extract tables from PDF to Excel online'
+  },
+  '/pdf-bank-statement-to-excel': {
+    title: 'Convert PDF Bank Statement to Excel | MakePDFRight',
+    description: 'Convert text-based PDF bank statements to editable Excel spreadsheets for easier review, sorting, and reconciliation. Free and private.',
+    canonicalUrl: 'https://www.makepdfright.com/pdf-bank-statement-to-excel',
+    author: 'MakePDFRight',
+    keywords: 'PDF bank statement to Excel, convert bank statement PDF to Excel, bank statement to spreadsheet, PDF bank transactions to Excel',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert PDF bank statements to Excel spreadsheets with MakePDFRight',
+    twitterTitle: 'Convert PDF Bank Statement to Excel | MakePDFRight',
+    twitterDescription: 'Convert text-based PDF bank statements to editable Excel spreadsheets for easier review, sorting, and reconciliation.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Convert PDF bank statement to Excel'
+  },
+  '/invoice-pdf-to-excel': {
+    title: 'Convert Invoice PDF to Excel Online | MakePDFRight',
+    description: 'Convert text-based PDF invoices to Excel and organize descriptions, quantities, prices, dates, and totals in an editable XLSX spreadsheet.',
+    canonicalUrl: 'https://www.makepdfright.com/invoice-pdf-to-excel',
+    author: 'MakePDFRight',
+    keywords: 'invoice PDF to Excel, convert PDF invoice to Excel, PDF receipt to Excel, invoice table extraction, invoice to XLSX',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert invoice PDF to Excel with MakePDFRight',
+    twitterTitle: 'Convert Invoice PDF to Excel Online | MakePDFRight',
+    twitterDescription: 'Convert text-based PDF invoices to Excel and organize descriptions, quantities, prices, dates, and totals in an editable XLSX spreadsheet.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Convert invoice PDF to Excel online'
+  },
+  '/financial-statement-pdf-to-excel': {
+    title: 'Financial Statement PDF to Excel | MakePDFRight',
+    description: 'Convert text-based financial statement PDFs into editable Excel spreadsheets for reviewing tables, figures, expenses, and report data.',
+    canonicalUrl: 'https://www.makepdfright.com/financial-statement-pdf-to-excel',
+    author: 'MakePDFRight',
+    keywords: 'financial statement PDF to Excel, PDF balance sheet to Excel, financial report to spreadsheet, convert accounting PDF to Excel',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert financial statement PDF to Excel with MakePDFRight',
+    twitterTitle: 'Financial Statement PDF to Excel | MakePDFRight',
+    twitterDescription: 'Convert text-based financial statement PDFs into editable Excel spreadsheets for reviewing tables, figures, expenses, and report data.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Financial statement PDF to Excel'
+  },
+  '/multi-page-pdf-to-excel': {
+    title: 'Convert Multi-Page PDF to Excel | MakePDFRight',
+    description: 'Convert data from multiple PDF pages into an editable Excel workbook online. Works best with text-based PDFs using consistent table layouts.',
+    canonicalUrl: 'https://www.makepdfright.com/multi-page-pdf-to-excel',
+    author: 'MakePDFRight',
+    keywords: 'multi page PDF to Excel, convert long PDF to Excel, multi-page PDF spreadsheet, extract all pages PDF to Excel',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert multi-page PDF to Excel with MakePDFRight',
+    twitterTitle: 'Convert Multi-Page PDF to Excel | MakePDFRight',
+    twitterDescription: 'Convert data from multiple PDF pages into an editable Excel workbook online. Works best with text-based PDFs using consistent table layouts.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Convert multi-page PDF to Excel'
+  },
+  '/pdf-to-excel-on-iphone': {
+    title: 'Convert PDF to Excel on iPhone | MakePDFRight',
+    description: 'Convert a text-based PDF to an editable Excel spreadsheet on iPhone using Safari. No dedicated application or registration required.',
+    canonicalUrl: 'https://www.makepdfright.com/pdf-to-excel-on-iphone',
+    author: 'MakePDFRight',
+    keywords: 'PDF to Excel on iPhone, convert PDF to Excel mobile, iOS PDF to Excel, Safari PDF to Excel converter',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert PDF to Excel on iPhone with MakePDFRight',
+    twitterTitle: 'Convert PDF to Excel on iPhone | MakePDFRight',
+    twitterDescription: 'Convert a text-based PDF to an editable Excel spreadsheet on iPhone using Safari. No dedicated application or registration required.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Convert PDF to Excel on iPhone'
+  },
+  '/pdf-to-xlsx-online': {
+    title: 'Convert PDF to XLSX Online | MakePDFRight',
+    description: 'Convert text-based PDF data into a Microsoft Excel-compatible XLSX spreadsheet online for free. Fast, private, and simple to use.',
+    canonicalUrl: 'https://www.makepdfright.com/pdf-to-xlsx-online',
+    author: 'MakePDFRight',
+    keywords: 'PDF to XLSX online, convert PDF to XLSX, PDF to Microsoft Excel, free PDF to XLSX converter',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert PDF to XLSX online with MakePDFRight',
+    twitterTitle: 'Convert PDF to XLSX Online | MakePDFRight',
+    twitterDescription: 'Convert text-based PDF data into a Microsoft Excel-compatible XLSX spreadsheet online for free. Fast, private, and simple to use.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Convert PDF to XLSX online'
+  },
+  '/convert-pdf-data-to-excel': {
+    title: 'Convert PDF Data to Excel Online | MakePDFRight',
+    description: 'Turn reusable text and numerical data from PDF documents into editable Excel rows and columns without manually retyping the information.',
+    canonicalUrl: 'https://www.makepdfright.com/convert-pdf-data-to-excel',
+    author: 'MakePDFRight',
+    keywords: 'convert PDF data to Excel, export PDF data to Excel, transfer PDF data to spreadsheet, PDF data extraction to Excel',
+    robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+    ogImage: '/og-image.png',
+    ogImageAlt: 'Convert PDF data to Excel online with MakePDFRight',
+    twitterTitle: 'Convert PDF Data to Excel Online | MakePDFRight',
+    twitterDescription: 'Turn reusable text and numerical data from PDF documents into editable Excel rows and columns without manually retyping the information.',
+    twitterImage: '/og-image.png',
+    twitterImageAlt: 'Convert PDF data to Excel online'
   },
   '/edit': {
     title: 'Edit PDF Online Free – Add Signature & Text | MakePDFRight',

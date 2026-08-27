@@ -616,7 +616,7 @@ async function startServer() {
     
     // Calculate canonical origin
     const appUrl = 'https://www.makepdfright.com';
-    const canonicalUrl = `${appUrl}${cleanPath === '/' ? '' : cleanPath}`;
+    const canonicalUrl = routeSeo.canonicalUrl || `${appUrl}${cleanPath === '/' ? '' : cleanPath}`;
     
     const rawOgImage = routeSeo.ogImage || '/og-image.png';
     const ogImageUrl = rawOgImage.startsWith('http') 
@@ -625,6 +625,17 @@ async function startServer() {
 
     const titleText = routeSeo.title;
     const descText = routeSeo.description;
+    const authorText = routeSeo.author || 'MakePDFRight';
+    const keywordsText = routeSeo.keywords || 'PDF tools, merge PDF, split PDF, compress PDF, PDF to Word, PDF to Excel, edit PDF, AI image generator, audio transcribe, free PDF editor';
+    const robotsText = routeSeo.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+    const ogImageAltText = routeSeo.ogImageAlt || `${titleText.split('–')[0].split('|')[0].trim()} with MakePDFRight`;
+    const twitterTitleText = routeSeo.twitterTitle || titleText;
+    const twitterDescText = routeSeo.twitterDescription || descText;
+    const rawTwitterImage = routeSeo.twitterImage || rawOgImage;
+    const twitterImageUrl = rawTwitterImage.startsWith('http')
+      ? rawTwitterImage
+      : `${appUrl}${rawTwitterImage.startsWith('/') ? '' : '/'}${rawTwitterImage}`;
+    const twitterImageAltText = routeSeo.twitterImageAlt || ogImageAltText;
 
     // Helper functions for meta tags
     const setMetaProperty = (property: string, content: string) => {
@@ -654,9 +665,11 @@ async function startServer() {
       html = html.replace('</head>', `  <title>${escapeHtml(titleText)}</title>\n</head>`);
     }
 
-    // 2. Meta description & robots
+    // 2. Meta description, author, keywords & robots
     setMetaName('description', descText);
-    setMetaName('robots', 'index, follow, max-image-preview:large');
+    setMetaName('author', authorText);
+    setMetaName('keywords', keywordsText);
+    setMetaName('robots', robotsText);
 
     // 3. OpenGraph tags
     setMetaProperty('og:site_name', 'MakePDFRight');
@@ -665,12 +678,14 @@ async function startServer() {
     setMetaProperty('og:description', descText);
     setMetaProperty('og:url', canonicalUrl);
     setMetaProperty('og:image', ogImageUrl);
+    setMetaProperty('og:image:alt', ogImageAltText);
 
     // 4. Twitter Card tags
     setMetaName('twitter:card', 'summary_large_image');
-    setMetaName('twitter:title', titleText);
-    setMetaName('twitter:description', descText);
-    setMetaName('twitter:image', ogImageUrl);
+    setMetaName('twitter:title', twitterTitleText);
+    setMetaName('twitter:description', twitterDescText);
+    setMetaName('twitter:image', twitterImageUrl);
+    setMetaName('twitter:image:alt', twitterImageAltText);
 
     // 5. Canonical link
     const canonicalTag = `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`;

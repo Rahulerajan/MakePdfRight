@@ -1,15 +1,24 @@
 import React, { useEffect } from 'react';
+import { SEO_DATA, RouteSEO } from '../../constants/seoData';
 
 export interface FAQItem {
   question: string;
   answer: string;
 }
 
-interface SEOProps {
+export interface SEOProps {
   title: string;
   description: string;
   canonicalUrl?: string;
   ogImage?: string;
+  ogImageAlt?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  twitterImageAlt?: string;
+  keywords?: string;
+  author?: string;
+  robots?: string;
   faqs?: FAQItem[];
   toolName?: string;
   category?: string;
@@ -20,20 +29,51 @@ export const SEO: React.FC<SEOProps> = ({
   description, 
   canonicalUrl,
   ogImage = '/og-image.png',
+  ogImageAlt,
+  twitterTitle,
+  twitterDescription,
+  twitterImage,
+  twitterImageAlt,
+  keywords,
+  author = 'MakePDFRight',
+  robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
   faqs,
   toolName,
   category = 'PDF Tools'
 }) => {
   useEffect(() => {
-    // 1. Update Document Title
-    document.title = title;
-
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    const routeSeo: RouteSEO | undefined = SEO_DATA[currentPath];
+
+    const finalTitle = title || routeSeo?.title || 'MakePDFRight – Fast, Private Online PDF & Media Tools';
+    const finalDescription = description || routeSeo?.description || '';
+
+    // 1. Update Document Title
+    document.title = finalTitle;
+
     const appUrl = 'https://www.makepdfright.com';
-    const fullCanonical = canonicalUrl || `${appUrl}${currentPath === '/' ? '' : currentPath}`;
-    const fullOgImage = ogImage.startsWith('http') 
-      ? ogImage 
-      : `${appUrl}${ogImage.startsWith('/') ? '' : '/'}${ogImage}`;
+    const fullCanonical = canonicalUrl || routeSeo?.canonicalUrl || `${appUrl}${currentPath === '/' ? '' : currentPath}`;
+    
+    const rawOgImage = ogImage || routeSeo?.ogImage || '/og-image.png';
+    const fullOgImage = rawOgImage.startsWith('http') 
+      ? rawOgImage 
+      : `${appUrl}${rawOgImage.startsWith('/') ? '' : '/'}${rawOgImage}`;
+
+    const finalOgImageAlt = ogImageAlt || routeSeo?.ogImageAlt || `${finalTitle.split('–')[0].split('|')[0].trim()} with MakePDFRight`;
+
+    const finalTwitterTitle = twitterTitle || routeSeo?.twitterTitle || finalTitle;
+    const finalTwitterDesc = twitterDescription || routeSeo?.twitterDescription || finalDescription;
+
+    const rawTwitterImage = twitterImage || routeSeo?.twitterImage || rawOgImage;
+    const fullTwitterImage = rawTwitterImage.startsWith('http')
+      ? rawTwitterImage
+      : `${appUrl}${rawTwitterImage.startsWith('/') ? '' : '/'}${rawTwitterImage}`;
+
+    const finalTwitterImageAlt = twitterImageAlt || routeSeo?.twitterImageAlt || finalOgImageAlt;
+
+    const finalKeywords = keywords || routeSeo?.keywords;
+    const finalAuthor = author || routeSeo?.author || 'MakePDFRight';
+    const finalRobots = robots || routeSeo?.robots || 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 
     // 2. Helper to set/update meta tag
     const updateMeta = (selector: string, attrName: string, attrVal: string, content: string) => {
@@ -47,22 +87,28 @@ export const SEO: React.FC<SEOProps> = ({
     };
 
     // Standard Meta Tags
-    updateMeta('meta[name="description"]', 'name', 'description', description);
-    updateMeta('meta[name="robots"]', 'name', 'robots', 'index, follow, max-image-preview:large');
+    updateMeta('meta[name="description"]', 'name', 'description', finalDescription);
+    updateMeta('meta[name="author"]', 'name', 'author', finalAuthor);
+    if (finalKeywords) {
+      updateMeta('meta[name="keywords"]', 'name', 'keywords', finalKeywords);
+    }
+    updateMeta('meta[name="robots"]', 'name', 'robots', finalRobots);
 
     // Open Graph
     updateMeta('meta[property="og:site_name"]', 'property', 'og:site_name', 'MakePDFRight');
     updateMeta('meta[property="og:type"]', 'property', 'og:type', 'website');
-    updateMeta('meta[property="og:title"]', 'property', 'og:title', title);
-    updateMeta('meta[property="og:description"]', 'property', 'og:description', description);
+    updateMeta('meta[property="og:title"]', 'property', 'og:title', finalTitle);
+    updateMeta('meta[property="og:description"]', 'property', 'og:description', finalDescription);
     updateMeta('meta[property="og:url"]', 'property', 'og:url', fullCanonical);
     updateMeta('meta[property="og:image"]', 'property', 'og:image', fullOgImage);
+    updateMeta('meta[property="og:image:alt"]', 'property', 'og:image:alt', finalOgImageAlt);
 
     // Twitter Cards
     updateMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
-    updateMeta('meta[name="twitter:title"]', 'name', 'twitter:title', title);
-    updateMeta('meta[name="twitter:description"]', 'name', 'twitter:description', description);
-    updateMeta('meta[name="twitter:image"]', 'name', 'twitter:image', fullOgImage);
+    updateMeta('meta[name="twitter:title"]', 'name', 'twitter:title', finalTwitterTitle);
+    updateMeta('meta[name="twitter:description"]', 'name', 'twitter:description', finalTwitterDesc);
+    updateMeta('meta[name="twitter:image"]', 'name', 'twitter:image', fullTwitterImage);
+    updateMeta('meta[name="twitter:image:alt"]', 'name', 'twitter:image:alt', finalTwitterImageAlt);
 
     // Canonical Link
     let link: HTMLLinkElement | null = document.querySelector('link[rel="canonical"]');
@@ -99,16 +145,16 @@ export const SEO: React.FC<SEOProps> = ({
         '@type': 'AboutPage',
         '@id': `${fullCanonical}/#webpage`,
         'url': fullCanonical,
-        'name': title,
-        'description': description
+        'name': finalTitle,
+        'description': finalDescription
       });
     } else if (currentPath === '/contact') {
       graphNodes.push({
         '@type': 'ContactPage',
         '@id': `${fullCanonical}/#webpage`,
         'url': fullCanonical,
-        'name': title,
-        'description': description
+        'name': finalTitle,
+        'description': finalDescription
       });
     } else if (toolName) {
       graphNodes.push({
@@ -122,7 +168,7 @@ export const SEO: React.FC<SEOProps> = ({
           'price': '0',
           'priceCurrency': 'USD'
         },
-        'description': description,
+        'description': finalDescription,
         'url': fullCanonical
       });
     } else {
@@ -130,8 +176,8 @@ export const SEO: React.FC<SEOProps> = ({
         '@type': 'WebPage',
         '@id': `${fullCanonical}/#webpage`,
         'url': fullCanonical,
-        'name': title,
-        'description': description
+        'name': finalTitle,
+        'description': finalDescription
       });
     }
 
@@ -150,7 +196,7 @@ export const SEO: React.FC<SEOProps> = ({
           {
             '@type': 'ListItem',
             'position': 2,
-            'name': toolName || title.split('–')[0].split('|')[0].trim(),
+            'name': toolName || finalTitle.split('–')[0].split('|')[0].trim(),
             'item': fullCanonical
           }
         ]
@@ -188,7 +234,7 @@ export const SEO: React.FC<SEOProps> = ({
     }
     scriptEl.textContent = JSON.stringify(schemaGraph);
 
-  }, [title, description, canonicalUrl, ogImage, faqs, toolName, category]);
+  }, [title, description, canonicalUrl, ogImage, ogImageAlt, twitterTitle, twitterDescription, twitterImage, twitterImageAlt, keywords, author, robots, faqs, toolName, category]);
 
   return null;
 };

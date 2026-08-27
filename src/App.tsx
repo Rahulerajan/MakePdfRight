@@ -596,8 +596,72 @@ export default function App() {
 
               <Route path="/pdf-to-excel" element={
                 <ToolPage 
-                  title="PDF to Excel" 
-                  description="Convert PDF tables and data into an editable Excel (.xlsx) file."
+                  title="Convert PDF to Excel" 
+                  description="Convert PDF data into editable Excel spreadsheets."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/extract-tables-from-pdf-to-excel" element={
+                <ToolPage 
+                  title="Extract Tables from PDF to Excel" 
+                  description="Extract rows, columns, and table data from text-based PDF files into editable Excel spreadsheets online."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-bank-statement-to-excel" element={
+                <ToolPage 
+                  title="Convert PDF Bank Statement to Excel" 
+                  description="Convert text-based PDF bank statements to editable Excel spreadsheets for easier financial review and reconciliation."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/invoice-pdf-to-excel" element={
+                <ToolPage 
+                  title="Convert Invoice PDF to Excel" 
+                  description="Convert text-based PDF invoices to Excel and organize line items, quantities, prices, and totals in an editable XLSX spreadsheet."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/financial-statement-pdf-to-excel" element={
+                <ToolPage 
+                  title="Financial Statement PDF to Excel" 
+                  description="Convert text-based financial statement PDFs into editable Excel spreadsheets for reviewing tables, figures, expenses, and report data."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/multi-page-pdf-to-excel" element={
+                <ToolPage 
+                  title="Convert Multi-Page PDF to Excel" 
+                  description="Convert data from multiple PDF pages into an editable Excel workbook online."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-excel-on-iphone" element={
+                <ToolPage 
+                  title="Convert PDF to Excel on iPhone" 
+                  description="Convert a text-based PDF to an editable Excel spreadsheet on iPhone using Safari."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/pdf-to-xlsx-online" element={
+                <ToolPage 
+                  title="Convert PDF to XLSX Online" 
+                  description="Convert text-based PDF data into a Microsoft Excel-compatible XLSX spreadsheet online for free."
+                >
+                  {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
+                </ToolPage>
+              } />
+              <Route path="/convert-pdf-data-to-excel" element={
+                <ToolPage 
+                  title="Convert PDF Data to Excel Online" 
+                  description="Turn reusable text and numerical data from PDF documents into editable Excel rows and columns without manually retyping the information."
                 >
                   {(files, onReset) => <PDFToExcelTool file={files[0]} onReset={onReset} />}
                 </ToolPage>
