@@ -68,6 +68,14 @@ function generateJsonLdSchema(route: string, seo: RouteSEO, appUrl: string): str
         'name': title,
         'description': desc
       });
+    } else if (route === '/resources') {
+      graphNodes.push({
+        '@type': 'CollectionPage',
+        '@id': `${canonicalUrl}/#webpage`,
+        'url': canonicalUrl,
+        'name': title,
+        'description': desc
+      });
     } else if (route !== '/') {
       const toolName = title.split('–')[0].split('|')[0].trim();
       graphNodes.push({

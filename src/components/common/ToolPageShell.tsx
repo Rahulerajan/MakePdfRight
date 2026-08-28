@@ -42,8 +42,10 @@ export const ToolPageShell: React.FC<ToolPageShellProps> = ({
     'Audio Transcribe': 'transcribe'
   };
   const baseKey = keyMap[title];
-  const displayTitle = baseKey ? t(`tool.${baseKey}.title`) : title;
-  const displayDesc = baseKey ? t(`tool.${baseKey}.desc`) : description;
+  const rawTitle = baseKey ? t(`tool.${baseKey}.title`) : title;
+  const displayTitle = (rawTitle && !rawTitle.startsWith('tool.')) ? rawTitle : title;
+  const rawDesc = baseKey ? t(`tool.${baseKey}.desc`) : description;
+  const displayDesc = (rawDesc && !rawDesc.startsWith('tool.')) ? rawDesc : description;
 
   const routeSeo = SEO_DATA[location.pathname];
   const seoTitle = routeSeo?.title || `${title} – Online Free | MakePDFRight`;

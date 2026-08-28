@@ -217,6 +217,12 @@ export const Header = () => {
               )}
             </div>
           ))}
+          <Link
+            to="/resources"
+            className="text-[15px] font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors"
+          >
+            Resources
+          </Link>
         </nav>
 
         {/* Right Controls */}
@@ -336,6 +342,16 @@ export const Header = () => {
                   </div>
                 </div>
               ))}
+
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <Link
+                  to="/resources"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 text-primary font-bold text-sm transition-colors"
+                >
+                  <span>📚 Resources & Guides</span>
+                </Link>
+              </div>
             </div>
 
             {/* Mobile Language Selector inside floating panel */}
@@ -394,7 +410,7 @@ export const Footer = () => {
             <div className="pt-2">
               <div className="inline-flex items-center gap-2.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>🔒 Client-First & Ephemeral • Zero Document Retention</span>
+                <span>🔒 Client-First & Ephemeral • Automated Ephemeral File Cleanup</span>
               </div>
             </div>
           </div>

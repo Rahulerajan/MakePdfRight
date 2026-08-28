@@ -18,6 +18,7 @@ import { ToolPage } from './components/common/ToolPage';
 import { ImageGenPage } from './pages/ImageGenPage';
 import { AudioTranscribePage } from './pages/AudioTranscribePage';
 import { About } from './pages/About';
+import { Resources } from './pages/Resources';
 import { Contact } from './pages/Contact';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
@@ -723,6 +724,7 @@ export function App({ initialPath }: AppProps = {}) {
               <Route path="/audio-transcribe" element={<Navigate to="/transcribe" replace />} />
 
               {/* Informational & Legal Pages */}
+              <Route path="/resources" element={<Resources />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy" element={<Privacy />} />

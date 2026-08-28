@@ -56,8 +56,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.organise.description': 'Reorder, rotate, add, delete, extract, and manage PDF pages with an intuitive interface.',
     'tools.image_gen.name': 'Image Generator',
     'tools.image_gen.description': 'Create custom visuals from text descriptions using advanced models.',
+    'tools.generate_image.name': 'AI Image Generator',
+    'tools.generate_image.description': 'Create custom visuals from text descriptions using advanced models.',
     'tools.transcribe.name': 'Audio Transcription',
     'tools.transcribe.description': 'Convert voice recordings and audio files into accurate text transcripts.',
+    'tools.ocr.name': 'OCR PDF',
+    'tools.ocr.description': 'Extract and recognize text from scanned PDF documents with optical character recognition.',
 
     // ToolPages Title & Details
     'tool.merge.title': 'Merge PDF',
@@ -80,6 +84,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tool.rotate.desc': 'Rotate your PDF pages and save them permanently.',
     'tool.organise.title': 'Organize PDF',
     'tool.organise.desc': 'Reorder, rotate, add, delete, extract, and manage PDF pages with an intuitive interface.',
+    'tool.ocr.title': 'OCR PDF',
+    'tool.ocr.desc': 'Perform OCR text recognition on scanned PDF files.',
+    'tool.generate_image.title': 'AI Image Generator',
+    'tool.generate_image.desc': 'Create custom images and visuals from text prompts.',
+    'tool.transcribe.title': 'Audio Transcribe',
+    'tool.transcribe.desc': 'Convert audio recordings and voice files into accurate text transcripts.',
 
     // File Upload
     'upload.choose': 'Choose PDF files',
@@ -238,8 +248,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.organise.description': 'PDF पेजों को क्रमबद्ध करें, जोड़ें और हटाएं। आवश्यकतानुसार घुमाएं और पुनर्व्यवस्थित करें।',
     'tools.image_gen.name': 'इमेज जनरेटर',
     'tools.image_gen.description': 'टेक्स्ट विवरण से कस्टम चित्र बनाएं।',
+    'tools.generate_image.name': 'AI इमेज जनरेटर',
+    'tools.generate_image.description': 'टेक्स्ट विवरण से कस्टम चित्र बनाएं।',
     'tools.transcribe.name': 'ऑडियो ट्रांसक्रिप्शन',
     'tools.transcribe.description': 'आवाज रिकॉर्डिंग और ऑडियो फाइलों को सटीक पाठ ट्रांसक्रिप्ट में बदलें।',
+    'tools.ocr.name': 'OCR PDF',
+    'tools.ocr.description': 'स्कैन किए गए PDF दस्तावेजों से टेक्स्ट निकालें।',
 
     // ToolPages Title & Details
     'tool.merge.title': 'PDF मर्ज करें',
@@ -262,6 +276,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tool.rotate.desc': 'अपने PDF पेजों को घुमाएं और उन्हें स्थायी रूप से सहेजें।',
     'tool.organise.title': 'PDF व्यवस्थित करें',
     'tool.organise.desc': 'अपने PDF से पेजों को पुनर्व्यवस्थित करें, घुमाएं और हटाएं।',
+    'tool.ocr.title': 'OCR PDF',
+    'tool.ocr.desc': 'स्कैन किए गए PDF दस्तावेजों से टेक्स्ट पहचानें और निकालें।',
+    'tool.generate_image.title': 'AI इमेज जनरेटर',
+    'tool.generate_image.desc': 'टेक्स्ट प्रॉम्प्ट से कस्टम चित्र और दृश्य बनाएं।',
+    'tool.transcribe.title': 'ऑडियो ट्रांसक्राइब',
+    'tool.transcribe.desc': 'ऑडियो रिकॉर्डिंग को सटीक टेक्स्ट में बदलें।',
 
     // File Upload
     'upload.choose': 'PDF फाइलें चुनें',
@@ -420,8 +440,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.organise.description': 'Triez, ajoutez et supprimez des pages PDF. Pivotez et réorganisez-les selon vos besoins.',
     'tools.image_gen.name': 'Générateur d\'images',
     'tools.image_gen.description': 'Créez de superbes visuels à partir de descriptions textuelles à l\'aide de modèles avancés.',
+    'tools.generate_image.name': 'Générateur d\'images IA',
+    'tools.generate_image.description': 'Créez de superbes visuels à partir de descriptions textuelles.',
     'tools.transcribe.name': 'Transcription Audio',
     'tools.transcribe.description': 'Convertissez des enregistrements vocaux et des fichiers audio en transcriptions textuelles précises.',
+    'tools.ocr.name': 'OCR PDF',
+    'tools.ocr.description': 'Extrayez le texte des documents PDF numérisés avec l\'OCR.',
 
     // ToolPages Title & Details
     'tool.merge.title': 'Fusionner PDF',
@@ -444,6 +468,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tool.rotate.desc': 'Faites pivoter les pages de votre PDF et enregistrez-les de manière permanente.',
     'tool.organise.title': 'Organiser PDF',
     'tool.organise.desc': 'Réorganisez, faites pivoter et supprimez des pages de votre PDF.',
+    'tool.ocr.title': 'OCR PDF',
+    'tool.ocr.desc': 'Extrayez le texte des fichiers PDF numérisés.',
+    'tool.generate_image.title': 'Générateur d\'images IA',
+    'tool.generate_image.desc': 'Créez des images personnalisées à partir d\'invites textuelles.',
+    'tool.transcribe.title': 'Transcription Audio',
+    'tool.transcribe.desc': 'Convertissez les enregistrements vocaux en transcriptions textuelles précises.',
 
     // File Upload
     'upload.choose': 'Choisir des fichiers PDF',
@@ -602,8 +632,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.organise.description': 'Seiten sortieren, hinzufügen und löschen. Drehen und ordnen Sie sie nach Ihren Bedürfnissen neu an.',
     'tools.image_gen.name': 'Bildgenerator',
     'tools.image_gen.description': 'Erstellen Sie atemberaubende Bilder aus Textbeschreibungen mit fortschrittlichen Modellen.',
+    'tools.generate_image.name': 'KI-Bildgenerator',
+    'tools.generate_image.description': 'Erstellen Sie atemberaubende Bilder aus Textbeschreibungen.',
     'tools.transcribe.name': 'Audio-Transkription',
     'tools.transcribe.description': 'Konvertieren Sie Sprachaufnahmen und Audiodateien in präzise Texttranskripte.',
+    'tools.ocr.name': 'OCR PDF',
+    'tools.ocr.description': 'Extrahieren Sie Text aus gescannten PDF-Dokumenten.',
 
     // ToolPages Title & Details
     'tool.merge.title': 'PDF zusammenführen',
@@ -626,6 +660,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tool.rotate.desc': 'Drehen Sie Ihre PDF-Seiten und speichern Sie sie dauerhaft.',
     'tool.organise.title': 'PDF organisieren',
     'tool.organise.desc': 'Ordnen, drehen und löschen Sie Seiten aus Ihrem PDF.',
+    'tool.ocr.title': 'OCR PDF',
+    'tool.ocr.desc': 'Führen Sie eine optische Zeichenerkennung bei gescannten PDFs durch.',
+    'tool.generate_image.title': 'KI-Bildgenerator',
+    'tool.generate_image.desc': 'Erstellen Sie benutzerdefinierte Bilder aus Textanweisungen.',
+    'tool.transcribe.title': 'Audio-Transkription',
+    'tool.transcribe.desc': 'Konvertieren Sie Audioaufnahmen in präzisen Text.',
 
     // File Upload
     'upload.choose': 'PDF-Dateien auswählen',
@@ -784,8 +824,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tools.organise.description': 'Ordene, agregue y elimine páginas PDF. Rote y reorganícelas según sus necesidades.',
     'tools.image_gen.name': 'Generador de imágenes',
     'tools.image_gen.description': 'Cree imágenes impresionantes a partir de descripciones de texto utilizando modelos avanzados.',
+    'tools.generate_image.name': 'Generador de imágenes IA',
+    'tools.generate_image.description': 'Cree imágenes a partir de descripciones de texto.',
     'tools.transcribe.name': 'Transcripción de Audio',
     'tools.transcribe.description': 'Convierta grabaciones de voz y archivos de audio en transcripciones de texto de alta precisión.',
+    'tools.ocr.name': 'OCR PDF',
+    'tools.ocr.description': 'Extraiga texto de documentos PDF escaneados con OCR.',
 
     // ToolPages Title & Details
     'tool.merge.title': 'Fusionar PDF',
@@ -808,6 +852,12 @@ const translations: Record<Language, Record<string, string>> = {
     'tool.rotate.desc': 'Rote las páginas de su PDF y guárdelas permanentemente.',
     'tool.organise.title': 'Organizar PDF',
     'tool.organise.desc': 'Reordene, rote y elimine páginas de su PDF.',
+    'tool.ocr.title': 'OCR PDF',
+    'tool.ocr.desc': 'Reconozca y extraiga texto de archivos PDF escaneados.',
+    'tool.generate_image.title': 'Generador de imágenes IA',
+    'tool.generate_image.desc': 'Cree imágenes personalizadas a partir de indicaciones de texto.',
+    'tool.transcribe.title': 'Transcripción de Audio',
+    'tool.transcribe.desc': 'Convierta grabaciones de audio en texto preciso.',
 
     // File Upload
     'upload.choose': 'Elegir archivos PDF',
@@ -945,7 +995,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string): string => {
-    return translations[language]?.[key] || translations['en']?.[key] || key;
+    const val = translations[language]?.[key] || translations['en']?.[key];
+    if (val) return val;
+    // Fallback: avoid leaking raw dot keys into the UI
+    if (key.includes('.')) {
+      const parts = key.split('.');
+      const last = parts[parts.length - 1];
+      return last.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    return key;
   };
 
   return (
