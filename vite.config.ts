@@ -3,21 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-function asyncCssPlugin() {
-  return {
-    name: 'async-css-plugin',
-    transformIndexHtml(html: string) {
-      return html.replace(
-        /<link rel="stylesheet"([^>]*href="[^"]+\.css"[^>]*)>/g,
-        '<link rel="stylesheet"$1 media="print" onload="this.media=\'all\'" /><noscript><link rel="stylesheet"$1 /></noscript>'
-      );
-    }
-  };
-}
-
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), asyncCssPlugin()],
+    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

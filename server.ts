@@ -678,12 +678,18 @@ async function startServer() {
     setMetaName('twitter:image', twitterImageUrl);
     setMetaName('twitter:image:alt', twitterImageAltText);
 
-    // 5. Canonical link
-    const canonicalTag = `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`;
-    if (/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/i.test(html)) {
-      html = html.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/i, canonicalTag);
+    // 5. Canonical link (404 and non-indexable pages must NOT have a canonical tag)
+    const is404OrUnindexed = cleanPath === '/404' || !policy.indexable || (!SEO_DATA[cleanPath] && cleanPath !== '/');
+    if (is404OrUnindexed) {
+      html = html.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/gi, '');
+      html = html.replace(/<script[^>]*adsbygoogle\.js[^>]*><\/script>/gi, '');
     } else {
-      html = html.replace('</head>', `  ${canonicalTag}\n</head>`);
+      const canonicalTag = `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`;
+      if (/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/i.test(html)) {
+        html = html.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/i, canonicalTag);
+      } else {
+        html = html.replace('</head>', `  ${canonicalTag}\n</head>`);
+      }
     }
 
     // 8. JSON-LD Schema using @graph format

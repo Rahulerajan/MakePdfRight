@@ -39,10 +39,44 @@ export function verifyBuildIntegrity(): boolean {
     console.log(`✅ All ${seoRoutes.length} routes have valid prerendered HTML files on disk.`);
   }
 
-  // 2. Validate against vercel.json rewrites
+  // 2. Validate against vercel.json rewrites and redirects
   if (fs.existsSync(VERCEL_JSON_PATH)) {
     try {
       const vercelJson = JSON.parse(fs.readFileSync(VERCEL_JSON_PATH, 'utf-8'));
+      
+      // Ensure NO catch-all rewrite to /index.html exists (prevents soft 404s)
+      const catchAllRewrite = vercelJson.rewrites?.find((r: any) => 
+        r.destination === '/index.html' && (r.source.includes('(?!') || r.source.includes('.*') || r.source === '/:match*')
+      );
+      if (catchAllRewrite) {
+        console.error('❌ [Integrity Failure] vercel.json contains a broad catch-all rewrite to /index.html! This creates soft 404s.');
+        hasErrors = true;
+      } else {
+        console.log('✅ vercel.json has no broad catch-all rewrite (genuine 404s guaranteed).');
+      }
+
+      // Verify alias redirects (e.g. /merge-pdf -> /merge)
+      const requiredRedirects = [
+        { source: '/merge-pdf', destination: '/merge' },
+        { source: '/split-pdf', destination: '/split' },
+        { source: '/compress-pdf', destination: '/compress' },
+        { source: '/edit-pdf', destination: '/edit' },
+        { source: '/rotate-pdf', destination: '/rotate' },
+        { source: '/organize', destination: '/organise' },
+        { source: '/image-generator', destination: '/generate-image' },
+        { source: '/audio-transcribe', destination: '/transcribe' },
+        { source: '/word-to-pdf', destination: '/pdf-to-word' }
+      ];
+
+      for (const reqRedir of requiredRedirects) {
+        const found = vercelJson.redirects?.find((r: any) => r.source === reqRedir.source && r.destination === reqRedir.destination && r.permanent === true);
+        if (!found) {
+          console.error(`❌ [Integrity Failure] vercel.json is missing required 308 permanent redirect: ${reqRedir.source} -> ${reqRedir.destination}`);
+          hasErrors = true;
+        }
+      }
+      console.log(`✅ All ${requiredRedirects.length} required alias permanent redirects are preserved in vercel.json.`);
+
       const prerenderRewrite = vercelJson.rewrites?.find((r: any) => r.destination === '/:path/index.html');
       
       if (!prerenderRewrite) {
@@ -203,6 +237,76 @@ export function verifyBuildIntegrity(): boolean {
     hasErrors = true;
   } else {
     console.log(`✅ All ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes contain genuine prerendered visible body content & <h1>.`);
+  }
+
+  // 6. Verify Blocking Application Stylesheet (Anti-FOUC safeguard)
+  console.log('\n[Integrity Safeguard] Verifying blocking application stylesheet (Zero FOUC rules)...');
+  const stylesheetFailures: string[] = [];
+  const canonicalFailures: string[] = [];
+
+  for (const route of PRIMARY_INDEXABLE_ROUTES) {
+    const slug = route === '/' ? '' : route.replace(/^\//, '');
+    const htmlPath = route === '/' 
+      ? path.join(DIST_DIR, 'index.html')
+      : path.join(DIST_DIR, slug, 'index.html');
+
+    if (fs.existsSync(htmlPath)) {
+      const html = fs.readFileSync(htmlPath, 'utf-8');
+
+      // Check for application stylesheet link
+      const appCssMatches = html.match(/<link[^>]+rel="stylesheet"[^>]+href="\/assets\/index-[^"]+\.css"[^>]*>/gi) ||
+                            html.match(/<link[^>]+href="\/assets\/index-[^"]+\.css"[^>]+rel="stylesheet"[^>]*>/gi);
+
+      if (!appCssMatches || appCssMatches.length !== 1) {
+        stylesheetFailures.push(`${route}: Expected exactly 1 application stylesheet link, found ${appCssMatches ? appCssMatches.length : 0}`);
+      } else {
+        const cssTag = appCssMatches[0];
+        if (/media=["']print["']/i.test(cssTag)) {
+          stylesheetFailures.push(`${route}: Application stylesheet uses media="print" (causes flash of unstyled content)!`);
+        }
+        if (/onload=["'][^"']*this\.media/i.test(cssTag)) {
+          stylesheetFailures.push(`${route}: Application stylesheet uses onload media switching (causes flash of unstyled content)!`);
+        }
+
+        // Verify referenced CSS file exists
+        const hrefMatch = cssTag.match(/href="(\/assets\/index-[^"]+\.css)"/i);
+        if (hrefMatch) {
+          const cssFilePath = path.join(DIST_DIR, hrefMatch[1].slice(1));
+          if (!fs.existsSync(cssFilePath)) {
+            stylesheetFailures.push(`${route}: Referenced CSS file does not exist on disk: ${hrefMatch[1]}`);
+          } else {
+            const cssStats = fs.statSync(cssFilePath);
+            if (cssStats.size < 1000) {
+              stylesheetFailures.push(`${route}: Referenced CSS file is suspiciously small (${cssStats.size} bytes): ${hrefMatch[1]}`);
+            }
+          }
+        }
+      }
+
+      // Check Canonical URL
+      const expectedCanonical = `https://www.makepdfright.com${route === '/' ? '' : route}`;
+      const canonicalMatch = html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/i) ||
+                             html.match(/<link[^>]+href="([^"]+)"[^>]+rel="canonical"/i);
+      if (!canonicalMatch || canonicalMatch[1] !== expectedCanonical) {
+        canonicalFailures.push(`${route}: Expected canonical "${expectedCanonical}", found "${canonicalMatch ? canonicalMatch[1] : 'none'}"`);
+      }
+    }
+  }
+
+  if (stylesheetFailures.length > 0) {
+    console.error(`❌ [Integrity Failure] ${stylesheetFailures.length} stylesheet integrity issues detected:`);
+    stylesheetFailures.forEach(s => console.error(`  - ${s}`));
+    hasErrors = true;
+  } else {
+    console.log(`✅ All ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes load normal, blocking application stylesheets with valid CSS assets.`);
+  }
+
+  if (canonicalFailures.length > 0) {
+    console.error(`❌ [Integrity Failure] ${canonicalFailures.length} canonical URL mismatches detected:`);
+    canonicalFailures.forEach(c => console.error(`  - ${c}`));
+    hasErrors = true;
+  } else {
+    console.log(`✅ All ${PRIMARY_INDEXABLE_ROUTES.length} primary indexable routes have exact self-referencing canonical URLs.`);
   }
 
   if (hasErrors) {
