@@ -14,31 +14,72 @@ import {
   Archive,
   Check,
   Settings,
-  X
+  X,
+  FileImage,
+  ExternalLink,
+  RotateCw
 } from 'lucide-react';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { HistoryService } from '../services/historyService';
 import { BackButton } from '../components/common/BackButton';
-import { ResultPanel } from '../components/common/ResultPanel';
 
 interface PDFToJPGToolProps {
   file: File;
   onReset?: () => void;
 }
 
+interface ConvertedImage {
+  pageNum: number;
+  url: string;
+  blob: Blob;
+  size: number;
+  fileName: string;
+  dataUrl: string;
+}
+
+interface ResultState {
+  images: ConvertedImage[];
+  zipUrl: string;
+  zipSize: number;
+  zipFileName: string;
+  count: number;
+}
+
 const jpgThumbnailCache = new Map<string, string>();
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
 
 export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<{ url: string; count: number } | null>(null);
-  const [quality, setQuality] = useState(0.8);
+  const [result, setResult] = useState<ResultState | null>(null);
+  const [quality, setQuality] = useState(0.85);
   const [pages, setPages] = useState<(string | null)[]>([]);
   const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
   const [isMobileOptionsOpen, setIsMobileOptionsOpen] = useState(false);
   const [isLoadingPreviews, setIsLoadingPreviews] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloadingIndividual, setIsDownloadingIndividual] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<{ current: number; total: number } | null>(null);
 
-  const resultRef = useRef<{ url: string; count: number } | null>(null);
+  const resultRef = useRef<ResultState | null>(null);
+
+  const cleanupResultUrls = (res: ResultState | null) => {
+    if (!res) return;
+    if (res.zipUrl) {
+      try { URL.revokeObjectURL(res.zipUrl); } catch (_) {}
+    }
+    res.images.forEach(img => {
+      if (img.url) {
+        try { URL.revokeObjectURL(img.url); } catch (_) {}
+      }
+    });
+  };
 
   useEffect(() => {
     resultRef.current = result;
@@ -46,9 +87,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
 
   useEffect(() => {
     return () => {
-      if (resultRef.current?.url) {
-        URL.revokeObjectURL(resultRef.current.url);
-      }
+      cleanupResultUrls(resultRef.current);
     };
   }, []);
 
@@ -147,8 +186,10 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       const zip = new JSZip();
+      const convertedImages: ConvertedImage[] = [];
 
-      let convertedCount = 0;
+      const baseName = file.name.replace(/\.[^/.]+$/, '');
+
       for (let i = 1; i <= pdf.numPages; i++) {
         const pageIndex = i - 1;
         if (!selectedPages.has(pageIndex)) {
@@ -163,28 +204,57 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
         canvas.width = viewport.width;
 
         await page.render({ canvasContext: context!, viewport, canvas: canvas as any }).promise;
-        
+
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
         const base64Data = dataUrl.split(',')[1];
-        zip.file(`page-${i}.jpg`, base64Data, { base64: true });
-        convertedCount++;
+        
+        const imageFileName = `${baseName}_page_${i}.jpg`;
+        zip.file(imageFileName, base64Data, { base64: true });
+
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error(`Failed to render page ${i} to JPG`));
+          }, 'image/jpeg', quality);
+        });
+
+        const imageUrl = URL.createObjectURL(blob);
+
+        convertedImages.push({
+          pageNum: i,
+          url: imageUrl,
+          blob,
+          size: blob.size,
+          fileName: imageFileName,
+          dataUrl
+        });
       }
 
-      const content = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(content);
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const zipFileName = `${baseName}_images.zip`;
       
       HistoryService.addHistoryItem({
         toolId: 'pdf-to-jpg',
         toolName: 'PDF to JPG',
-        fileName: `${file.name.replace('.pdf', '')}_images.zip`,
-        outputSize: content.size,
-        resultUrl: url,
+        fileName: zipFileName,
+        outputSize: zipBlob.size,
+        resultUrl: zipUrl,
         status: 'completed',
-        details: `Converted ${convertedCount} page(s) to JPG images (ZIP archive)`
+        details: `Converted ${convertedImages.length} page(s) to JPG images`
       });
 
+      // Cleanup any previous result URLs
+      cleanupResultUrls(resultRef.current);
+
       setIsProcessing(false);
-      setResult({ url, count: convertedCount });
+      setResult({
+        images: convertedImages,
+        zipUrl,
+        zipSize: zipBlob.size,
+        zipFileName,
+        count: convertedImages.length
+      });
     } catch (err: any) {
       console.error('Conversion failed:', err);
       setError(err.message || 'An error occurred while converting the PDF to JPG. Please try again.');
@@ -192,31 +262,255 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
     }
   };
 
+  const downloadAllIndividualJPGs = async () => {
+    if (!result || isDownloadingIndividual) return;
+    setIsDownloadingIndividual(true);
+    setDownloadProgress({ current: 0, total: result.images.length });
+
+    try {
+      for (let i = 0; i < result.images.length; i++) {
+        const img = result.images[i];
+        const a = document.createElement('a');
+        a.href = img.url;
+        a.download = img.fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setDownloadProgress({ current: i + 1, total: result.images.length });
+
+        // Stagger individual downloads slightly so the browser handles them reliably
+        if (i < result.images.length - 1) {
+          await new Promise(res => setTimeout(res, 250));
+        }
+      }
+    } catch (e) {
+      console.error('Error downloading individual JPGs:', e);
+    } finally {
+      setTimeout(() => {
+        setIsDownloadingIndividual(false);
+        setDownloadProgress(null);
+      }, 500);
+    }
+  };
+
+  const downloadSingleJPG = (img: ConvertedImage) => {
+    const a = document.createElement('a');
+    a.href = img.url;
+    a.download = img.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const downloadZip = () => {
+    if (!result) return;
+    const a = document.createElement('a');
+    a.href = result.zipUrl;
+    a.download = result.zipFileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleReset = () => {
+    cleanupResultUrls(result);
+    setResult(null);
+    if (onReset) onReset();
+  };
+
+  const handleBackToEditor = () => {
+    cleanupResultUrls(result);
+    setResult(null);
+  };
+
   const isConvertDisabled = isProcessing || isLoadingPreviews || selectedPages.size === 0;
 
   if (result) {
     return (
-      <ResultPanel
-        title="PDF converted to JPG!"
-        subtitle={`${result.count} ${result.count === 1 ? 'image is' : 'images are'} ready for download in a ZIP file.`}
-        downloadUrl={result.url}
-        downloadFileName={`${file.name.replace('.pdf', '')}_images.zip`}
-        downloadLabel="Download ZIP file"
-        onBack={() => {
-          if (result?.url) {
-            URL.revokeObjectURL(result.url);
-          }
-          setResult(null);
-        }}
-        onReset={() => {
-          if (result?.url) {
-            URL.revokeObjectURL(result.url);
-          }
-          setResult(null);
-          if (onReset) onReset();
-        }}
-        resetLabel="Convert Another PDF"
-      />
+      <motion.div 
+        key="result-view"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ duration: 0.25 }}
+        className="h-full w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-8 flex flex-col items-center overflow-y-auto"
+      >
+        {/* Top Header Navigation */}
+        <div className="w-full flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+          <BackButton onClick={handleBackToEditor} label="Back to Pages" />
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Conversion Complete
+          </span>
+        </div>
+
+        <div className="w-full max-w-4xl flex flex-col items-center space-y-6 py-6 sm:py-8">
+          {/* Success Badge */}
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 shrink-0">
+            <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" />
+          </div>
+
+          {/* Heading */}
+          <div className="text-center space-y-2 max-w-lg">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              PDF Converted to JPG!
+            </h2>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium">
+              {result.count} {result.count === 1 ? 'image is' : 'images are'} ready. Choose whether to download individual JPG image files directly or as a single ZIP archive.
+            </p>
+          </div>
+
+          {/* DUAL DOWNLOAD OPTIONS CARDS */}
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            {/* OPTION 1: Direct JPG Images */}
+            <div className="bg-gradient-to-b from-red-50/50 to-white dark:from-red-950/20 dark:to-slate-800/80 rounded-2xl border-2 border-[#E5322D] p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-[#E5322D]/10 dark:bg-[#E5322D]/20 text-[#E5322D] flex items-center justify-center">
+                    <FileImage className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#E5322D] bg-[#E5322D]/10 px-2.5 py-1 rounded-full">
+                    Direct JPGs
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                    Direct JPG Files
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Download {result.count === 1 ? 'the JPG image directly' : `all ${result.count} selected pages as separate individual JPG image files without archiving`}.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={downloadAllIndividualJPGs}
+                disabled={isDownloadingIndividual}
+                className="w-full bg-[#E5322D] hover:bg-[#c92824] active:scale-[0.98] disabled:opacity-50 text-white font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 transition-all text-sm tracking-wide cursor-pointer"
+              >
+                {isDownloadingIndividual ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                    <span>
+                      {downloadProgress 
+                        ? `Downloading ${downloadProgress.current} of ${downloadProgress.total}...` 
+                        : 'Starting downloads...'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 shrink-0" />
+                    <span>
+                      {result.count === 1 
+                        ? 'Download JPG Image' 
+                        : `Download All JPGs (${result.count} files)`}
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* OPTION 2: ZIP Archive */}
+            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-600 transition-all">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center">
+                    <Archive className="w-5 h-5" />
+                  </div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-700/60 px-2.5 py-1 rounded-full">
+                    Bundled ZIP
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                    ZIP Archive
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Download all {result.count} {result.count === 1 ? 'image' : 'images'} bundled together into a single compressed ZIP archive ({formatFileSize(result.zipSize)}).
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={downloadZip}
+                className="w-full bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 active:scale-[0.98] text-white font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all text-sm tracking-wide cursor-pointer"
+              >
+                <Archive className="w-4 h-4 shrink-0" />
+                <span>Download as ZIP ({formatFileSize(result.zipSize)})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* INDIVIDUAL IMAGES GRID & DIRECT DOWNLOAD */}
+          <div className="w-full space-y-3 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[#E5322D]" />
+                <span>Individual Image Previews ({result.count})</span>
+              </h3>
+              <span className="text-xs text-slate-400">
+                Click any page to download individually
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {result.images.map((img) => (
+                <div
+                  key={img.pageNum}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 flex items-center justify-between gap-3 shadow-xs hover:border-[#E5322D]/40 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-14 bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden shrink-0 border border-slate-200/60 dark:border-slate-700 flex items-center justify-center">
+                      <img
+                        src={img.dataUrl}
+                        alt={`Page ${img.pageNum}`}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        Page {img.pageNum}
+                      </p>
+                      <p className="text-[11px] text-slate-400 truncate">
+                        {formatFileSize(img.size)} • JPG
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => downloadSingleJPG(img)}
+                    className="shrink-0 px-3 py-1.5 bg-slate-100 hover:bg-[#E5322D] text-slate-700 hover:text-white dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-[#E5322D] rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                    title={`Download Page ${img.pageNum} as JPG`}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>JPG</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Reset / Bottom CTA */}
+          <div className="w-full max-w-md pt-4 flex flex-col items-center space-y-3">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="py-3 px-6 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-sm transition-colors cursor-pointer w-full text-center"
+            >
+              Convert Another PDF
+            </button>
+
+            <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>Converted in-browser for complete privacy and instant download</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     );
   }
 
@@ -360,7 +654,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
                 type="range" 
                 min="0.1" 
                 max="1" 
-                step="0.1"
+                step="0.05"
                 value={quality}
                 onChange={(e) => setQuality(parseFloat(e.target.value))}
                 className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#E5322D]"
@@ -368,7 +662,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
-              ⚡ Selected pages will be extracted as individual JPG image files and bundled into a downloadable ZIP archive.
+              ⚡ Selected pages will be rendered in high resolution (300 DPI equivalent) and made available as direct JPG downloads or a single ZIP file.
             </p>
           </div>
 
@@ -462,7 +756,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
                       type="range" 
                       min="0.1" 
                       max="1" 
-                      step="0.1"
+                      step="0.05"
                       value={quality}
                       onChange={(e) => setQuality(parseFloat(e.target.value))}
                       className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#E5322D]"
@@ -470,7 +764,7 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
                   </div>
 
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                    ⚡ Selected pages will be extracted as individual JPG image files and bundled into a downloadable ZIP archive.
+                    ⚡ Selected pages will be rendered in high resolution (300 DPI equivalent) and made available as direct JPG downloads or a single ZIP file.
                   </p>
                 </div>
 
@@ -508,3 +802,4 @@ export const PDFToJPGTool: React.FC<PDFToJPGToolProps> = ({ file, onReset }) => 
     </motion.div>
   );
 };
+
