@@ -217,7 +217,7 @@ async function handleChatPdf(req: any, res: any) {
 
   const client = getAI();
   const isThinking = !!enableThinking;
-  const model = isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
+  const model = isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.7-flash';
   const config: any = {};
   if (isThinking) {
     config.thinkingConfig = {
@@ -262,7 +262,7 @@ async function handleAnalyzeImage(req: any, res: any) {
 
   const client = getAI();
   const isThinking = !!enableThinking;
-  const model = isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.5-flash';
+  const model = isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.7-flash';
   const config: any = {};
   if (isThinking) {
     config.thinkingConfig = {
@@ -308,6 +308,10 @@ async function handleTranscribeAudio(req: any, res: any) {
   let targetMimeType = mimeType.toLowerCase().split(';')[0].trim();
   if (targetMimeType === 'audio/x-wav') targetMimeType = 'audio/wav';
   if (targetMimeType === 'audio/x-m4a') targetMimeType = 'audio/m4a';
+  if (targetMimeType === 'audio/x-mp3') targetMimeType = 'audio/mp3';
+  if (targetMimeType === 'audio/mpeg') targetMimeType = 'audio/mp3';
+  if (targetMimeType === 'video/mp4') targetMimeType = 'audio/mp4';
+  if (targetMimeType === 'video/webm') targetMimeType = 'audio/webm';
 
   const client = getAI();
   const languageText = language && language !== 'auto'
@@ -315,92 +319,116 @@ async function handleTranscribeAudio(req: any, res: any) {
     : 'Automatically detect the spoken language.';
 
   const promptText = `Please transcribe the provided audio accurately.
-  - ${languageText}
-  - Capture the spoken words verbatim.
-  - Maintain proper punctuation, capitalization, sentence boundaries, and paragraphing where logical.
-  - Ignore long silent periods or ambient background noise.
-  - Handle different speaking speeds and pronunciations.
-  - If the audio is silent or contains no clear speech, return empty text and a low confidence score (e.g. 0).`;
+- ${languageText}
+- Capture the spoken words verbatim.
+- Maintain proper punctuation, capitalization, sentence boundaries, and paragraphing where logical.
+- Ignore long silent periods or ambient background noise.
+- If the audio is silent or contains no clear speech, return empty text and a low confidence score (e.g. 0).`;
 
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-3.5-flash'];
+  const audioPart = {
+    inlineData: {
+      mimeType: targetMimeType,
+      data: cleanAudioBase64,
+    },
+  };
+
   let lastError: any = null;
-  let responseText: string | null = null;
 
-  for (const modelName of modelsToTry) {
-    try {
-      const response = await client.models.generateContent({
-        model: modelName,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                inlineData: {
-                  mimeType: targetMimeType,
-                  data: cleanAudioBase64,
-                },
-              },
-              {
-                text: promptText,
-              },
-            ],
-          },
-        ],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              text: {
-                type: Type.STRING,
-                description: 'The verbatim transcript of the audio with correct punctuation, capitalization, and paragraphing.'
-              },
-              confidence: {
-                type: Type.INTEGER,
-                description: 'The estimated confidence of the transcription, as an integer between 0 and 100.'
-              },
-              detectedLanguage: {
-                type: Type.STRING,
-                description: 'The name of the language detected (e.g., English, Hindi, French, German, Spanish).'
-              }
-            },
-            required: ['text', 'confidence']
-          }
-        }
-      });
-
-      if (response.text) {
-        responseText = response.text;
-        break;
-      }
-    } catch (err: any) {
-      LoggingService.warn(`[Server] Audio transcription attempt with model ${modelName} failed:`, err?.message || err);
-      lastError = err;
-    }
-  }
-
-  if (!responseText) {
-    throw lastError || new Error('Failed to transcribe audio with available AI models.');
-  }
-
-  let jsonText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
-  let result: any = {};
+  // 1. Try dedicated gemini-3.5-transcribe model first
   try {
-    result = JSON.parse(jsonText);
-  } catch (parseErr) {
-    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        result = JSON.parse(jsonMatch[0]);
-      } catch (e) {
-        result = { text: jsonText, confidence: 80 };
+    const response = await client.models.generateContent({
+      model: 'gemini-3.5-transcribe',
+      contents: {
+        parts: [
+          audioPart,
+          { text: language && language !== 'auto' ? `Transcribe this audio in ${language}.` : 'Transcribe this audio verbatim.' }
+        ]
       }
-    } else {
-      result = { text: jsonText, confidence: 80 };
+    });
+
+    if (response && response.text) {
+      const rawText = response.text.trim();
+      LoggingService.info('[Server] Audio transcribed successfully using gemini-3.5-transcribe.');
+      return res.status(200).json({
+        success: true,
+        text: rawText,
+        confidence: rawText.length > 0 ? 95 : 0,
+        detectedLanguage: language && language !== 'auto' ? language : 'Auto-detected'
+      });
     }
+  } catch (transcribeErr: any) {
+    LoggingService.warn('[Server] gemini-3.5-transcribe failed, falling back to gemini-3.7-flash:', transcribeErr?.message || transcribeErr);
+    lastError = transcribeErr;
   }
 
-  return res.status(200).json({ success: true, ...result });
+  // 2. Fallback to gemini-3.7-flash with structured JSON response
+  try {
+    const response = await client.models.generateContent({
+      model: 'gemini-3.7-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            audioPart,
+            {
+              text: promptText,
+            },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            text: {
+              type: Type.STRING,
+              description: 'The verbatim transcript of the audio with correct punctuation, capitalization, and paragraphing.'
+            },
+            confidence: {
+              type: Type.INTEGER,
+              description: 'The estimated confidence of the transcription, as an integer between 0 and 100.'
+            },
+            detectedLanguage: {
+              type: Type.STRING,
+              description: 'The name of the language detected (e.g., English, Hindi, French, German, Spanish).'
+            }
+          },
+          required: ['text', 'confidence']
+        }
+      }
+    });
+
+    if (response && response.text) {
+      LoggingService.info('[Server] Audio transcribed successfully using gemini-3.7-flash fallback.');
+      let jsonText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      let result: any = {};
+      try {
+        result = JSON.parse(jsonText);
+      } catch (parseErr) {
+        const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            result = JSON.parse(jsonMatch[0]);
+          } catch (e) {
+            result = { text: jsonText, confidence: 90 };
+          }
+        } else {
+          result = { text: jsonText, confidence: 90 };
+        }
+      }
+
+      return res.status(200).json({ success: true, ...result });
+    }
+  } catch (flashErr: any) {
+    LoggingService.warn('[Server] gemini-3.7-flash fallback also failed:', flashErr?.message || flashErr);
+    lastError = flashErr;
+  }
+
+  // If both failed, throw descriptive error
+  const errMsg = lastError?.message || 'Failed to transcribe audio with Gemini AI.';
+  LoggingService.error('[Server] All audio transcription attempts failed:', errMsg);
+  throw new Error(errMsg);
 }
 
 async function handleGenerateSpeech(req: any, res: any) {

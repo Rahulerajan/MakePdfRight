@@ -3,6 +3,15 @@
  * Bridges the client browser to the secure Express server API endpoints.
  */
 
+function extractErrorMessage(errorData: any, defaultMsg: string): string {
+  if (!errorData) return defaultMsg;
+  if (typeof errorData === 'string') return errorData;
+  if (typeof errorData.error === 'string') return errorData.error;
+  if (errorData.error && typeof errorData.error.message === 'string') return errorData.error.message;
+  if (typeof errorData.message === 'string') return errorData.message;
+  return defaultMsg;
+}
+
 export const chatWithPDF = async (pdfBase64: string, message: string, enableThinking: boolean = false): Promise<string> => {
   console.log("[Client Service] Sending chatWithPDF request to server...", { enableThinking });
   const response = await fetch("/api/ai-tools?action=chat-pdf", {
@@ -14,7 +23,7 @@ export const chatWithPDF = async (pdfBase64: string, message: string, enableThin
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to process PDF request. Server returned status ${response.status}`);
+    throw new Error(extractErrorMessage(errorData, `Failed to process PDF request. Server returned status ${response.status}`));
   }
 
   const data = await response.json();
@@ -32,7 +41,7 @@ export const analyzeImage = async (imageBase64: string, mimeType: string, prompt
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to analyze image. Server returned status ${response.status}`);
+    throw new Error(extractErrorMessage(errorData, `Failed to analyze image. Server returned status ${response.status}`));
   }
 
   const data = await response.json();
@@ -55,7 +64,7 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to generate image. Server returned status ${response.status}`);
+    throw new Error(extractErrorMessage(errorData, `Failed to generate image. Server returned status ${response.status}`));
   }
 
   const data = await response.json();
@@ -87,7 +96,7 @@ export const transcribeAudio = async (
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to transcribe audio. Server returned status ${response.status}`);
+    throw new Error(extractErrorMessage(errorData, `Failed to transcribe audio. Server returned status ${response.status}`));
   }
 
   return await response.json();
@@ -104,7 +113,7 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to generate speech. Server returned status ${response.status}`);
+    throw new Error(extractErrorMessage(errorData, `Failed to generate speech. Server returned status ${response.status}`));
   }
 
   const data = await response.json();
@@ -122,7 +131,7 @@ export const complexQuery = async (prompt: string): Promise<string> => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to perform complex query. Server returned status ${response.status}`);
+    throw new Error(extractErrorMessage(errorData, `Failed to perform complex query. Server returned status ${response.status}`));
   }
 
   const data = await response.json();
