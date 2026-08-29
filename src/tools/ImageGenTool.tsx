@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, 
@@ -7,21 +6,16 @@ import {
   Sparkles, 
   ShieldCheck, 
   Zap, 
-  ArrowLeft,
-  Loader2,
-  ImageIcon,
-  RefreshCw,
-  Maximize2,
-  AlertCircle,
-  FileText
+  ImageIcon, 
+  RefreshCw, 
+  Maximize2, 
+  FileText,
+  Copy,
+  Check,
+  Wand2
 } from 'lucide-react';
 import { generateImage } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
-import { SEO } from '../components/common/SEO';
-import { SEO_DATA } from '../constants/seoData';
-import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
-import { ToolSEOContent } from '../components/seo/ToolSEOContent';
-import { BackButton } from '../components/common/BackButton';
 
 interface AspectRatioOption {
   value: string;
@@ -38,19 +32,20 @@ export const ImageGenTool: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   React.useEffect(() => {
     if (resultUrl) {
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [resultUrl]);
 
   const ratios: AspectRatioOption[] = [
-    { value: '1:1', label: '1:1', name: 'Square', desktopLabel: '1:1 (Square)', w: 20, h: 20 },
-    { value: '4:3', label: '4:3', name: 'Landscape', desktopLabel: '4:3 (Landscape)', w: 24, h: 18 },
-    { value: '16:9', label: '16:9', name: 'Widescreen', desktopLabel: '16:9 (Widescreen)', w: 26, h: 15 },
-    { value: '3:4', label: '3:4', name: 'Portrait', desktopLabel: '3:4 (Portrait)', w: 16, h: 21 },
-    { value: '9:16', label: '9:16', name: 'Story', desktopLabel: '9:16 (Story)', w: 12, h: 21 }
+    { value: '1:1', label: '1:1', name: 'Square', desktopLabel: '1:1 Square', w: 18, h: 18 },
+    { value: '16:9', label: '16:9', name: 'Widescreen', desktopLabel: '16:9 Widescreen', w: 22, h: 13 },
+    { value: '4:3', label: '4:3', name: 'Landscape', desktopLabel: '4:3 Landscape', w: 20, h: 15 },
+    { value: '3:4', label: '3:4', name: 'Portrait', desktopLabel: '3:4 Portrait', w: 15, h: 20 },
+    { value: '9:16', label: '9:16', name: 'Mobile', desktopLabel: '9:16 Story', w: 12, h: 21 }
   ];
 
   const validatePrompt = (text: string): boolean => {
@@ -67,23 +62,18 @@ export const ImageGenTool: React.FC = () => {
 
   const handleGenerate = async () => {
     setErrorMsg(null);
-    console.log("[ImageGenTool] Starting image generation...", { prompt, aspectRatio });
-
     if (!validatePrompt(prompt)) {
-      console.warn("[ImageGenTool] Validation failed for prompt:", prompt);
       return;
     }
 
     setIsGenerating(true);
     try {
       const url = await generateImage(prompt.trim(), aspectRatio);
-      console.log("[ImageGenTool] Generation succeeded! URL base64 prefix:", url.substring(0, 30));
-      
       setIsGenerating(false);
       setResultUrl(url);
     } catch (err: any) {
       console.error("[ImageGenTool] Generation failed with error:", err);
-      setErrorMsg(err.message || "An unexpected error occurred. Please try again.");
+      setErrorMsg(err.message || "An unexpected error occurred while generating the image. Please try again.");
       setIsGenerating(false);
     }
   };
@@ -91,9 +81,6 @@ export const ImageGenTool: React.FC = () => {
   const triggerDownload = () => {
     if (!resultUrl) return;
     try {
-      console.log("[ImageGenTool] Triggering base64 programmatic download...");
-      
-      // Determine file extension based on prefix
       let extension = "png";
       if (resultUrl.startsWith("data:image/jpeg")) {
         extension = "jpg";
@@ -101,79 +88,89 @@ export const ImageGenTool: React.FC = () => {
 
       const link = document.createElement('a');
       link.href = resultUrl;
-      link.download = `makepdfright-${Date.now()}.${extension}`;
+      link.download = `makepdfright-ai-${Date.now()}.${extension}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      console.log("[ImageGenTool] Download triggered successfully.");
     } catch (err) {
       console.error("[ImageGenTool] Failed to download programmatically:", err);
-      setErrorMsg("Automated download failed. Please right-click the image below and select 'Save image as...'");
+      setErrorMsg("Automated download failed. Please right-click the image and select 'Save image as...'");
     }
   };
 
-  return (
-    <div className="relative">
-      <SEO 
-        title={SEO_DATA['/generate-image'].title} 
-        description={SEO_DATA['/generate-image'].description}
-        toolName="AI Image Generator"
-        faqs={TOOL_SEO_CONTENT_MAP['/generate-image']?.faqs}
-      />
-      {/* Navigation Header */}
-      <div className="mb-6">
-        <BackButton label="Back to Home" />
-      </div>
+  const handleCopyPrompt = () => {
+    if (!prompt) return;
+    navigator.clipboard.writeText(prompt);
+    setCopiedPrompt(true);
+    setTimeout(() => setCopiedPrompt(false), 2000);
+  };
 
+  return (
+    <div className="w-full space-y-6">
       <LoadingOverlay 
         isVisible={isGenerating} 
-        message="Generating image with Gemini AI..." 
+        message="Generating high-resolution visual with Gemini AI..." 
         error={errorMsg}
         onCloseError={() => setErrorMsg(null)}
         onCancel={() => setIsGenerating(false)}
       />
 
-      {/* MOBILE LAYOUT (md:hidden) */}
-      <div className="block md:hidden space-y-4">
-        <div className="space-y-1 mb-2">
-          <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Image Generator</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Describe an image and generate it instantly with AI.</p>
-        </div>
-
+      <AnimatePresence mode="wait">
         {!resultUrl ? (
-          /* Mobile Input State */
-          <div className="space-y-4">
-            {/* Single Consolidated Card */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm space-y-3.5">
-              {/* Prompt Textarea */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <label className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                    Prompt Description
+          /* ================= INPUT FORM STATE ================= */
+          <motion.div
+            key="input-form"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            {/* Main Interactive Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-5 sm:p-7 shadow-xl shadow-slate-100/60 dark:shadow-none space-y-6">
+              
+              {/* 1. Prompt Description Field */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <Wand2 className="w-3.5 h-3.5 text-[#E5322D]" />
+                    <span>Prompt Description</span>
                   </label>
-                  <span className="text-[11px] font-medium text-slate-400">{prompt.trim().length} chars</span>
+                  <span className="text-xs font-medium text-slate-400">
+                    {prompt.trim().length} chars
+                  </span>
                 </div>
-                <textarea 
-                  value={prompt}
-                  onChange={(e) => {
-                    setPrompt(e.target.value);
-                    if (errorMsg) setErrorMsg(null);
-                  }}
-                  placeholder="Describe the image in detail..."
-                  className="w-full h-28 px-3.5 py-3 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 focus:border-[#E5322D] focus:ring-1 focus:ring-[#E5322D] outline-none transition-all text-slate-800 dark:text-slate-100 text-xs font-medium placeholder-slate-400 dark:placeholder-slate-600 resize-none"
-                />
+
+                <div className="relative">
+                  <textarea 
+                    value={prompt}
+                    onChange={(e) => {
+                      setPrompt(e.target.value);
+                      if (errorMsg) setErrorMsg(null);
+                    }}
+                    rows={4}
+                    placeholder="Describe what you want to create in detail (e.g. 'A sleek modern isometric diagram of cloud network security with vibrant gradient highlights, high resolution, 4k')..."
+                    className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 focus:border-[#E5322D] focus:ring-2 focus:ring-[#E5322D]/20 outline-none transition-all text-slate-900 dark:text-slate-100 text-sm font-medium placeholder-slate-400 dark:placeholder-slate-500 resize-none leading-relaxed"
+                  />
+                </div>
               </div>
 
               {/* Divider */}
-              <div className="h-px bg-slate-100 dark:bg-slate-700/60 my-1" />
+              <div className="h-px bg-slate-100 dark:bg-slate-700/60" />
 
-              {/* Aspect Ratio Picker (Horizontal Pill Row) */}
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
-                  Aspect Ratio
-                </label>
-                <div className="flex gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-none -mx-1 px-1">
+              {/* 2. Aspect Ratio Selector */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <Maximize2 className="w-3.5 h-3.5 text-[#E5322D]" />
+                    <span>Aspect Ratio</span>
+                  </label>
+                  <span className="text-xs font-semibold text-[#E5322D]">
+                    {ratios.find(r => r.value === aspectRatio)?.desktopLabel}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                   {ratios.map((r) => {
                     const isSelected = aspectRatio === r.value;
                     return (
@@ -184,20 +181,22 @@ export const ImageGenTool: React.FC = () => {
                           setAspectRatio(r.value);
                           if (errorMsg) setErrorMsg(null);
                         }}
-                        className={`flex-shrink-0 flex flex-col items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer ${
+                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer ${
                           isSelected 
-                            ? 'border-[#E5322D] bg-red-50/50 dark:bg-red-950/40 text-[#E5322D]' 
-                            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'
+                            ? 'border-[#E5322D] bg-red-50/50 dark:bg-red-950/30 text-[#E5322D] shadow-sm' 
+                            : 'border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}
                       >
-                        <div 
-                          className={`rounded-[2px] border transition-colors ${
-                            isSelected ? 'border-[#E5322D] bg-[#E5322D]' : 'border-slate-400 dark:border-slate-500 bg-transparent'
-                          }`}
-                          style={{ width: `${r.w}px`, height: `${r.h}px` }}
-                        />
-                        <span className="text-xs font-extrabold leading-none">{r.label}</span>
-                        <span className={`text-[9.5px] font-semibold leading-none ${isSelected ? 'text-[#E5322D]/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                        <div className="h-7 flex items-center justify-center mb-1.5">
+                          <div 
+                            className={`rounded-[3px] border-2 transition-colors ${
+                              isSelected ? 'border-[#E5322D] bg-[#E5322D]' : 'border-slate-400 dark:border-slate-500 bg-transparent'
+                            }`}
+                            style={{ width: `${r.w}px`, height: `${r.h}px` }}
+                          />
+                        </div>
+                        <span className="text-xs font-black leading-tight">{r.label}</span>
+                        <span className={`text-[10px] font-bold leading-tight mt-0.5 ${isSelected ? 'text-[#E5322D]/90' : 'text-slate-400 dark:text-slate-500'}`}>
                           {r.name}
                         </span>
                       </button>
@@ -205,256 +204,163 @@ export const ImageGenTool: React.FC = () => {
                   })}
                 </div>
               </div>
-            </div>
 
-            {/* Generate Button below card */}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="w-full bg-[#E5322D] hover:bg-[#c92824] disabled:opacity-50 text-white font-extrabold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all text-sm tracking-wide cursor-pointer active:scale-[0.99]"
-            >
-              <span>{isGenerating ? "Generating Custom Image..." : "✨ Generate Image"}</span>
-            </button>
-
-            {/* Trust Note */}
-            <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
-              <span>🔒 Images are not stored after generation</span>
-            </div>
-          </div>
-        ) : (
-          /* Mobile Result State */
-          <div className="relative h-full w-full max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 shadow-sm space-y-3.5 overflow-y-auto">
-            <div className="w-full flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
-              <BackButton onClick={() => setResultUrl(null)} label="Back" />
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Image Ready</span>
-            </div>
-            {/* Generated Image */}
-              <div className="rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-700 max-h-[380px]">
-                <img 
-                  src={resultUrl} 
-                  alt="Generated asset" 
-                  referrerPolicy="no-referrer"
-                  className="max-w-full max-h-[380px] object-contain" 
-                />
-              </div>
-
-              {/* Prompt Recap */}
-              <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                <span className="font-bold text-slate-700 dark:text-slate-200">Prompt: </span>
-                {prompt}
-              </div>
-
-              {/* Action Buttons Side-by-Side */}
-              <div className="grid grid-cols-2 gap-2.5 pt-0.5">
-                <button
-                  onClick={triggerDownload}
-                  className="bg-[#E5322D] hover:bg-[#c92824] text-white font-extrabold py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs shadow-sm transition-all cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download</span>
-                </button>
-                <button
-                  onClick={handleGenerate}
-                  disabled={isGenerating}
-                  className="border border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500 text-slate-700 dark:text-slate-200 font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-2 text-xs bg-white dark:bg-slate-800 transition-all cursor-pointer"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Regenerate</span>
-                </button>
-              </div>
-
-              {/* Start a new image button */}
-              <button
-                onClick={() => setResultUrl(null)}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3.5 px-4 rounded-xl text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
+              {/* 3. Primary Generate Button */}
+              <button 
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating || !prompt.trim()}
+                className="w-full bg-[#E5322D] hover:bg-[#c92824] active:scale-[0.99] disabled:opacity-50 text-white font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-red-500/25 transition-all text-base tracking-wide cursor-pointer"
               >
-                Start a new image
+                <Sparkles className="w-5 h-5 fill-white/20" />
+                <span>{isGenerating ? "Generating Image..." : "Generate AI Image"}</span>
               </button>
 
-              {/* Trust Note */}
-              <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 dark:text-slate-500 text-center">
-                <span>🔒 Images are not stored after generation</span>
+              {/* Trust Badge */}
+              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 font-medium text-center pt-1">
+                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                <span>Generated in real-time with Google Gemini AI • No watermarks</span>
               </div>
             </div>
-        )}
-      </div>
 
-      {/* DESKTOP LAYOUT (hidden md:block) */}
-      <div className="hidden md:block space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Image Generator</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Create high-quality custom visual assets for your PDFs instantly.</p>
-          </div>
-        </div>
-
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
-          {/* Left/Main Column: Form & Result */}
-          <div className="flex-1 space-y-8 w-full">
-            {/* Form Card */}
-            <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-8">
-            
-            {/* Prompt Textarea */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Prompt Description</label>
-                <span className="text-xs font-medium text-slate-400">{prompt.trim().length} chars</span>
+            {/* Feature Highlights Bento Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex flex-col items-center text-center gap-1.5 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                  <Maximize2 className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">High Resolution</span>
+                <span className="text-[10px] text-slate-400">Sharp 1024px clarity</span>
               </div>
-              <textarea 
-                value={prompt}
-                onChange={(e) => {
-                  setPrompt(e.target.value);
-                  if (errorMsg) setErrorMsg(null);
-                }}
-                placeholder="Describe the image in detail... (e.g. 'A cozy reading nook in a wooden cabin, warm fireplace light, soft focus, cinematic lighting, 4k resolution')"
-                className="w-full h-32 px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-primary outline-none transition-all text-slate-800 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-600 resize-none shadow-inner"
+
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex flex-col items-center text-center gap-1.5 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">5 Aspect Ratios</span>
+                <span className="text-[10px] text-slate-400">Square to widescreen</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex flex-col items-center text-center gap-1.5 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">PDF Ready</span>
+                <span className="text-[10px] text-slate-400">Embed in documents</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 flex flex-col items-center text-center gap-1.5 shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Instant Export</span>
+                <span className="text-[10px] text-slate-400">Direct PNG/JPG file</span>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          /* ================= RESULT SHOWCASE STATE ================= */
+          <motion.div
+            key="result-showcase"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25 }}
+            className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-5 sm:p-7 shadow-xl shadow-slate-100/60 dark:shadow-none space-y-6"
+          >
+            {/* Result Header Bar */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700/60">
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Image Generated
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setResultUrl(null)}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+              >
+                + New Prompt
+              </button>
+            </div>
+
+            {/* Generated Image Presentation Container */}
+            <div className="w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-inner min-h-[300px] max-h-[520px]">
+              <img 
+                src={resultUrl} 
+                alt={prompt || "AI generated visual"} 
+                referrerPolicy="no-referrer"
+                className="max-w-full max-h-[520px] object-contain"
               />
             </div>
 
-            {/* Aspect Ratio Picker */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Aspect Ratio</label>
-              <div className="flex flex-wrap gap-2.5">
-                {ratios.map((ratio) => (
-                  <button
-                    key={ratio.value}
-                    type="button"
-                    onClick={() => {
-                      setAspectRatio(ratio.value);
-                      if (errorMsg) setErrorMsg(null);
-                    }}
-                    className={`px-4 py-2.5 rounded-xl border-2 font-bold text-xs transition-all cursor-pointer ${
-                      aspectRatio === ratio.value 
-                        ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20' 
-                        : 'border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-                    }`}
-                  >
-                    {ratio.desktopLabel}
-                  </button>
-                ))}
+            {/* Prompt Recap Pill */}
+            <div className="bg-slate-50 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-4 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Prompt Used ({ratios.find(r => r.value === aspectRatio)?.desktopLabel})
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyPrompt}
+                  className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+                >
+                  {copiedPrompt ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-500" />
+                      <span className="text-emerald-500 font-bold">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">
-                Dynamically maps your chosen aspect ratio to tailored high-definition dimensions (e.g. 1024x576 for widescreen).
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                "{prompt}"
               </p>
             </div>
 
-            {/* Action Trigger */}
-            <button 
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="btn-primary w-full py-4 text-base font-extrabold flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 transition-all hover:shadow-lg hover:shadow-primary/25 active:scale-[0.99]"
-            >
-              <span>{isGenerating ? "Generating Custom Image..." : "Generate Custom Image"}</span>
-              <Sparkles className="w-5 h-5 fill-white/10" />
-            </button>
-          </div>
-
-          {/* Result Showcase Card */}
-          <AnimatePresence>
-            {resultUrl && (
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 24 }}
-                className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-6"
+            {/* Primary Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={triggerDownload}
+                className="w-full bg-[#E5322D] hover:bg-[#c92824] active:scale-[0.99] text-white font-extrabold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-red-500/20 transition-all text-sm tracking-wide cursor-pointer"
               >
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800/80">
-                  <BackButton onClick={() => setResultUrl(null)} label="Back" />
-                  <div className="flex items-center gap-2.5 text-emerald-500">
-                    <CheckCircle2 className="w-5.5 h-5.5 fill-emerald-500/10" />
-                    <h4 className="text-lg font-extrabold text-slate-800 dark:text-white">Image Ready!</h4>
-                  </div>
-                  <div className="flex gap-2.5">
-                    <button 
-                      onClick={triggerDownload}
-                      className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
-                      title="Download generated image"
-                    >
-                      <Download className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={handleGenerate}
-                      className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:text-primary hover:border-primary/30 transition-all cursor-pointer"
-                      title="Regenerate image"
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
+                <Download className="w-4 h-4" />
+                <span>Download Image</span>
+              </button>
 
-                {/* Displaying Image with correct aspect ratio framing */}
-                <div className="rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800/80 shadow-inner max-h-[500px]">
-                  <img 
-                    src={resultUrl} 
-                    alt="Generated custom asset" 
-                    referrerPolicy="no-referrer"
-                    className="max-w-full max-h-[500px] object-contain transition-all duration-300" 
-                  />
-                </div>
-                
-                <p className="text-xs text-center text-slate-400 dark:text-slate-500 font-medium">
-                  Tip: Right-click the image and click "Save Image As..." if the automated download is blocked in your iframe browser.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Right Sidebar: Contextual Guide & Capabilities */}
-        <div className="w-full lg:w-[350px] space-y-6">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700/80 p-8 shadow-xl shadow-slate-100 dark:shadow-none space-y-6">
-            <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Features & Capabilities</h4>
-            
-            <div className="space-y-3.5">
-              <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                  <Maximize2 className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">1K High Resolution</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Sharp details and rich compositions.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                  <ImageIcon className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Perfect Ratios</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Optimized for vertical documents or banners.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
-                  <ShieldCheck className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Content Moderation</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Automated safety filters for safe assets.</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-[#E5322D]/5 dark:bg-[#E5322D]/10 border border-[#E5322D]/20 dark:border-[#E5322D]/30">
-                <div className="w-9 h-9 rounded-xl bg-[#E5322D]/10 flex items-center justify-center text-[#E5322D]">
-                  <FileText className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#E5322D]">PDF-Ready Output</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Insert directly into documents, decks, and covers.</p>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200 font-extrabold py-3.5 px-5 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all text-sm cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Regenerate Variant</span>
+              </button>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* SEO Content Section */}
-      <div className="mt-12">
-        <ToolSEOContent data={TOOL_SEO_CONTENT_MAP['/generate-image']} />
-      </div>
+            {/* Reset / Create another image */}
+            <div className="pt-2 flex flex-col items-center space-y-2">
+              <button
+                type="button"
+                onClick={() => setResultUrl(null)}
+                className="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 font-bold text-xs transition-colors cursor-pointer text-center"
+              >
+                Create Another Image
+              </button>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
+                🔒 Generated images are delivered directly to your device and never stored.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  </div>
-);
+  );
 };

@@ -23,12 +23,7 @@ import {
 import { transcribeAudio } from '../services/gemini';
 import { LoadingOverlay } from '../components/common/LoadingOverlay';
 import { FileUpload } from '../components/common/FileUpload';
-import { SEO } from '../components/common/SEO';
-import { SEO_DATA } from '../constants/seoData';
-import { TOOL_SEO_CONTENT_MAP } from '../constants/toolSeoData';
-import { ToolSEOContent } from '../components/seo/ToolSEOContent';
 import { useLanguage } from '../components/LanguageContext';
-import { BackButton } from '../components/common/BackButton';
 import { ResultPanel } from '../components/common/ResultPanel';
 
 export const AudioTranscribeTool: React.FC = () => {
@@ -678,17 +673,7 @@ export const AudioTranscribeTool: React.FC = () => {
   };
 
   return (
-    <div className="relative space-y-6">
-      <SEO 
-        title={SEO_DATA['/transcribe'].title} 
-        description={SEO_DATA['/transcribe'].description}
-        toolName="Audio Transcribe"
-        faqs={TOOL_SEO_CONTENT_MAP['/transcribe']?.faqs}
-      />
-      <div className="mb-3">
-        <BackButton label={t('back_home')} />
-      </div>
-
+    <div className="w-full space-y-6">
       <LoadingOverlay 
         isVisible={isProcessing} 
         message={t('ai.transcribing') || 'Transcribing audio with Gemini AI...'} 
@@ -696,16 +681,6 @@ export const AudioTranscribeTool: React.FC = () => {
         onCloseError={() => setError(null)}
         onCancel={() => setIsProcessing(false)}
       />
-
-      {/* Header Section */}
-      <div className="text-center space-y-2 max-w-xl mx-auto mb-6">
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-          {t('ai.transcribe_title')}
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          Turn audio recordings into accurate, downloadable text transcripts.
-        </p>
-      </div>
 
       <div className="w-full max-w-2xl mx-auto">
         {/* SINGLE PANEL FLOW ACROSS ALL 4 STATES */}
@@ -1095,11 +1070,6 @@ export const AudioTranscribeTool: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* SEO Content Section */}
-      <div className="mt-12">
-        <ToolSEOContent data={TOOL_SEO_CONTENT_MAP['/transcribe']} />
-      </div>
       </div>
     </div>
   );
