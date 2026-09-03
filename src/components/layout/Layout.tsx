@@ -17,11 +17,14 @@ import {
   Sparkles,
   Mic,
   Sun,
-  Moon
+  Moon,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { preloadTool } from '../../utils/preloadTools';
+import { useAuth } from '../../contexts/AuthContext';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -31,12 +34,18 @@ export const Header = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { user, loading: authLoading, signInWithGoogle, signOut } = useAuth();
   const isDark = theme === 'dark';
   const location = useLocation();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
+
+  const userInitials = user?.displayName
+    ? user.displayName.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    : user?.email ? user.email[0].toUpperCase() : 'U';
 
   const navItems = [
     { 
@@ -276,6 +285,81 @@ export const Header = () => {
             )}
           </div>
 
+          {/* Auth State Control */}
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-1.5 sm:gap-2 p-1 pl-1.5 sm:pl-2 pr-2 sm:pr-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 shrink-0"
+                title={user.displayName || user.email || 'User Account'}
+                aria-label="User Account Menu"
+              >
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Avatar'}
+                    className="w-6 h-6 rounded-lg object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-xs">
+                    {userInitials}
+                  </div>
+                )}
+                <span className="max-w-[70px] sm:max-w-[100px] truncate hidden sm:inline-block">
+                  {user.displayName || user.email?.split('@')[0] || 'Account'}
+                </span>
+                <ChevronDown className="w-3 h-3 text-slate-500" />
+              </button>
+
+              {isUserMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 z-50 overflow-hidden animate-fade-in-up space-y-1">
+                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 mb-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {user.displayName || 'User'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                        {user.email || ''}
+                      </p>
+                    </div>
+
+                    <Link
+                      to="/ai-workspace"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      <span>AI Workspace</span>
+                    </Link>
+
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        signOut();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-pointer text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-slate-500" />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={signInWithGoogle}
+              disabled={authLoading}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm focus:outline-none cursor-pointer shrink-0 disabled:opacity-60"
+              title="Sign in with Google"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign in</span>
+            </button>
+          )}
+
           <button
             id="darkToggle"
             onClick={toggleTheme}
@@ -352,6 +436,69 @@ export const Header = () => {
                   <span>📚 Resources & Guides</span>
                 </Link>
               </div>
+            </div>
+
+            {/* Mobile Auth & Account Section */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+              <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Account</div>
+              {user ? (
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-3">
+                  <div className="flex items-center gap-3">
+                    {user.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt={user.displayName || 'Avatar'}
+                        className="w-9 h-9 rounded-xl object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-xs">
+                        {userInitials}
+                      </div>
+                    )}
+                    <div className="overflow-hidden">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                        {user.displayName || 'User'}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {user.email}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/ai-workspace"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Open AI Workspace</span>
+                  </Link>
+
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      signOut();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 p-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Sign out</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    signInWithGoogle();
+                  }}
+                  disabled={authLoading}
+                  className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-colors cursor-pointer shadow-sm disabled:opacity-60"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign in with Google</span>
+                </button>
+              )}
             </div>
 
             {/* Mobile Language Selector inside floating panel */}

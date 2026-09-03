@@ -7,6 +7,8 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './components/ThemeContext';
 import { LanguageProvider } from './components/LanguageContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { AuthGate } from './components/auth/AuthGate';
 import { Header, Footer } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { ScrollToTop } from './components/common/ScrollToTop';
@@ -17,6 +19,7 @@ import { ToolPage } from './components/common/ToolPage';
 // Import AI tool pages and informational/legal pages synchronously for clean SSR prerender and hydration
 import { ImageGenPage } from './pages/ImageGenPage';
 import { AudioTranscribePage } from './pages/AudioTranscribePage';
+import { AIWorkspacePage } from './pages/AIWorkspacePage';
 import { About } from './pages/About';
 import { Resources } from './pages/Resources';
 import { Contact } from './pages/Contact';
@@ -50,14 +53,15 @@ export function App({ initialPath }: AppProps = {}) {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <RouterComponent {...routerProps}>
-          <ScrollToTop />
-          <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300 text-slate-900 dark:text-slate-100 overflow-x-hidden">
-            <Header />
-        
-            <main className="flex-1 flex flex-col">
-              <Routes>
-                <Route path="/" element={<Home />} />
+        <AuthProvider>
+          <RouterComponent {...routerProps}>
+            <ScrollToTop />
+            <div className="min-h-screen flex flex-col bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300 text-slate-900 dark:text-slate-100 overflow-x-hidden">
+              <Header />
+          
+              <main className="flex-1 flex flex-col">
+                <Routes>
+                  <Route path="/" element={<Home />} />
               
               {/* Core PDF Tool Routes */}
               <Route path="/merge" element={
@@ -723,6 +727,13 @@ export function App({ initialPath }: AppProps = {}) {
               <Route path="/transcribe" element={<AudioTranscribePage />} />
               <Route path="/audio-transcribe" element={<Navigate to="/transcribe" replace />} />
 
+              {/* Authenticated AI Workspace Route (Protected by AuthGate) */}
+              <Route path="/ai-workspace" element={
+                <AuthGate>
+                  <AIWorkspacePage />
+                </AuthGate>
+              } />
+
               {/* Informational & Legal Pages */}
               <Route path="/resources" element={<Resources />} />
               <Route path="/about" element={<About />} />
@@ -738,8 +749,9 @@ export function App({ initialPath }: AppProps = {}) {
         <Footer />
       </div>
     </RouterComponent>
-   </LanguageProvider>
-  </ThemeProvider>
+   </AuthProvider>
+  </LanguageProvider>
+ </ThemeProvider>
   );
 }
 

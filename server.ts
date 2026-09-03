@@ -35,6 +35,7 @@ import { dispatchPdfAction } from "./server/dispatchers/pdfDispatcher.js";
 import { dispatchAiAction } from "./server/dispatchers/aiDispatcher.js";
 import { dispatchFileAction } from "./server/dispatchers/fileDispatcher.js";
 import { getOwnerId } from "./server/apiUtils.js";
+import { requireFirebaseAuth } from "./server/middleware/requireFirebaseAuth";
 
 // Load environment variables
 dotenv.config();
@@ -119,9 +120,19 @@ async function startServer() {
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "https://lh3.googleusercontent.com"],
         mediaSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'", "https://generativelanguage.googleapis.com", "wss:", "ws:"],
+        connectSrc: [
+          "'self'",
+          "https://generativelanguage.googleapis.com",
+          "https://identitytoolkit.googleapis.com",
+          "https://securetoken.googleapis.com",
+          "https://*.firebaseio.com",
+          "https://*.googleapis.com",
+          "wss:",
+          "ws:"
+        ],
+        frameSrc: ["'self'", "https://*.firebaseapp.com", "https://accounts.google.com"],
         frameAncestors: ["'self'", "https://*.studio.google", "https://*.google.com", "https://*.google.dev", "https://*.run.app"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -265,6 +276,14 @@ async function startServer() {
   // Health check (Non-disclosing)
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // Authenticated AI Workspace token validation endpoint (Firebase Bearer token protected)
+  app.get("/api/ai-workspace/auth-check", requireFirebaseAuth, (req, res) => {
+    res.json({
+      success: true,
+      user: req.authUser,
+    });
   });
 
   // Protect processing and AI routes with Auth Middleware
