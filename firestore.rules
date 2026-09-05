@@ -45,13 +45,16 @@ service cloud.firestore {
       allow create: if isOwner(userId) &&
                        isValidId(workspaceId) &&
                        isValidWorkspace(incoming(), userId) &&
-                       incoming().id == workspaceId;
+                       incoming().id == workspaceId &&
+                       incoming().createdAt == request.time &&
+                       incoming().updatedAt == request.time;
       allow update: if isOwner(userId) &&
                        isValidId(workspaceId) &&
                        isValidWorkspace(incoming(), userId) &&
                        incoming().id == existing().id &&
                        incoming().ownerId == existing().ownerId &&
                        incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt == request.time &&
                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'customInstructions', 'updatedAt']);
       allow delete: if isOwner(userId) && isValidId(workspaceId);
 

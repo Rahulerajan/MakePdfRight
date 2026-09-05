@@ -24,7 +24,9 @@ import {
   Clock,
   Sliders,
   AlertTriangle,
+  MessageSquare,
 } from 'lucide-react';
+import { AIWorkspaceChat } from '../components/AIWorkspaceChat';
 
 interface Workspace {
   id: string;
@@ -87,6 +89,7 @@ export const AIWorkspacePage: React.FC = () => {
   const [instructionsDraft, setInstructionsDraft] = useState<string>('');
   const [isSavingInstructions, setIsSavingInstructions] = useState<boolean>(false);
   const [instructionsSavedStatus, setInstructionsSavedStatus] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'instructions'>('chat');
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId) || null;
 
@@ -552,77 +555,123 @@ export const AIWorkspacePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Custom Instructions Editor (Right Column) */}
+            {/* Workspace View (Right Column: AI Assistant Chat & Custom Instructions) */}
             <div className="lg:col-span-7 space-y-4">
               {activeWorkspace ? (
-                <div
-                  id="active-workspace-editor"
-                  className="p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/80 space-y-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xs font-bold uppercase tracking-wider text-primary">
-                        {t('workspace.active')}
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                        {activeWorkspace.name}
-                      </h3>
-                    </div>
-
-                    <div className="text-[11px] text-slate-400 dark:text-slate-500">
-                      {t('workspace.created_at')}: {formatDate(activeWorkspace.createdAt)}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="workspace-instructions-input"
-                        className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
-                      >
-                        <Sliders className="w-3.5 h-3.5 text-primary" />
-                        {t('workspace.instructions_label')}
-                      </label>
-                      <span className="text-[11px] text-slate-400">
-                        {instructionsDraft.length} / 4000 {t('workspace.chars_count')}
-                      </span>
-                    </div>
-
-                    <textarea
-                      id="workspace-instructions-input"
-                      value={instructionsDraft}
-                      onChange={(e) => setInstructionsDraft(e.target.value.slice(0, 4000))}
-                      placeholder={t('workspace.instructions_placeholder')}
-                      rows={7}
-                      maxLength={4000}
-                      className="w-full p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y leading-relaxed"
-                    />
-
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      {t('workspace.instructions_help')}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                    <div>
-                      {instructionsSavedStatus && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 className="w-4 h-4" />
-                          {t('workspace.saved')}
-                        </span>
-                      )}
-                    </div>
+                <div className="space-y-4">
+                  {/* Tab Navigation */}
+                  <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-fit">
+                    <button
+                      id="tab-btn-chat"
+                      type="button"
+                      onClick={() => setActiveTab('chat')}
+                      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        activeTab === 'chat'
+                          ? 'bg-white dark:bg-slate-900 text-primary shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      {t('workspace.tab_chat')}
+                    </button>
 
                     <button
-                      id="btn-save-instructions"
-                      onClick={handleSaveInstructions}
-                      disabled={isSavingInstructions}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-semibold text-xs hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                      id="tab-btn-instructions"
+                      type="button"
+                      onClick={() => setActiveTab('instructions')}
+                      className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        activeTab === 'instructions'
+                          ? 'bg-white dark:bg-slate-900 text-primary shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
                     >
-                      <Save className="w-3.5 h-3.5" />
-                      {isSavingInstructions ? t('workspace.saving') : t('workspace.save_instructions')}
+                      <Sliders className="w-3.5 h-3.5" />
+                      {t('workspace.tab_instructions')}
                     </button>
                   </div>
+
+                  {/* Tab 1: AI Chat Assistant */}
+                  {activeTab === 'chat' && (
+                    <AIWorkspaceChat
+                      workspaceId={activeWorkspace.id}
+                      workspaceName={activeWorkspace.name}
+                      customInstructions={activeWorkspace.customInstructions}
+                      onWorkspaceUpdated={fetchWorkspaces}
+                    />
+                  )}
+
+                  {/* Tab 2: Custom Instructions Editor */}
+                  {activeTab === 'instructions' && (
+                    <div
+                      id="active-workspace-editor"
+                      className="p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/80 space-y-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-wider text-primary">
+                            {t('workspace.active')}
+                          </div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                            {activeWorkspace.name}
+                          </h3>
+                        </div>
+
+                        <div className="text-[11px] text-slate-400 dark:text-slate-500">
+                          {t('workspace.created_at')}: {formatDate(activeWorkspace.createdAt)}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label
+                            htmlFor="workspace-instructions-input"
+                            className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5"
+                          >
+                            <Sliders className="w-3.5 h-3.5 text-primary" />
+                            {t('workspace.instructions_label')}
+                          </label>
+                          <span className="text-[11px] text-slate-400">
+                            {instructionsDraft.length} / 4000 {t('workspace.chars_count')}
+                          </span>
+                        </div>
+
+                        <textarea
+                          id="workspace-instructions-input"
+                          value={instructionsDraft}
+                          onChange={(e) => setInstructionsDraft(e.target.value.slice(0, 4000))}
+                          placeholder={t('workspace.instructions_placeholder')}
+                          rows={7}
+                          maxLength={4000}
+                          className="w-full p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y leading-relaxed"
+                        />
+
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                          {t('workspace.instructions_help')}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                        <div>
+                          {instructionsSavedStatus && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="w-4 h-4" />
+                              {t('workspace.saved')}
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          id="btn-save-instructions"
+                          onClick={handleSaveInstructions}
+                          disabled={isSavingInstructions}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white font-semibold text-xs hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          {isSavingInstructions ? t('workspace.saving') : t('workspace.save_instructions')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-8 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-400 text-xs">

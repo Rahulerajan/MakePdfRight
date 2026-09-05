@@ -276,7 +276,23 @@ const translations: Record<Language, Record<string, string>> = {
     'workspace.created_at': 'Created',
     'workspace.updated_at': 'Updated',
     'workspace.total_workspaces': 'Total Workspaces',
-    'workspace.instructions_empty': 'No custom instructions set yet. Add instructions to customize AI responses for this workspace.'
+    'workspace.instructions_empty': 'No custom instructions set yet. Add instructions to customize AI responses for this workspace.',
+    'workspace.tab_chat': 'AI Assistant',
+    'workspace.tab_instructions': 'Custom Instructions',
+    'workspace.chat_placeholder': 'Ask Gemini anything about your PDFs, instructions, or analysis...',
+    'workspace.attach_pdf': 'Attach PDF (up to 10MB)',
+    'workspace.send_message': 'Send',
+    'workspace.sending_message': 'Generating...',
+    'workspace.retry_message': 'Retry generation',
+    'workspace.empty_chat_title': 'Start your conversation',
+    'workspace.empty_chat_desc': 'Ask questions, analyze PDF documents, or test your custom workspace instructions with multi-turn Gemini AI.',
+    'workspace.msg_pending': 'Gemini is thinking...',
+    'workspace.msg_failed': 'Generation failed. Your prompt is preserved.',
+    'workspace.error_rate_limited': 'AI rate limit exceeded. Please wait a moment and try again.',
+    'workspace.error_ai_unavailable': 'AI service is temporarily unavailable. Please try again later.',
+    'workspace.error_ai_config': 'AI configuration is unavailable on the server.',
+    'workspace.error_invalid_pdf': 'Invalid PDF attachment. Must be a valid PDF document under 10MB.',
+    'workspace.remove_attachment': 'Remove PDF'
   },
   hi: {
     // Nav & General

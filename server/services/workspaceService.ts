@@ -4,13 +4,26 @@
  */
 
 import crypto from 'crypto';
-import { Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { getFirebaseFirestore } from './firebaseAdmin';
 import { LoggingService } from './LoggingService';
 
 /**
- * Internal Firestore document format stored in `/users/{userId}/workspaces/{workspaceId}`.
- * Strictly separate from public API DTOs.
+ * Write representation of a Workspace document.
+ * Uses FieldValue.serverTimestamp() in production.
+ */
+export interface WorkspaceWriteDocument {
+  id: string;
+  name: string;
+  ownerId: string;
+  customInstructions: string;
+  createdAt: FieldValue | Timestamp;
+  updatedAt: FieldValue | Timestamp;
+}
+
+/**
+ * Resolved internal Firestore document format stored in `/users/{userId}/workspaces/{workspaceId}`.
+ * Strictly separate from write types and public API DTOs.
  */
 export interface WorkspaceDocument {
   id: string;
@@ -116,24 +129,40 @@ export function validateStrictBody(body: unknown, isPatch = false): void {
 
 /**
  * Converts a native Firestore Timestamp or compatible timestamp object into an ISO string.
+ * Fails safely on malformed or unresolved timestamps; never silently substitutes the current time.
  */
 export function timestampToIso(ts: unknown): string {
   if (ts instanceof Timestamp) {
     return ts.toDate().toISOString();
   }
   if (ts && typeof (ts as any).toDate === 'function') {
-    return (ts as any).toDate().toISOString();
+    const d = (ts as any).toDate();
+    if (d instanceof Date && !isNaN(d.getTime())) {
+      return d.toISOString();
+    }
+    throw new WorkspacePersistenceError('Timestamp could not be resolved to a valid date.');
   }
   if (ts instanceof Date) {
+    if (isNaN(ts.getTime())) {
+      throw new WorkspacePersistenceError('Timestamp is invalid or unresolvable.');
+    }
     return ts.toISOString();
   }
   if (typeof ts === 'string') {
-    return new Date(ts).toISOString();
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) {
+      throw new WorkspacePersistenceError('Timestamp is invalid or unresolvable.');
+    }
+    return d.toISOString();
   }
   if (typeof ts === 'number') {
-    return new Date(ts).toISOString();
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) {
+      throw new WorkspacePersistenceError('Timestamp is invalid or unresolvable.');
+    }
+    return d.toISOString();
   }
-  return new Date().toISOString();
+  throw new WorkspacePersistenceError('Timestamp is missing, malformed, or unresolved.');
 }
 
 /**
@@ -151,13 +180,13 @@ export function toWorkspaceDto(doc: WorkspaceDocument): WorkspaceDto {
 }
 
 export interface IWorkspaceStore {
-  create(workspace: WorkspaceDocument): Promise<WorkspaceDocument>;
+  create(workspace: WorkspaceWriteDocument): Promise<WorkspaceDocument>;
   list(userId: string): Promise<WorkspaceDocument[]>;
   get(userId: string, workspaceId: string): Promise<WorkspaceDocument | null>;
   update(
     userId: string,
     workspaceId: string,
-    updates: { name?: string; customInstructions?: string; updatedAt: Timestamp }
+    updates: { name?: string; customInstructions?: string; updatedAt: FieldValue | Timestamp }
   ): Promise<WorkspaceDocument>;
   delete(userId: string, workspaceId: string): Promise<boolean>;
 }
@@ -182,11 +211,19 @@ export class FirestoreWorkspaceStore implements IWorkspaceStore {
     }
   }
 
-  async create(workspace: WorkspaceDocument): Promise<WorkspaceDocument> {
+  async create(workspace: WorkspaceWriteDocument): Promise<WorkspaceDocument> {
     try {
       const docRef = this.getCollection(workspace.ownerId).doc(workspace.id);
-      await docRef.set(workspace);
-      return workspace;
+      await docRef.set({
+        ...workspace,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      const snap = await docRef.get();
+      if (!snap.exists) {
+        throw new WorkspacePersistenceError();
+      }
+      return snap.data() as WorkspaceDocument;
     } catch (err) {
       if (err instanceof WorkspaceValidationError || err instanceof WorkspaceNotFoundError) {
         throw err;
@@ -240,7 +277,7 @@ export class FirestoreWorkspaceStore implements IWorkspaceStore {
   async update(
     userId: string,
     workspaceId: string,
-    updates: { name?: string; customInstructions?: string; updatedAt: Timestamp }
+    updates: { name?: string; customInstructions?: string; updatedAt: FieldValue | Timestamp }
   ): Promise<WorkspaceDocument> {
     try {
       const docRef = this.getCollection(userId).doc(workspaceId);
@@ -249,17 +286,18 @@ export class FirestoreWorkspaceStore implements IWorkspaceStore {
         throw new WorkspaceNotFoundError();
       }
 
-      const patch: Partial<WorkspaceDocument> = {
-        updatedAt: updates.updatedAt,
+      const patch: Record<string, any> = {
+        updatedAt: FieldValue.serverTimestamp(),
       };
       if (updates.name !== undefined) patch.name = updates.name;
       if (updates.customInstructions !== undefined) patch.customInstructions = updates.customInstructions;
 
       await docRef.update(patch);
-      return {
-        ...existing,
-        ...patch,
-      };
+      const snap = await docRef.get();
+      if (!snap.exists) {
+        throw new WorkspaceNotFoundError();
+      }
+      return snap.data() as WorkspaceDocument;
     } catch (err) {
       if (err instanceof WorkspaceValidationError || err instanceof WorkspaceNotFoundError) {
         throw err;
@@ -281,12 +319,22 @@ export class FirestoreWorkspaceStore implements IWorkspaceStore {
       if (typeof db.recursiveDelete === 'function') {
         await db.recursiveDelete(docRef);
       } else {
-        // Fallback bounded recursive delete for nested collections
-        const messagesSnapshot = await docRef.collection('messages').get();
-        const batch = db.batch();
-        messagesSnapshot.forEach((mDoc) => batch.delete(mDoc.ref));
-        batch.delete(docRef);
-        await batch.commit();
+        // Paginated BulkWriter deletion - no unbounded single-batch fallback
+        const bulkWriter = db.bulkWriter();
+        const deleteCollection = async (collRef: any) => {
+          let snapshot = await collRef.limit(500).get();
+          while (!snapshot.empty) {
+            for (const doc of snapshot.docs) {
+              bulkWriter.delete(doc.ref);
+            }
+            await bulkWriter.flush();
+            if (snapshot.size < 500) break;
+            snapshot = await collRef.limit(500).get();
+          }
+        };
+        await deleteCollection(docRef.collection('messages'));
+        bulkWriter.delete(docRef);
+        await bulkWriter.close();
       }
       return true;
     } catch (err) {
@@ -301,6 +349,7 @@ export class FirestoreWorkspaceStore implements IWorkspaceStore {
 /**
  * In-memory store for isolated, hermetic unit tests.
  * Reproduces native Timestamp and bounded query (limit 50) behavior.
+ * Uses Timestamp.now() strictly in the test/in-memory store.
  */
 export class InMemoryWorkspaceStore implements IWorkspaceStore {
   private userStores = new Map<string, Map<string, WorkspaceDocument>>();
@@ -349,10 +398,19 @@ export class InMemoryWorkspaceStore implements IWorkspaceStore {
     return sub ? Array.from(sub.values()) : [];
   }
 
-  async create(workspace: WorkspaceDocument): Promise<WorkspaceDocument> {
+  async create(workspace: WorkspaceWriteDocument): Promise<WorkspaceDocument> {
     const store = this.getStore(workspace.ownerId);
-    store.set(workspace.id, { ...workspace });
-    return { ...workspace };
+    const now = Timestamp.now();
+    const resolved: WorkspaceDocument = {
+      id: workspace.id,
+      name: workspace.name,
+      ownerId: workspace.ownerId,
+      customInstructions: workspace.customInstructions,
+      createdAt: workspace.createdAt instanceof Timestamp ? workspace.createdAt : now,
+      updatedAt: workspace.updatedAt instanceof Timestamp ? workspace.updatedAt : now,
+    };
+    store.set(resolved.id, { ...resolved });
+    return { ...resolved };
   }
 
   async list(userId: string): Promise<WorkspaceDocument[]> {
@@ -375,18 +433,19 @@ export class InMemoryWorkspaceStore implements IWorkspaceStore {
   async update(
     userId: string,
     workspaceId: string,
-    updates: { name?: string; customInstructions?: string; updatedAt: Timestamp }
+    updates: { name?: string; customInstructions?: string; updatedAt: FieldValue | Timestamp }
   ): Promise<WorkspaceDocument> {
     const store = this.getStore(userId);
     const existing = store.get(workspaceId);
     if (!existing || existing.ownerId !== userId) {
       throw new WorkspaceNotFoundError();
     }
+    const now = Timestamp.now();
     const updated: WorkspaceDocument = {
       ...existing,
       ...(updates.name !== undefined ? { name: updates.name } : {}),
       ...(updates.customInstructions !== undefined ? { customInstructions: updates.customInstructions } : {}),
-      updatedAt: updates.updatedAt,
+      updatedAt: updates.updatedAt instanceof Timestamp ? updates.updatedAt : now,
     };
     store.set(workspaceId, updated);
     return { ...updated };
@@ -473,7 +532,7 @@ export class WorkspaceService {
 
   /**
    * Creates a new workspace belonging strictly to the authenticated user.
-   * Uses native Firestore Timestamp for createdAt and updatedAt.
+   * Uses FieldValue.serverTimestamp() in production and native Timestamp in in-memory store.
    * Returns a sanitized WorkspaceDto (no UIDs).
    */
   async createWorkspace(userId: string, input: CreateWorkspaceInput): Promise<WorkspaceDto> {
@@ -481,14 +540,14 @@ export class WorkspaceService {
     const validName = this.validateWorkspaceName(input?.name);
     const validInstructions = this.validateCustomInstructions(input?.customInstructions);
 
-    const now = Timestamp.now();
-    const doc: WorkspaceDocument = {
+    const isMemory = this.store instanceof InMemoryWorkspaceStore;
+    const doc: WorkspaceWriteDocument = {
       id: crypto.randomUUID(),
       name: validName,
       ownerId: validUserId,
       customInstructions: validInstructions,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: isMemory ? Timestamp.now() : FieldValue.serverTimestamp(),
+      updatedAt: isMemory ? Timestamp.now() : FieldValue.serverTimestamp(),
     };
 
     LoggingService.info('[WorkspaceService] Workspace created successfully');
@@ -524,7 +583,7 @@ export class WorkspaceService {
 
   /**
    * Updates a workspace's name and/or custom instructions.
-   * Updates updatedAt using native Firestore Timestamp.
+   * Updates updatedAt using FieldValue.serverTimestamp() in production and native Timestamp in in-memory store.
    * Returns sanitized WorkspaceDto.
    */
   async updateWorkspace(
@@ -539,8 +598,9 @@ export class WorkspaceService {
       throw new WorkspaceValidationError("At least one field ('name' or 'customInstructions') must be provided.");
     }
 
-    const patch: { name?: string; customInstructions?: string; updatedAt: Timestamp } = {
-      updatedAt: Timestamp.now(),
+    const isMemory = this.store instanceof InMemoryWorkspaceStore;
+    const patch: { name?: string; customInstructions?: string; updatedAt: FieldValue | Timestamp } = {
+      updatedAt: isMemory ? Timestamp.now() : FieldValue.serverTimestamp(),
     };
 
     if (updates.name !== undefined) {
