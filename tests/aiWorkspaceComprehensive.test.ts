@@ -658,6 +658,7 @@ test('Comprehensive AI Workspace & Gemini Test Suite (28 Tests)', async (suite) 
       assert.strictEqual(listMsgData.success, true);
       assert.strictEqual(listMsgData.messages.length, 2);
     } finally {
+      (server as any).closeAllConnections?.();
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });

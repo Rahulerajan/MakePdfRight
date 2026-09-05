@@ -19,7 +19,7 @@ import {
   RotateCcw,
   Bot,
   User,
-  ShieldAlert,
+  UploadCloud,
 } from 'lucide-react';
 
 export interface AttachmentMetadata {
@@ -49,6 +49,14 @@ interface AIWorkspaceChatProps {
   onWorkspaceUpdated?: () => void;
 }
 
+interface EphemeralAttachment {
+  fileName: string;
+  fileSize: number;
+  mimeType: 'application/pdf';
+  sha256: string;
+  data: string;
+}
+
 export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
   workspaceId,
   workspaceName,
@@ -61,14 +69,19 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
   const [inputText, setInputText] = useState<string>('');
   const [chatError, setChatError] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
 
-  // Selected PDF attachment
+  // Selected PDF attachment in composer
   const [attachedPdf, setAttachedPdf] = useState<{
     file: File;
     base64Data: string;
     fileSize: number;
+    sha256: string;
   } | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+
+  // Ephemeral in-memory store of attachment bytes keyed by requestId to allow retry without reupload
+  const ephemeralAttachments = useRef<Map<string, EphemeralAttachment>>(new Map());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,15 +93,22 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
   // Map server error code to localized message
   const mapErrorCode = (code?: string, fallback: string = 'workspace.error_unknown'): string => {
     switch (code) {
+      case 'REQUEST_IN_PROGRESS':
+        return t('workspace.error_in_progress');
+      case 'INVALID_DOCUMENT':
+        return t('workspace.error_invalid_pdf');
+      case 'INVALID_MESSAGE':
+        return t('workspace.error_invalid_message');
       case 'AI_RATE_LIMITED':
         return t('workspace.error_rate_limited');
       case 'AI_UNAVAILABLE':
         return t('workspace.error_ai_unavailable');
       case 'AI_CONFIGURATION_UNAVAILABLE':
         return t('workspace.error_ai_config');
-      case 'INVALID_DOCUMENT':
-      case 'INVALID_MESSAGE':
-        return t('workspace.error_invalid_pdf');
+      case 'WORKSPACE_NOT_FOUND':
+        return t('workspace.error_not_found');
+      case 'UNAUTHORIZED':
+        return t('workspace.error_unauthorized');
       case 'PERSISTENCE_UNAVAILABLE':
         return t('workspace.error_persistence_unavailable');
       default:
@@ -128,25 +148,24 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
     }
   }, [messages, isLoadingMessages, scrollToBottom]);
 
-  // Handle PDF file selection
-  const handlePdfFileSelect = (file: File) => {
+  // Handle PDF file selection and integrity calculation
+  const handlePdfFileSelect = async (file: File) => {
     setAttachmentError(null);
 
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      setAttachmentError('Only PDF documents are supported.');
+      setAttachmentError(t('workspace.error_invalid_pdf_type'));
       return;
     }
 
     const MAX_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.size > MAX_SIZE) {
-      setAttachmentError('PDF exceeds the 10 MB maximum upload limit.');
+      setAttachmentError(t('workspace.error_invalid_pdf_size'));
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const buffer = reader.result as ArrayBuffer;
-      const bytes = new Uint8Array(buffer);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
 
       // Verify %PDF- magic bytes (0x25, 0x50, 0x44, 0x46, 0x2D)
       if (
@@ -157,9 +176,14 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
         bytes[3] !== 0x46 ||
         bytes[4] !== 0x2d
       ) {
-        setAttachmentError('The selected file is not a valid PDF document.');
+        setAttachmentError(t('workspace.error_invalid_pdf_header'));
         return;
       }
+
+      // Compute SHA-256 hex checksum
+      const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const sha256Hex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
       // Convert buffer to base64
       let binary = '';
@@ -173,63 +197,101 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
         file,
         base64Data: base64,
         fileSize: file.size,
+        sha256: sha256Hex,
       });
-    };
-
-    reader.onerror = () => {
-      setAttachmentError('Failed to read the selected file.');
-    };
-
-    reader.readAsArrayBuffer(file);
+    } catch {
+      setAttachmentError(t('workspace.error_read_file'));
+    }
   };
 
-  const handleSendMessage = async (retryText?: string) => {
-    const textToSend = (retryText !== undefined ? retryText : inputText).trim();
-    if (!textToSend && !attachedPdf) return;
+  /**
+   * Sends a user message or retries a failed message.
+   * If retrying, reuses the exact same requestId and preserved attachment bytes.
+   */
+  const handleSendMessage = async (options?: {
+    retryText?: string;
+    existingRequestId?: string;
+    existingAttachmentMeta?: AttachmentMetadata | null;
+  }) => {
+    const isRetry = Boolean(options?.existingRequestId);
+    const textToSend = (options?.retryText !== undefined ? options.retryText : inputText).trim();
+
+    if (!textToSend && !attachedPdf && !options?.existingAttachmentMeta) return;
 
     setIsSending(true);
     setChatError(null);
 
-    const clientRequestId = crypto.randomUUID();
+    const requestId = options?.existingRequestId || crypto.randomUUID();
+
+    // Prepare document attachment payload
+    let documentPayload: EphemeralAttachment | undefined = undefined;
+
+    if (attachedPdf) {
+      documentPayload = {
+        fileName: attachedPdf.file.name,
+        fileSize: attachedPdf.fileSize,
+        mimeType: 'application/pdf',
+        sha256: attachedPdf.sha256,
+        data: attachedPdf.base64Data,
+      };
+      // Cache in ephemeral map for retries
+      ephemeralAttachments.current.set(requestId, documentPayload);
+    } else if (isRetry && options?.existingAttachmentMeta) {
+      // Look up cached bytes from ephemeral browser memory
+      const cached = ephemeralAttachments.current.get(requestId);
+      if (cached) {
+        documentPayload = cached;
+      } else {
+        // Ephemeral memory unavailable (e.g. after refresh)
+        setChatError(t('workspace.error_reattach_pdf'));
+        setIsSending(false);
+        return;
+      }
+    }
+
+    const payload: Record<string, any> = {
+      text: textToSend,
+      requestId,
+    };
+
+    if (documentPayload) {
+      payload.document = documentPayload;
+    }
+
+    // Save prompt before clearing composer to ensure preservation on failure
+    const originalInputText = inputText;
+    if (!isRetry) {
+      setInputText('');
+    }
 
     // Optimistic pending user message for smooth UI
     const pendingMsg: MessageDto = {
-      id: `temp-${Date.now()}`,
-      requestId: clientRequestId,
+      id: isRetry ? `retry-${Date.now()}` : `temp-${Date.now()}`,
+      requestId,
       role: 'user',
       text: textToSend,
       status: 'pending',
       modelUsed: null,
       safeErrorCode: null,
-      attachment: attachedPdf
+      attachment: documentPayload
         ? {
-            fileName: attachedPdf.file.name,
-            fileSize: attachedPdf.fileSize,
-            mimeType: 'application/pdf',
-            sha256: '',
+            fileName: documentPayload.fileName,
+            fileSize: documentPayload.fileSize,
+            mimeType: documentPayload.mimeType,
+            sha256: documentPayload.sha256,
           }
         : null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, pendingMsg]);
-    if (retryText === undefined) {
-      setInputText('');
-    }
-
-    const payload: Record<string, any> = {
-      text: textToSend,
-      requestId: clientRequestId,
-    };
-
-    if (attachedPdf) {
-      payload.document = {
-        fileName: attachedPdf.file.name,
-        fileSize: attachedPdf.fileSize,
-        mimeType: 'application/pdf',
-        data: attachedPdf.base64Data,
-      };
+    if (isRetry) {
+      // Replace existing failed message in list with pending status
+      setMessages((prev) =>
+        prev.map((m) => (m.requestId === requestId && m.role === 'user' ? pendingMsg : m))
+      );
+    } else {
+      setMessages((prev) => [...prev, pendingMsg]);
     }
 
     try {
@@ -242,15 +304,14 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
       const data = await res.json();
 
       if (res.ok && data.success && data.userMessage) {
-        // Clear attachment on success
+        // Success: clear composer attachment
         setAttachedPdf(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
 
-        // Replace pending user message with confirmed user message and model reply
         setMessages((prev) => {
-          const filtered = prev.filter((m) => m.id !== pendingMsg.id);
+          const filtered = prev.filter((m) => m.requestId !== requestId);
           const next = [...filtered, data.userMessage];
           if (data.modelMessage) {
             next.push(data.modelMessage);
@@ -262,23 +323,31 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
           onWorkspaceUpdated();
         }
       } else {
+        // Generation failed: restore composer text if this was a fresh submission
+        if (!isRetry) {
+          setInputText(originalInputText);
+        }
+
         const errMessage = mapErrorCode(data?.code, 'workspace.error_unknown');
         setChatError(errMessage);
 
-        // Update optimistic user message to failed
+        // Update message state to failed
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === pendingMsg.id
+            m.requestId === requestId && m.role === 'user'
               ? { ...m, status: 'failed', safeErrorCode: data?.code || 'AI_UNAVAILABLE' }
               : m
           )
         );
       }
     } catch {
+      if (!isRetry) {
+        setInputText(originalInputText);
+      }
       setChatError(t('workspace.error_ai_unavailable'));
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === pendingMsg.id
+          m.requestId === requestId && m.role === 'user'
             ? { ...m, status: 'failed', safeErrorCode: 'AI_UNAVAILABLE' }
             : m
         )
@@ -300,8 +369,51 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  // Drag and Drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingOver) setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handlePdfFileSelect(e.dataTransfer.files[0]);
+    }
+  };
+
   return (
-    <div id="ai-workspace-chat-container" className="flex flex-col h-[640px] bg-slate-50/60 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div
+      id="ai-workspace-chat-container"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`relative flex flex-col h-[640px] bg-slate-50/60 dark:bg-slate-900/60 rounded-2xl border transition-colors overflow-hidden ${
+        isDraggingOver
+          ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
+          : 'border-slate-200 dark:border-slate-800'
+      }`}
+    >
+      {/* Drag overlay indicator */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs border-2 border-dashed border-primary rounded-2xl p-6 pointer-events-none">
+          <UploadCloud className="w-12 h-12 text-primary animate-bounce mb-2" />
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {t('workspace.drop_pdf_here')}
+          </p>
+        </div>
+      )}
+
       {/* Chat Header */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -314,16 +426,16 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
             </h4>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Multi-turn Gemini AI</span>
+              <span>{t('workspace.multi_turn_badge')}</span>
             </div>
           </div>
         </div>
 
         <button
           onClick={fetchMessages}
-          title="Refresh messages"
+          title={t('workspace.refresh_messages')}
           disabled={isLoadingMessages}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <RefreshCw className={`w-4 h-4 ${isLoadingMessages ? 'animate-spin text-primary' : ''}`} />
         </button>
@@ -338,7 +450,7 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
           </div>
           <button
             onClick={() => setChatError(null)}
-            className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 rounded"
+            className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 rounded cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -350,7 +462,7 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
         {isLoadingMessages ? (
           <div className="h-full flex flex-col items-center justify-center space-y-2 text-slate-400">
             <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-            <p className="text-xs">Loading conversation history...</p>
+            <p className="text-xs">{t('workspace.loading_history')}</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
@@ -447,7 +559,13 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
                     <div className="flex items-center gap-2">
                       {isFailed && (
                         <button
-                          onClick={() => handleSendMessage(msg.text)}
+                          onClick={() =>
+                            handleSendMessage({
+                              retryText: msg.text,
+                              existingRequestId: msg.requestId,
+                              existingAttachmentMeta: msg.attachment,
+                            })
+                          }
                           className="inline-flex items-center gap-1 font-semibold text-red-700 dark:text-red-300 hover:underline cursor-pointer"
                         >
                           <RotateCcw className="w-3 h-3" />
@@ -458,8 +576,8 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
                       {!isUser && !isPending && (
                         <button
                           onClick={() => copyToClipboard(msg.text, msg.id)}
-                          title="Copy reply"
-                          className="p-1 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                          title={t('workspace.copy_reply')}
+                          className="p-1 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                         >
                           {copiedMessageId === msg.id ? (
                             <Check className="w-3 h-3 text-emerald-500" />
@@ -498,7 +616,7 @@ export const AIWorkspaceChat: React.FC<AIWorkspaceChatProps> = ({
                 if (fileInputRef.current) fileInputRef.current.value = '';
               }}
               title={t('workspace.remove_attachment')}
-              className="p-0.5 hover:bg-primary/20 rounded-full transition-colors"
+              className="p-0.5 hover:bg-primary/20 rounded-full transition-colors cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>

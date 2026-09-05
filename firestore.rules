@@ -58,11 +58,22 @@ service cloud.firestore {
                        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'customInstructions', 'updatedAt']);
       allow delete: if isOwner(userId) && isValidId(workspaceId);
 
-      // Subcollection: messages (only readable by workspace owner, direct client writes forbidden)
+      // Subcollection: messages (only readable by workspace owner, direct client writes strictly forbidden)
       match /messages/{messageId} {
         allow get, list: if isOwner(userId) && isValidId(workspaceId);
         allow create, update, delete: if false;
       }
+
+      // Subcollection: requests (deterministic idempotency ledger: readable only by owner, client writes forbidden)
+      match /requests/{requestId} {
+        allow get, list: if isOwner(userId) && isValidId(workspaceId);
+        allow create, update, delete: if false;
+      }
+    }
+
+    // Subcollection: rateLimits (server-only distributed rate limiting, direct client access denied)
+    match /users/{userId}/rateLimits/{limitId} {
+      allow read, write: if false;
     }
   }
 }

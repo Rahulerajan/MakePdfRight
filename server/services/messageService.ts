@@ -42,6 +42,23 @@ export interface MessageWriteDocument {
   updatedAt: FieldValue | Timestamp;
 }
 
+export interface RequestLedgerDocument {
+  requestId: string;
+  workspaceId: string;
+  userId: string;
+  status: 'in_progress' | 'complete' | 'failed';
+  userMessageId: string;
+  modelMessageId: string | null;
+  createdAt: FieldValue | Timestamp;
+  updatedAt: FieldValue | Timestamp;
+}
+
+export type IdempotencyClaimResult =
+  | { type: 'claimed'; userMessage: MessageDocument }
+  | { type: 'retry_claimed'; userMessage: MessageDocument }
+  | { type: 'in_progress'; existingUserMessageId?: string }
+  | { type: 'complete'; userMessage: MessageDocument; modelMessage: MessageDocument };
+
 /**
  * Public Message Data Transfer Object.
  * Strictly excludes any UIDs, owner IDs, or database internal paths.
@@ -100,35 +117,44 @@ export function toMessageDto(doc: MessageDocument): MessageDto {
 export interface ValidatedPdfDocument {
   fileName: string;
   fileSize: number;
-  mimeType: string;
+  mimeType: 'application/pdf';
   sha256: string;
   base64Data: string;
 }
 
 /**
- * Validates request-scoped PDF document attachment.
- * Rejects invalid types, oversize payloads (>10MB), malformed base64, or invalid PDF magic bytes.
+ * Enforces strict schema on document attachments:
+ * { fileName: string, fileSize: number, mimeType: 'application/pdf', sha256: string, data: string }
+ *
+ * Rejects invalid types, oversize payloads (>10MB), non-matching sha256 checksums,
+ * mismatched declared size, malformed base64, or invalid PDF magic bytes (%PDF-).
  */
 export function validateAndParsePdfDocument(docInput: unknown): ValidatedPdfDocument {
   if (!docInput || typeof docInput !== 'object' || Array.isArray(docInput)) {
-    throw new MessageValidationError('Invalid document structure.', 'INVALID_DOCUMENT');
+    throw new MessageValidationError('Invalid document structure. Expected an object.', 'INVALID_DOCUMENT');
   }
 
-  const allowedDocKeys = new Set(['fileName', 'fileSize', 'mimeType', 'data']);
+  const allowedDocKeys = new Set(['fileName', 'fileSize', 'mimeType', 'sha256', 'data']);
   for (const k of Object.keys(docInput)) {
     if (!allowedDocKeys.has(k)) {
       throw new MessageValidationError(`Disallowed field in document: '${k}'.`, 'INVALID_DOCUMENT');
     }
   }
 
-  const { fileName, fileSize, mimeType, data } = docInput as any;
+  const { fileName, fileSize, mimeType, sha256, data } = docInput as any;
 
-  if (typeof fileName !== 'string' || !fileName.trim() || fileName.length > 255) {
-    throw new MessageValidationError('Invalid or missing document fileName.', 'INVALID_DOCUMENT');
+  if (typeof fileName !== 'string' || !fileName.trim() || fileName.length > 255 || !fileName.toLowerCase().endsWith('.pdf')) {
+    throw new MessageValidationError('Invalid or missing document fileName. Must end with .pdf and not exceed 255 characters.', 'INVALID_DOCUMENT');
   }
 
   if (typeof mimeType !== 'string' || mimeType.toLowerCase() !== 'application/pdf') {
     throw new MessageValidationError('Only application/pdf documents are permitted.', 'INVALID_DOCUMENT');
+  }
+
+  if (sha256 !== undefined) {
+    if (typeof sha256 !== 'string' || !/^[a-fA-F0-9]{64}$/.test(sha256)) {
+      throw new MessageValidationError('Invalid sha256 checksum. Must be a 64-character hex string.', 'INVALID_DOCUMENT');
+    }
   }
 
   if (typeof data !== 'string' || !data.trim()) {
@@ -138,6 +164,11 @@ export function validateAndParsePdfDocument(docInput: unknown): ValidatedPdfDocu
   // Remove potential data URI prefix
   const cleanBase64 = data.replace(/^data:application\/pdf;base64,/i, '').trim();
 
+  // Validate base64 structure
+  if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
+    throw new MessageValidationError('Document data is not valid base64.', 'INVALID_DOCUMENT');
+  }
+
   let buffer: Buffer;
   try {
     buffer = Buffer.from(cleanBase64, 'base64');
@@ -146,28 +177,110 @@ export function validateAndParsePdfDocument(docInput: unknown): ValidatedPdfDocu
   }
 
   const MAX_PDF_BYTES = 10 * 1024 * 1024; // 10 MB
-  if (buffer.length === 0 || buffer.length > MAX_PDF_BYTES) {
+  if (buffer.length < 5) {
+    throw new MessageValidationError('Document is truncated or empty (< 5 bytes).', 'INVALID_DOCUMENT');
+  }
+
+  if (buffer.length > MAX_PDF_BYTES) {
     throw new MessageValidationError(`Document exceeds maximum size of 10 MB (got ${buffer.length} bytes).`, 'INVALID_DOCUMENT');
   }
 
-  // Validate declared fileSize if provided
-  if (fileSize !== undefined && typeof fileSize === 'number' && Math.abs(fileSize - buffer.length) > 64) {
-    throw new MessageValidationError('Declared document fileSize does not match decoded content.', 'INVALID_DOCUMENT');
+  // Enforce strict declared fileSize match
+  if (typeof fileSize !== 'number' || fileSize !== buffer.length) {
+    throw new MessageValidationError(`Declared document fileSize (${fileSize}) does not match decoded byte length (${buffer.length}).`, 'INVALID_DOCUMENT');
   }
 
   // Magic bytes check: %PDF- (0x25, 0x50, 0x44, 0x46, 0x2D)
-  if (buffer.length < 5 || buffer.toString('utf-8', 0, 5) !== '%PDF-') {
+  if (
+    buffer.length < 5 ||
+    buffer[0] !== 0x25 ||
+    buffer[1] !== 0x50 ||
+    buffer[2] !== 0x44 ||
+    buffer[3] !== 0x46 ||
+    buffer[4] !== 0x2d
+  ) {
     throw new MessageValidationError('Invalid PDF document: missing %PDF- header magic bytes.', 'INVALID_DOCUMENT');
   }
 
-  const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+  // Verify SHA-256 integrity match if provided
+  const computedSha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+  if (sha256 && computedSha256.toLowerCase() !== sha256.toLowerCase()) {
+    throw new MessageValidationError('Document SHA-256 checksum verification failed.', 'INVALID_DOCUMENT');
+  }
 
   return {
     fileName: fileName.trim(),
     fileSize: buffer.length,
     mimeType: 'application/pdf',
-    sha256,
+    sha256: computedSha256,
     base64Data: cleanBase64,
+  };
+}
+
+export interface BuildContextOptions {
+  maxMessages?: number;
+  maxCharacters?: number;
+}
+
+export interface FormattedGeminiContent {
+  role: 'user' | 'model';
+  parts: Array<{ text: string }>;
+}
+
+export interface BuildContextResult {
+  contents: FormattedGeminiContent[];
+  retainedCount: number;
+  droppedCount: number;
+}
+
+/**
+ * Builds history context for Gemini multi-turn generation.
+ * - Takes at most the latest 20 messages
+ * - Preserves chronological order
+ * - Drops older messages if exceeding maxCharacters budget (default 30,000 chars)
+ * - Never includes pending or failed messages
+ * - Logs an info line with the number of retained and dropped messages
+ */
+export function buildGeminiContext(
+  messages: MessageDocument[],
+  options: BuildContextOptions = {}
+): BuildContextResult {
+  const maxMessages = options.maxMessages ?? 20;
+  const maxChars = options.maxCharacters ?? 30000;
+
+  // Only include completed messages
+  const completed = messages.filter((m) => m.status === 'complete');
+
+  // Limit to latest maxMessages
+  const candidates = completed.slice(-maxMessages);
+
+  // Apply character budget from newest to oldest
+  const retained: MessageDocument[] = [];
+  let currentChars = 0;
+
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const msg = candidates[i];
+    const len = msg.text.length;
+    if (retained.length === 0 || currentChars + len <= maxChars) {
+      retained.unshift(msg);
+      currentChars += len;
+    } else {
+      break;
+    }
+  }
+
+  const droppedCount = messages.length - retained.length;
+  LoggingService.info(`[ContextBuilder] Retained ${retained.length} history messages, dropped ${droppedCount} messages for context window.`);
+
+  const contents: FormattedGeminiContent[] = retained.map((m) => ({
+    role: m.role,
+    parts: [{ text: m.text }],
+  }));
+
+  return {
+    contents,
+    retainedCount: retained.length,
+    droppedCount,
   };
 }
 
@@ -175,16 +288,21 @@ export interface IMessageStore {
   list(userId: string, workspaceId: string): Promise<MessageDocument[]>;
   findByRequestId(userId: string, workspaceId: string, requestId: string): Promise<MessageDocument | null>;
   findModelMessageByRequestId(userId: string, workspaceId: string, requestId: string): Promise<MessageDocument | null>;
-  create(userId: string, workspaceId: string, message: MessageWriteDocument): Promise<MessageDocument>;
+  claimRequest(
+    userId: string,
+    workspaceId: string,
+    params: { text: string; requestId: string; attachment?: AttachmentMetadata | null }
+  ): Promise<IdempotencyClaimResult>;
   completeExchange(
     userId: string,
     workspaceId: string,
     userMessageId: string,
     modelMessage: MessageWriteDocument
   ): Promise<{ userMessage: MessageDocument; modelMessage: MessageDocument }>;
-  failUserMessage(
+  failRequest(
     userId: string,
     workspaceId: string,
+    requestId: string,
     userMessageId: string,
     safeErrorCode: string
   ): Promise<MessageDocument>;
@@ -197,10 +315,19 @@ export class FirestoreMessageStore implements IMessageStore {
     this.firestoreProvider = firestoreProvider;
   }
 
-  private getCollection(userId: string, workspaceId: string) {
+  private getMessagesCollection(userId: string, workspaceId: string) {
     try {
       const db = this.firestoreProvider();
       return db.collection('users').doc(userId).collection('workspaces').doc(workspaceId).collection('messages');
+    } catch {
+      throw new WorkspacePersistenceError();
+    }
+  }
+
+  private getRequestsCollection(userId: string, workspaceId: string) {
+    try {
+      const db = this.firestoreProvider();
+      return db.collection('users').doc(userId).collection('workspaces').doc(workspaceId).collection('requests');
     } catch {
       throw new WorkspacePersistenceError();
     }
@@ -217,9 +344,9 @@ export class FirestoreMessageStore implements IMessageStore {
 
   async list(userId: string, workspaceId: string): Promise<MessageDocument[]> {
     try {
-      // Query up to 50 latest messages, returned in chronological order
-      const snapshot = await this.getCollection(userId, workspaceId)
-        .orderBy('createdAt', 'asc')
+      // Query up to 50 latest messages ordered by createdAt desc, then reverse in memory for chronological order
+      const snapshot = await this.getMessagesCollection(userId, workspaceId)
+        .orderBy('createdAt', 'desc')
         .limit(50)
         .get();
 
@@ -230,7 +357,7 @@ export class FirestoreMessageStore implements IMessageStore {
           messages.push(data);
         }
       });
-      return messages;
+      return messages.reverse();
     } catch (err) {
       if (err instanceof MessageValidationError || err instanceof WorkspaceNotFoundError) {
         throw err;
@@ -241,7 +368,7 @@ export class FirestoreMessageStore implements IMessageStore {
 
   async findByRequestId(userId: string, workspaceId: string, requestId: string): Promise<MessageDocument | null> {
     try {
-      const snapshot = await this.getCollection(userId, workspaceId)
+      const snapshot = await this.getMessagesCollection(userId, workspaceId)
         .where('requestId', '==', requestId)
         .limit(2)
         .get();
@@ -250,7 +377,6 @@ export class FirestoreMessageStore implements IMessageStore {
         return null;
       }
 
-      // Return the user message with this requestId
       for (const doc of snapshot.docs) {
         const data = doc.data() as MessageDocument;
         if (data && data.role === 'user') {
@@ -266,7 +392,7 @@ export class FirestoreMessageStore implements IMessageStore {
 
   async findModelMessageByRequestId(userId: string, workspaceId: string, requestId: string): Promise<MessageDocument | null> {
     try {
-      const snapshot = await this.getCollection(userId, workspaceId)
+      const snapshot = await this.getMessagesCollection(userId, workspaceId)
         .where('requestId', '==', requestId)
         .where('role', '==', 'model')
         .limit(1)
@@ -282,24 +408,140 @@ export class FirestoreMessageStore implements IMessageStore {
     }
   }
 
-  async create(userId: string, workspaceId: string, message: MessageWriteDocument): Promise<MessageDocument> {
+  /**
+   * Atomic Firestore transaction claim on deterministic ledger document:
+   * /users/{userId}/workspaces/{workspaceId}/requests/{requestId}
+   *
+   * Produces exactly one of:
+   * - claimed: newly claimed request;
+   * - in_progress: request currently active (caller returns HTTP 409);
+   * - complete: request completed; returns stored user & model messages;
+   * - retry_claimed: atomically transitions a failed request back to pending.
+   */
+  async claimRequest(
+    userId: string,
+    workspaceId: string,
+    params: { text: string; requestId: string; attachment?: AttachmentMetadata | null }
+  ): Promise<IdempotencyClaimResult> {
     try {
-      const docRef = this.getCollection(userId, workspaceId).doc(message.id);
-      await docRef.set({
-        ...message,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      const db = this.firestoreProvider();
+      const reqRef = this.getRequestsCollection(userId, workspaceId).doc(params.requestId);
+      const msgsColl = this.getMessagesCollection(userId, workspaceId);
 
-      const snap = await docRef.get();
-      if (!snap.exists) {
-        throw new WorkspacePersistenceError();
-      }
-      return snap.data() as MessageDocument;
+      return await db.runTransaction(async (tx) => {
+        const reqSnap = await tx.get(reqRef);
+
+        if (reqSnap.exists) {
+          const reqData = reqSnap.data() as RequestLedgerDocument;
+
+          if (reqData.status === 'in_progress') {
+            return {
+              type: 'in_progress',
+              existingUserMessageId: reqData.userMessageId,
+            };
+          }
+
+          if (reqData.status === 'complete') {
+            const userSnap = await tx.get(msgsColl.doc(reqData.userMessageId));
+            const modelSnap = reqData.modelMessageId ? await tx.get(msgsColl.doc(reqData.modelMessageId)) : null;
+
+            if (userSnap.exists && modelSnap && modelSnap.exists) {
+              return {
+                type: 'complete',
+                userMessage: userSnap.data() as MessageDocument,
+                modelMessage: modelSnap.data() as MessageDocument,
+              };
+            }
+          }
+
+          if (reqData.status === 'failed') {
+            // Atomically transition failed request back to in_progress
+            const userMsgRef = msgsColl.doc(reqData.userMessageId);
+            tx.update(reqRef, {
+              status: 'in_progress',
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+            tx.update(userMsgRef, {
+              text: params.text,
+              status: 'pending',
+              safeErrorCode: null,
+              attachment: params.attachment || null,
+              updatedAt: FieldValue.serverTimestamp(),
+            });
+
+            const userDoc: MessageDocument = {
+              id: reqData.userMessageId,
+              requestId: params.requestId,
+              role: 'user',
+              text: params.text,
+              status: 'pending',
+              modelUsed: null,
+              safeErrorCode: null,
+              attachment: params.attachment || null,
+              createdAt: reqData.createdAt as Timestamp,
+              updatedAt: Timestamp.now(),
+            };
+
+            return {
+              type: 'retry_claimed',
+              userMessage: userDoc,
+            };
+          }
+        }
+
+        // Brand new claim
+        const newUserMessageId = crypto.randomUUID();
+        const userMsgRef = msgsColl.doc(newUserMessageId);
+
+        tx.set(reqRef, {
+          requestId: params.requestId,
+          workspaceId,
+          userId,
+          status: 'in_progress',
+          userMessageId: newUserMessageId,
+          modelMessageId: null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        const writeDoc: MessageWriteDocument = {
+          id: newUserMessageId,
+          requestId: params.requestId,
+          role: 'user',
+          text: params.text,
+          status: 'pending',
+          modelUsed: null,
+          safeErrorCode: null,
+          attachment: params.attachment || null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        tx.set(userMsgRef, writeDoc);
+
+        const userDoc: MessageDocument = {
+          id: newUserMessageId,
+          requestId: params.requestId,
+          role: 'user',
+          text: params.text,
+          status: 'pending',
+          modelUsed: null,
+          safeErrorCode: null,
+          attachment: params.attachment || null,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        };
+
+        return {
+          type: 'claimed',
+          userMessage: userDoc,
+        };
+      });
     } catch (err) {
       if (err instanceof MessageValidationError) {
         throw err;
       }
+      LoggingService.error('[FirestoreMessageStore] claimRequest failed:', err);
       throw new WorkspacePersistenceError();
     }
   }
@@ -312,27 +554,35 @@ export class FirestoreMessageStore implements IMessageStore {
   ): Promise<{ userMessage: MessageDocument; modelMessage: MessageDocument }> {
     try {
       const db = this.firestoreProvider();
-      const coll = this.getCollection(userId, workspaceId);
+      const coll = this.getMessagesCollection(userId, workspaceId);
+      const reqRef = this.getRequestsCollection(userId, workspaceId).doc(modelMessage.requestId);
       const userDocRef = coll.doc(userMessageId);
       const modelDocRef = coll.doc(modelMessage.id);
       const workspaceRef = this.getWorkspaceRef(userId, workspaceId);
 
       const batch = db.batch();
 
-      // 1. Mark user message complete
+      // Update ledger to complete
+      batch.update(reqRef, {
+        status: 'complete',
+        modelMessageId: modelMessage.id,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      // Mark user message complete
       batch.update(userDocRef, {
         status: 'complete',
         updatedAt: FieldValue.serverTimestamp(),
       });
 
-      // 2. Save model message
+      // Save model message
       batch.set(modelDocRef, {
         ...modelMessage,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
 
-      // 3. Update workspace timestamp
+      // Update workspace timestamp
       batch.update(workspaceRef, {
         updatedAt: FieldValue.serverTimestamp(),
       });
@@ -353,23 +603,37 @@ export class FirestoreMessageStore implements IMessageStore {
       if (err instanceof MessageValidationError) {
         throw err;
       }
+      LoggingService.error('[FirestoreMessageStore] completeExchange failed:', err);
       throw new WorkspacePersistenceError();
     }
   }
 
-  async failUserMessage(
+  async failRequest(
     userId: string,
     workspaceId: string,
+    requestId: string,
     userMessageId: string,
     safeErrorCode: string
   ): Promise<MessageDocument> {
     try {
-      const userDocRef = this.getCollection(userId, workspaceId).doc(userMessageId);
-      await userDocRef.update({
+      const db = this.firestoreProvider();
+      const reqRef = this.getRequestsCollection(userId, workspaceId).doc(requestId);
+      const userDocRef = this.getMessagesCollection(userId, workspaceId).doc(userMessageId);
+
+      const batch = db.batch();
+
+      batch.update(reqRef, {
+        status: 'failed',
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      batch.update(userDocRef, {
         status: 'failed',
         safeErrorCode,
         updatedAt: FieldValue.serverTimestamp(),
       });
+
+      await batch.commit();
 
       const snap = await userDocRef.get();
       if (!snap.exists) {
@@ -380,17 +644,24 @@ export class FirestoreMessageStore implements IMessageStore {
       if (err instanceof MessageValidationError) {
         throw err;
       }
+      LoggingService.error('[FirestoreMessageStore] failRequest failed:', err);
       throw new WorkspacePersistenceError();
     }
   }
 }
 
 export class InMemoryMessageStore implements IMessageStore {
-  // Key: `${userId}:${workspaceId}` -> Array of MessageDocument
+  // Key: `${userId}:${workspaceId}` -> Map<messageId, MessageDocument>
   private store = new Map<string, Map<string, MessageDocument>>();
+  // Key: `${userId}:${workspaceId}:${requestId}` -> RequestLedgerDocument
+  private requestStore = new Map<string, RequestLedgerDocument>();
 
   private getKey(userId: string, workspaceId: string): string {
     return `${userId}:${workspaceId}`;
+  }
+
+  private getRequestKey(userId: string, workspaceId: string, requestId: string): string {
+    return `${userId}:${workspaceId}:${requestId}`;
   }
 
   private getMessagesMap(userId: string, workspaceId: string): Map<string, MessageDocument> {
@@ -405,13 +676,13 @@ export class InMemoryMessageStore implements IMessageStore {
 
   async list(userId: string, workspaceId: string): Promise<MessageDocument[]> {
     const map = this.getMessagesMap(userId, workspaceId);
-    return Array.from(map.values())
-      .sort((a, b) => {
-        const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : new Date(a.createdAt as any).getTime();
-        const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : new Date(b.createdAt as any).getTime();
-        return timeA - timeB;
-      })
-      .slice(0, 50);
+    const all = Array.from(map.values());
+    all.sort((a, b) => {
+      const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : new Date(a.createdAt as any).getTime();
+      const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : new Date(b.createdAt as any).getTime();
+      return timeA - timeB;
+    });
+    return all.slice(-50);
   }
 
   async findByRequestId(userId: string, workspaceId: string, requestId: string): Promise<MessageDocument | null> {
@@ -439,23 +710,89 @@ export class InMemoryMessageStore implements IMessageStore {
     return null;
   }
 
-  async create(userId: string, workspaceId: string, message: MessageWriteDocument): Promise<MessageDocument> {
-    const map = this.getMessagesMap(userId, workspaceId);
+  async claimRequest(
+    userId: string,
+    workspaceId: string,
+    params: { text: string; requestId: string; attachment?: AttachmentMetadata | null }
+  ): Promise<IdempotencyClaimResult> {
+    const reqKey = this.getRequestKey(userId, workspaceId, params.requestId);
+    const existingReq = this.requestStore.get(reqKey);
+    const msgsMap = this.getMessagesMap(userId, workspaceId);
+
+    if (existingReq) {
+      if (existingReq.status === 'in_progress') {
+        return {
+          type: 'in_progress',
+          existingUserMessageId: existingReq.userMessageId,
+        };
+      }
+
+      if (existingReq.status === 'complete') {
+        const userDoc = msgsMap.get(existingReq.userMessageId);
+        const modelDoc = existingReq.modelMessageId ? msgsMap.get(existingReq.modelMessageId) : null;
+        if (userDoc && modelDoc) {
+          return {
+            type: 'complete',
+            userMessage: { ...userDoc },
+            modelMessage: { ...modelDoc },
+          };
+        }
+      }
+
+      if (existingReq.status === 'failed') {
+        // Transition back to in_progress
+        existingReq.status = 'in_progress';
+        existingReq.updatedAt = Timestamp.now();
+
+        const userDoc = msgsMap.get(existingReq.userMessageId);
+        if (userDoc) {
+          userDoc.text = params.text;
+          userDoc.status = 'pending';
+          userDoc.safeErrorCode = null;
+          userDoc.attachment = params.attachment ? { ...params.attachment } : null;
+          userDoc.updatedAt = Timestamp.now();
+          return {
+            type: 'retry_claimed',
+            userMessage: { ...userDoc },
+          };
+        }
+      }
+    }
+
+    // Brand new claim
+    const newUserMessageId = crypto.randomUUID();
     const now = Timestamp.now();
-    const doc: MessageDocument = {
-      id: message.id,
-      requestId: message.requestId,
-      role: message.role,
-      text: message.text,
-      status: message.status,
-      modelUsed: message.modelUsed,
-      safeErrorCode: message.safeErrorCode,
-      attachment: message.attachment ? { ...message.attachment } : null,
-      createdAt: message.createdAt instanceof Timestamp ? message.createdAt : now,
-      updatedAt: message.updatedAt instanceof Timestamp ? message.updatedAt : now,
+
+    const newReq: RequestLedgerDocument = {
+      requestId: params.requestId,
+      workspaceId,
+      userId,
+      status: 'in_progress',
+      userMessageId: newUserMessageId,
+      modelMessageId: null,
+      createdAt: now,
+      updatedAt: now,
     };
-    map.set(doc.id, doc);
-    return { ...doc };
+    this.requestStore.set(reqKey, newReq);
+
+    const userDoc: MessageDocument = {
+      id: newUserMessageId,
+      requestId: params.requestId,
+      role: 'user',
+      text: params.text,
+      status: 'pending',
+      modelUsed: null,
+      safeErrorCode: null,
+      attachment: params.attachment ? { ...params.attachment } : null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    msgsMap.set(newUserMessageId, userDoc);
+
+    return {
+      type: 'claimed',
+      userMessage: { ...userDoc },
+    };
   }
 
   async completeExchange(
@@ -464,8 +801,8 @@ export class InMemoryMessageStore implements IMessageStore {
     userMessageId: string,
     modelMessage: MessageWriteDocument
   ): Promise<{ userMessage: MessageDocument; modelMessage: MessageDocument }> {
-    const map = this.getMessagesMap(userId, workspaceId);
-    const userDoc = map.get(userMessageId);
+    const msgsMap = this.getMessagesMap(userId, workspaceId);
+    const userDoc = msgsMap.get(userMessageId);
     if (!userDoc) {
       throw new WorkspacePersistenceError();
     }
@@ -486,8 +823,15 @@ export class InMemoryMessageStore implements IMessageStore {
       createdAt: modelMessage.createdAt instanceof Timestamp ? modelMessage.createdAt : now,
       updatedAt: modelMessage.updatedAt instanceof Timestamp ? modelMessage.updatedAt : now,
     };
+    msgsMap.set(resolvedModel.id, resolvedModel);
 
-    map.set(resolvedModel.id, resolvedModel);
+    const reqKey = this.getRequestKey(userId, workspaceId, modelMessage.requestId);
+    const req = this.requestStore.get(reqKey);
+    if (req) {
+      req.status = 'complete';
+      req.modelMessageId = resolvedModel.id;
+      req.updatedAt = now;
+    }
 
     return {
       userMessage: { ...userDoc },
@@ -495,25 +839,36 @@ export class InMemoryMessageStore implements IMessageStore {
     };
   }
 
-  async failUserMessage(
+  async failRequest(
     userId: string,
     workspaceId: string,
+    requestId: string,
     userMessageId: string,
     safeErrorCode: string
   ): Promise<MessageDocument> {
-    const map = this.getMessagesMap(userId, workspaceId);
-    const userDoc = map.get(userMessageId);
+    const msgsMap = this.getMessagesMap(userId, workspaceId);
+    const userDoc = msgsMap.get(userMessageId);
     if (!userDoc) {
       throw new WorkspacePersistenceError();
     }
+    const now = Timestamp.now();
     userDoc.status = 'failed';
     userDoc.safeErrorCode = safeErrorCode;
-    userDoc.updatedAt = Timestamp.now();
+    userDoc.updatedAt = now;
+
+    const reqKey = this.getRequestKey(userId, workspaceId, requestId);
+    const req = this.requestStore.get(reqKey);
+    if (req) {
+      req.status = 'failed';
+      req.updatedAt = now;
+    }
+
     return { ...userDoc };
   }
 
   clear(): void {
     this.store.clear();
+    this.requestStore.clear();
   }
 }
 
@@ -538,7 +893,7 @@ export class MessageService {
     return this.store;
   }
 
-  private validateRequestId(requestId: unknown): string {
+  public validateRequestId(requestId: unknown): string {
     if (!requestId || typeof requestId !== 'string') {
       throw new MessageValidationError('Missing or invalid requestId.', 'INVALID_MESSAGE');
     }
@@ -549,7 +904,7 @@ export class MessageService {
     return trimmed;
   }
 
-  private validateUserText(text: unknown): string {
+  public validateUserText(text: unknown): string {
     if (typeof text !== 'string') {
       throw new MessageValidationError('Message text must be a string.', 'INVALID_MESSAGE');
     }
@@ -569,48 +924,56 @@ export class MessageService {
   }
 
   /**
-   * Checks for an existing message by requestId for idempotency.
+   * Raw message documents for internal context building.
    */
-  async findByRequestId(userId: string, workspaceId: string, rawRequestId: string): Promise<MessageDocument | null> {
-    const requestId = this.validateRequestId(rawRequestId);
-    return this.store.findByRequestId(userId, workspaceId, requestId);
-  }
-
-  async findModelMessageByRequestId(userId: string, workspaceId: string, rawRequestId: string): Promise<MessageDocument | null> {
-    const requestId = this.validateRequestId(rawRequestId);
-    return this.store.findModelMessageByRequestId(userId, workspaceId, requestId);
+  async listRawMessages(userId: string, workspaceId: string): Promise<MessageDocument[]> {
+    return this.store.list(userId, workspaceId);
   }
 
   /**
-   * Step 1: Saves initial pending user message.
+   * Atomic claim on the deterministic ledger document.
+   */
+  async claimRequest(
+    userId: string,
+    workspaceId: string,
+    params: { text: string; requestId: string; attachment?: AttachmentMetadata | null }
+  ): Promise<IdempotencyClaimResult> {
+    const validText = this.validateUserText(params.text);
+    const validRequestId = this.validateRequestId(params.requestId);
+
+    return this.store.claimRequest(userId, workspaceId, {
+      text: validText,
+      requestId: validRequestId,
+      attachment: params.attachment || null,
+    });
+  }
+
+  /**
+   * Helper to create or claim a pending user message (for unit test compatibility).
    */
   async createPendingUserMessage(
     userId: string,
     workspaceId: string,
-    params: { text: string; requestId: string; attachment?: AttachmentMetadata | null }
-  ): Promise<MessageDocument> {
-    const validText = this.validateUserText(params.text);
-    const validRequestId = this.validateRequestId(params.requestId);
+    params: { text: string; requestId?: string; attachment?: AttachmentMetadata | null }
+  ): Promise<MessageDto> {
+    const reqId = params.requestId || crypto.randomUUID();
+    const claim = await this.claimRequest(userId, workspaceId, {
+      text: params.text,
+      requestId: reqId,
+      attachment: params.attachment,
+    });
 
-    const isMemory = this.store instanceof InMemoryMessageStore;
-    const writeDoc: MessageWriteDocument = {
-      id: crypto.randomUUID(),
-      requestId: validRequestId,
-      role: 'user',
-      text: validText,
-      status: 'pending',
-      modelUsed: null,
-      safeErrorCode: null,
-      attachment: params.attachment || null,
-      createdAt: isMemory ? Timestamp.now() : FieldValue.serverTimestamp(),
-      updatedAt: isMemory ? Timestamp.now() : FieldValue.serverTimestamp(),
-    };
-
-    return this.store.create(userId, workspaceId, writeDoc);
+    if (claim.type === 'claimed' || claim.type === 'retry_claimed') {
+      return toMessageDto(claim.userMessage);
+    }
+    if (claim.type === 'complete') {
+      return toMessageDto(claim.userMessage);
+    }
+    throw new MessageConflictError('Request already in progress.');
   }
 
   /**
-   * Step 2: Atomically complete the exchange with model message.
+   * Atomically completes the exchange with model reply and commits both messages.
    */
   async completeExchange(
     userId: string,
@@ -640,16 +1003,27 @@ export class MessageService {
   }
 
   /**
-   * Step 3: Mark user message failed without clearing prompt text.
+   * Atomically transitions request and user message to failed without clearing prompt text.
    */
-  async failUserMessage(
+  async failRequest(
     userId: string,
     workspaceId: string,
+    requestId: string,
     userMessageId: string,
     safeErrorCode: string
   ): Promise<MessageDto> {
-    const doc = await this.store.failUserMessage(userId, workspaceId, userMessageId, safeErrorCode);
+    const doc = await this.store.failRequest(userId, workspaceId, requestId, userMessageId, safeErrorCode);
     return toMessageDto(doc);
+  }
+
+  async findByRequestId(userId: string, workspaceId: string, rawRequestId: string): Promise<MessageDocument | null> {
+    const requestId = this.validateRequestId(rawRequestId);
+    return this.store.findByRequestId(userId, workspaceId, requestId);
+  }
+
+  async findModelMessageByRequestId(userId: string, workspaceId: string, rawRequestId: string): Promise<MessageDocument | null> {
+    const requestId = this.validateRequestId(rawRequestId);
+    return this.store.findModelMessageByRequestId(userId, workspaceId, requestId);
   }
 }
 

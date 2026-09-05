@@ -17,7 +17,9 @@ import {
   MessageValidationError,
   MessageConflictError,
   validateAndParsePdfDocument,
+  buildGeminiContext,
   toMessageDto,
+  InMemoryMessageStore,
   messageService as defaultMessageService,
 } from '../services/messageService';
 import {
@@ -26,46 +28,78 @@ import {
   GeminiUnavailableError,
   GeminiRateLimitError,
   GeminiInvalidRequestError,
+  GeminiAbortError,
   geminiModelService as defaultGeminiModelService,
 } from '../services/geminiModelService';
+import {
+  IDistributedRateLimiter,
+  InMemoryDistributedRateLimiter,
+  FirestoreDistributedRateLimiter,
+} from '../services/workspaceRateLimiter.js';
+import { getFirebaseFirestore } from '../services/firebaseAdmin';
 import { LoggingService } from '../services/LoggingService';
 
-// UID-keyed sliding-window rate limiter
-const generationRateLimits = new Map<string, number[]>();
+// Distributed Rate Limiter singleton instance
+let defaultRateLimiter: IDistributedRateLimiter;
+if (process.env.WORKSPACE_STORE === 'memory' || process.env.NODE_ENV === 'test') {
+  defaultRateLimiter = new InMemoryDistributedRateLimiter(30, 60000);
+} else {
+  try {
+    const db = getFirebaseFirestore();
+    defaultRateLimiter = new FirestoreDistributedRateLimiter(db, 30, 60000);
+  } catch {
+    defaultRateLimiter = new InMemoryDistributedRateLimiter(30, 60000);
+  }
+}
+
+export function getDefaultRateLimiter(): IDistributedRateLimiter {
+  return defaultRateLimiter;
+}
+
+export function setDefaultRateLimiter(limiter: IDistributedRateLimiter): void {
+  defaultRateLimiter = limiter;
+}
+
+// Backward-compatible synchronous in-memory rate check helpers for unit test suites
+const localRateLimits = new Map<string, number[]>();
 
 export function checkUidRateLimit(uid: string, limit: number = 30, windowMs: number = 60000): boolean {
   const now = Date.now();
-  let timestamps = generationRateLimits.get(uid);
-  if (!timestamps) {
-    timestamps = [];
-    generationRateLimits.set(uid, timestamps);
-  }
-  const recent = timestamps.filter((t) => now - t < windowMs);
-  if (recent.length >= limit) {
-    generationRateLimits.set(uid, recent);
+  const timestamps = (localRateLimits.get(uid) || []).filter((t) => now - t < windowMs);
+  if (timestamps.length >= limit) {
     return false;
   }
-  recent.push(now);
-  generationRateLimits.set(uid, recent);
+  timestamps.push(now);
+  localRateLimits.set(uid, timestamps);
   return true;
 }
 
 export function resetRateLimits(): void {
-  generationRateLimits.clear();
+  localRateLimits.clear();
 }
 
 export function createAiWorkspaceRouter(
   wsService: WorkspaceService = defaultWorkspaceService,
   msgService: MessageService = defaultMessageService,
-  geminiService: GeminiModelService = defaultGeminiModelService
+  geminiService: GeminiModelService = defaultGeminiModelService,
+  rateLimiter?: IDistributedRateLimiter
 ): Router {
   const router = Router();
+  const activeRateLimiter =
+    rateLimiter ||
+    (msgService.getStore() instanceof InMemoryMessageStore || process.env.NODE_ENV === 'test'
+      ? new InMemoryDistributedRateLimiter(30, 60000)
+      : defaultRateLimiter);
 
   /**
    * Centralized safe error handler for workspace routes.
    * Strictly prevents any leakage of Firebase internal messages, project IDs, UIDs, or stack traces.
    */
   const handleWorkspaceError = (err: any, req: Request, res: Response, _next: NextFunction) => {
+    if (res.headersSent || res.writableEnded) {
+      return;
+    }
+
     if (err instanceof WorkspaceValidationError || err instanceof MessageValidationError || err instanceof GeminiInvalidRequestError) {
       return res.status(err.statusCode || 400).json({
         status: 'error',
@@ -102,6 +136,14 @@ export function createAiWorkspaceRouter(
       return res.status(503).json({
         status: 'error',
         statusCode: 503,
+        code: err.code,
+        error: err.message,
+      });
+    }
+    if (err instanceof GeminiAbortError) {
+      return res.status(499).json({
+        status: 'error',
+        statusCode: 499,
         code: err.code,
         error: err.message,
       });
@@ -194,7 +236,6 @@ export function createAiWorkspaceRouter(
           error: 'Authentication required.',
         });
       }
-      // Strict payload schema validation: rejects unknown/spoofed fields
       validateStrictBody(req.body, false);
       const { name, customInstructions } = req.body;
       const workspace = await wsService.createWorkspace(userId, { name, customInstructions });
@@ -237,7 +278,6 @@ export function createAiWorkspaceRouter(
         });
       }
       const { workspaceId } = req.params;
-      // Strict payload schema validation: rejects unknown/spoofed fields
       validateStrictBody(req.body, true);
       const { name, customInstructions } = req.body;
       const workspace = await wsService.updateWorkspace(userId, workspaceId, { name, customInstructions });
@@ -247,7 +287,7 @@ export function createAiWorkspaceRouter(
     }
   });
 
-  // 5. Delete workspace (recursively removes all subcollections like messages)
+  // 5. Delete workspace
   router.delete('/workspaces/:workspaceId', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = (req as any).authUser?.uid;
@@ -280,7 +320,6 @@ export function createAiWorkspaceRouter(
         });
       }
       const { workspaceId } = req.params;
-      // Confirm workspace existence & ownership
       await wsService.getWorkspace(userId, workspaceId);
 
       const messages = await msgService.listMessages(userId, workspaceId);
@@ -290,11 +329,21 @@ export function createAiWorkspaceRouter(
     }
   });
 
-  // 7. Post message and execute multi-turn Gemini response
+  // 7. Post message and execute multi-turn Gemini response with atomic idempotency
   router.post('/workspaces/:workspaceId/messages', async (req: Request, res: Response, next: NextFunction) => {
-    let pendingUserMessageId: string | null = null;
     const userId = (req as any).authUser?.uid;
     const { workspaceId } = req.params;
+    let claimedMessageId: string | null = null;
+    let validRequestId: string | null = null;
+
+    // Set up client disconnect cancellation detection
+    const abortController = new AbortController();
+    const onClose = () => {
+      if (!res.writableEnded) {
+        abortController.abort();
+      }
+    };
+    res.on('close', onClose);
 
     try {
       if (!userId) {
@@ -306,51 +355,25 @@ export function createAiWorkspaceRouter(
         });
       }
 
-      // UID-keyed generation rate limit check (30 requests/minute)
-      if (!checkUidRateLimit(userId, 30, 60000)) {
-        throw new GeminiRateLimitError('Message rate limit exceeded. Please wait a minute and try again.');
-      }
-
       // Strict payload validation: reject unknown fields
       if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
-        throw new MessageValidationError('Request body must be a JSON object.');
+        throw new MessageValidationError('Request body must be a JSON object.', 'INVALID_MESSAGE');
       }
 
       const allowedKeys = new Set(['text', 'requestId', 'document']);
       for (const k of Object.keys(req.body)) {
         if (!allowedKeys.has(k)) {
-          throw new MessageValidationError(`Disallowed field in message body: '${k}'.`);
+          throw new MessageValidationError(`Disallowed field in message body: '${k}'.`, 'INVALID_MESSAGE');
         }
       }
 
       const { text, requestId, document } = req.body;
+      validRequestId = msgService.validateRequestId(requestId);
 
       // Confirm workspace existence and ownership
       const workspace = await wsService.getWorkspace(userId, workspaceId);
 
-      // Idempotency check: check if this requestId has already been seen
-      const existing = await msgService.findByRequestId(userId, workspaceId, requestId);
-      if (existing) {
-        if (existing.status === 'pending') {
-          return res.status(409).json({
-            status: 'error',
-            statusCode: 409,
-            code: 'REQUEST_IN_PROGRESS',
-            error: 'A request with this requestId is currently being processed.',
-          });
-        }
-        if (existing.status === 'complete') {
-          const modelMsg = await msgService.findModelMessageByRequestId(userId, workspaceId, requestId);
-          return res.json({
-            success: true,
-            userMessage: toMessageDto(existing),
-            modelMessage: modelMsg ? toMessageDto(modelMsg) : null,
-          });
-        }
-        // If 'failed', allow retry
-      }
-
-      // Validate optional request-scoped PDF document
+      // Validate optional request-scoped PDF document attachment
       let attachmentMeta = null;
       let docBase64: string | undefined = undefined;
       let docMimeType: string | undefined = undefined;
@@ -367,35 +390,87 @@ export function createAiWorkspaceRouter(
         docMimeType = validatedDoc.mimeType;
       }
 
-      // Step 1: Save user message with pending status
-      const savedUserMsg = await msgService.createPendingUserMessage(userId, workspaceId, {
+      // P0 — ATOMIC FIRESTORE IDEMPOTENCY CLAIM
+      const claim = await msgService.claimRequest(userId, workspaceId, {
         text,
-        requestId,
+        requestId: validRequestId,
         attachment: attachmentMeta,
       });
-      pendingUserMessageId = savedUserMsg.id;
 
-      // Fetch existing conversation history for context (at most 20 prior turns)
-      const existingMessages = await msgService.listMessages(userId, workspaceId);
-      const history = existingMessages
-        .filter((m) => m.id !== savedUserMsg.id && m.status === 'complete')
-        .map((m) => ({
-          role: m.role,
-          text: m.text,
-        }));
+      if (claim.type === 'in_progress') {
+        return res.status(409).json({
+          status: 'error',
+          statusCode: 409,
+          code: 'REQUEST_IN_PROGRESS',
+          error: 'A request with this requestId is currently in progress.',
+        });
+      }
 
-      // Step 2: Generate response using Gemini model ladder
+      if (claim.type === 'complete') {
+        return res.status(200).json({
+          success: true,
+          userMessage: toMessageDto(claim.userMessage),
+          modelMessage: toMessageDto(claim.modelMessage),
+        });
+      }
+
+      // Claim was granted (either 'claimed' or 'retry_claimed')
+      claimedMessageId = claim.userMessage.id;
+
+      // P0 — DISTRIBUTED RATE LIMITING
+      // Only newly claimed or retry-claimed generations consume rate limit quota
+      const rateLimitResult = await activeRateLimiter.checkAndConsume(userId);
+      if (!rateLimitResult.allowed) {
+        await msgService.failRequest(
+          userId,
+          workspaceId,
+          validRequestId,
+          claimedMessageId,
+          'AI_RATE_LIMITED'
+        );
+        throw new GeminiRateLimitError('Message rate limit exceeded. Please wait a minute and try again.');
+      }
+
+      // Build context history using the context builder
+      const allMessages = await msgService.listRawMessages(userId, workspaceId);
+      const priorMessages = allMessages.filter((m) => m.id !== claimedMessageId);
+      const { contents } = buildGeminiContext(priorMessages);
+      const historyTurns = contents.map((c) => ({
+        role: c.role,
+        text: c.parts.map((p) => p.text).join(''),
+      }));
+
+      // Generate response using Gemini model ladder
       let geminiResult;
       try {
         geminiResult = await geminiService.generateResponse({
           customInstructions: workspace.customInstructions,
-          history,
+          history: historyTurns,
           userPrompt: text,
           documentBase64: docBase64,
           documentMimeType: docMimeType,
+          abortSignal: abortController.signal,
         });
       } catch (genErr: any) {
-        // Step 4: Generation failed; mark user message failed without clearing prompt text
+        if (genErr instanceof GeminiAbortError || abortController.signal.aborted) {
+          await msgService.failRequest(
+            userId,
+            workspaceId,
+            validRequestId,
+            claimedMessageId,
+            'REQUEST_ABORTED'
+          );
+          if (!res.writableEnded) {
+            return res.status(499).json({
+              status: 'error',
+              statusCode: 499,
+              code: 'REQUEST_ABORTED',
+              error: 'Client closed request.',
+            });
+          }
+          return;
+        }
+
         const safeCode =
           genErr instanceof GeminiRateLimitError
             ? 'AI_RATE_LIMITED'
@@ -405,15 +480,21 @@ export function createAiWorkspaceRouter(
             ? 'INVALID_MESSAGE'
             : 'AI_UNAVAILABLE';
 
-        await msgService.failUserMessage(userId, workspaceId, pendingUserMessageId, safeCode);
+        await msgService.failRequest(
+          userId,
+          workspaceId,
+          validRequestId,
+          claimedMessageId,
+          safeCode
+        );
         throw genErr;
       }
 
-      // Step 3: Atomically complete exchange with model reply
-      const exchange = await msgService.completeExchange(userId, workspaceId, savedUserMsg.id, {
+      // Atomically complete exchange with model reply and commit both messages
+      const exchange = await msgService.completeExchange(userId, workspaceId, claimedMessageId, {
         text: geminiResult.text,
         modelUsed: geminiResult.modelUsed,
-        requestId,
+        requestId: validRequestId,
       });
 
       return res.status(201).json({
@@ -423,6 +504,8 @@ export function createAiWorkspaceRouter(
       });
     } catch (err) {
       handleWorkspaceError(err, req, res, next);
+    } finally {
+      res.removeListener('close', onClose);
     }
   });
 
