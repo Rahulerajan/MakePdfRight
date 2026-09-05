@@ -131,6 +131,7 @@ export const CANONICAL_MAPPINGS: Record<string, string> = {
 
 // Trust, policy, and legal pages where ads are strictly disallowed
 export const NON_MONETIZABLE_PAGES = new Set([
+  '/ai-workspace',
   '/contact',
   '/privacy',
   '/terms',
@@ -150,6 +151,18 @@ export function canonicalPathFor(pathname: string): string {
 export function publishingPolicyFor(pathname: string): PublishingPolicy {
   const cleanPath = pathname.replace(/\/$/, '') || '/';
   const canonical = canonicalPathFor(cleanPath);
+
+  // Authenticated AI Workspace route: private, unindexed, non-monetizable
+  if (cleanPath === '/ai-workspace') {
+    return {
+      indexable: false,
+      canonicalPath: '',
+      robots: 'noindex, nofollow',
+      monetizable: false,
+      sitemapEligible: false,
+    };
+  }
+
   const isPrimary = (PRIMARY_INDEXABLE_ROUTES as readonly string[]).includes(cleanPath);
 
   // If path is one of the approved primary indexable routes

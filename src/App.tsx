@@ -19,7 +19,6 @@ import { ToolPage } from './components/common/ToolPage';
 // Import AI tool pages and informational/legal pages synchronously for clean SSR prerender and hydration
 import { ImageGenPage } from './pages/ImageGenPage';
 import { AudioTranscribePage } from './pages/AudioTranscribePage';
-import { AIWorkspacePage } from './pages/AIWorkspacePage';
 import { About } from './pages/About';
 import { Resources } from './pages/Resources';
 import { Contact } from './pages/Contact';
@@ -40,6 +39,7 @@ const EditTool = lazy(() => import('./tools/EditTool').then(m => ({ default: m.E
 const OrganiseTool = lazy(() => import('./tools/OrganiseTool').then(m => ({ default: m.OrganiseTool })));
 const RotateTool = lazy(() => import('./tools/RotateTool').then(m => ({ default: m.RotateTool })));
 const ImageToPDFTool = lazy(() => import('./tools/ImageToPDFTool').then(m => ({ default: m.ImageToPDFTool })));
+const AIWorkspacePage = lazy(() => import('./pages/AIWorkspacePage').then(m => ({ default: m.AIWorkspacePage })));
 
 export interface AppProps {
   initialPath?: string;
@@ -730,7 +730,13 @@ export function App({ initialPath }: AppProps = {}) {
               {/* Authenticated AI Workspace Route (Protected by AuthGate) */}
               <Route path="/ai-workspace" element={
                 <AuthGate>
-                  <AIWorkspacePage />
+                  <Suspense fallback={
+                    <div className="flex-1 flex items-center justify-center py-24">
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600"></div>
+                    </div>
+                  }>
+                    <AIWorkspacePage />
+                  </Suspense>
                 </AuthGate>
               } />
 

@@ -3,13 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User,
@@ -35,23 +33,80 @@ function getEnv(key: string): string {
   return '';
 }
 
-// Production configuration prioritizes VITE_FIREBASE_* variables, falling back to firebase-applet-config.json
-const firebaseConfig = {
-  apiKey: getEnv('VITE_FIREBASE_API_KEY') || fallbackAppletConfig.apiKey || '',
-  authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN') || fallbackAppletConfig.authDomain || '',
-  projectId: getEnv('VITE_FIREBASE_PROJECT_ID') || fallbackAppletConfig.projectId || '',
-  storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET') || fallbackAppletConfig.storageBucket || '',
-  messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || fallbackAppletConfig.messagingSenderId || '',
-  appId: getEnv('VITE_FIREBASE_APP_ID') || fallbackAppletConfig.appId || '',
-  measurementId: getEnv('VITE_FIREBASE_MEASUREMENT_ID') || fallbackAppletConfig.measurementId || undefined,
-};
+/**
+ * Resolves Firebase client configuration atomically.
+ * - If no VITE_FIREBASE_* variables are supplied, uses the complete JSON fallback.
+ * - If any VITE_FIREBASE_* variable is supplied, requires all mandatory values from environment variables only.
+ * - Never combines fields from environment variables with fields from fallback JSON.
+ * - Produces a clear error message without exposing credential values.
+ */
+export function resolveFirebaseClientConfig(): FirebaseOptions {
+  const envApiKey = getEnv('VITE_FIREBASE_API_KEY');
+  const envAuthDomain = getEnv('VITE_FIREBASE_AUTH_DOMAIN');
+  const envProjectId = getEnv('VITE_FIREBASE_PROJECT_ID');
+  const envAppId = getEnv('VITE_FIREBASE_APP_ID');
+  const envStorageBucket = getEnv('VITE_FIREBASE_STORAGE_BUCKET');
+  const envMessagingSenderId = getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID');
+  const envMeasurementId = getEnv('VITE_FIREBASE_MEASUREMENT_ID');
+
+  const hasAnyEnvConfig = Boolean(
+    envApiKey || envAuthDomain || envProjectId || envAppId ||
+    envStorageBucket || envMessagingSenderId || envMeasurementId
+  );
+
+  if (hasAnyEnvConfig) {
+    const missing: string[] = [];
+    if (!envApiKey) missing.push('VITE_FIREBASE_API_KEY');
+    if (!envAuthDomain) missing.push('VITE_FIREBASE_AUTH_DOMAIN');
+    if (!envProjectId) missing.push('VITE_FIREBASE_PROJECT_ID');
+    if (!envAppId) missing.push('VITE_FIREBASE_APP_ID');
+
+    if (missing.length > 0) {
+      throw new Error(
+        `[Firebase Client Configuration Error] Environment configuration is incomplete. ` +
+        `When supplying VITE_FIREBASE_* variables, all mandatory fields must be provided. Missing: ${missing.join(', ')}`
+      );
+    }
+
+    return {
+      apiKey: envApiKey,
+      authDomain: envAuthDomain,
+      projectId: envProjectId,
+      appId: envAppId,
+      storageBucket: envStorageBucket || undefined,
+      messagingSenderId: envMessagingSenderId || undefined,
+      measurementId: envMeasurementId || undefined,
+    };
+  }
+
+  // Fallback to complete existing applet configuration (never mixed with partial env vars)
+  if (!fallbackAppletConfig?.apiKey || !fallbackAppletConfig?.authDomain || !fallbackAppletConfig?.projectId || !fallbackAppletConfig?.appId) {
+    throw new Error('[Firebase Client Configuration Error] Fallback firebase-applet-config.json is missing required fields.');
+  }
+
+  return {
+    apiKey: fallbackAppletConfig.apiKey,
+    authDomain: fallbackAppletConfig.authDomain,
+    projectId: fallbackAppletConfig.projectId,
+    appId: fallbackAppletConfig.appId,
+    storageBucket: fallbackAppletConfig.storageBucket || undefined,
+    messagingSenderId: fallbackAppletConfig.messagingSenderId || undefined,
+    measurementId: fallbackAppletConfig.measurementId || undefined,
+  };
+}
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
 export function getFirebaseApp(): FirebaseApp {
   if (!app) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    const existing = getApps();
+    if (existing.length > 0) {
+      app = existing[0];
+    } else {
+      const config = resolveFirebaseClientConfig();
+      app = initializeApp(config);
+    }
   }
   return app;
 }
@@ -71,8 +126,6 @@ googleAuthProvider.setCustomParameters({
 export {
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   firebaseSignOut,
   onAuthStateChanged,
 };

@@ -160,8 +160,11 @@ export class StorageService {
     }
   }
 
+  private static cleanupTimer: NodeJS.Timeout | null = null;
+
   static startScheduledCleanup(intervalMs: number = 10 * 60 * 1000, maxAgeMs: number = 15 * 60 * 1000) {
-    setInterval(() => {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => {
       try {
         if (!fs.existsSync(this.tempDir)) return;
         const files = fs.readdirSync(this.tempDir);
@@ -192,5 +195,9 @@ export class StorageService {
         LoggingService.error('Error running scheduled temp file cleanup:', err);
       }
     }, intervalMs);
+
+    if (this.cleanupTimer && typeof this.cleanupTimer.unref === 'function') {
+      this.cleanupTimer.unref();
+    }
   }
 }

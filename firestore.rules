@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Security Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidWorkspace(data, userId) {
+      return data.keys().hasAll(['id', 'name', 'ownerId', 'customInstructions', 'createdAt', 'updatedAt']) &&
+             data.keys().size() == 6 &&
+             data.id is string && isValidId(data.id) &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.ownerId is string && data.ownerId == userId &&
+             data.customInstructions is string && data.customInstructions.size() <= 4000 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    // User-isolated workspace documents
+    match /users/{userId}/workspaces/{workspaceId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(workspaceId) &&
+                       isValidWorkspace(incoming(), userId) &&
+                       incoming().id == workspaceId;
+      allow update: if isOwner(userId) &&
+                       isValidId(workspaceId) &&
+                       isValidWorkspace(incoming(), userId) &&
+                       incoming().id == existing().id &&
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'customInstructions', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(workspaceId);
+
+      // Subcollection: messages (only readable by workspace owner, direct client writes forbidden)
+      match /messages/{messageId} {
+        allow get, list: if isOwner(userId) && isValidId(workspaceId);
+        allow create, update, delete: if false;
+      }
+    }
+  }
+}

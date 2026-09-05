@@ -471,6 +471,11 @@ export const SEO_DATA: Record<string, RouteSEO> = {
     title: 'Disclaimer | MakePDFRight',
     description: 'Review legal disclaimers, document safety notices, and terms of service for MakePDFRight.'
   },
+  '/ai-workspace': {
+    title: 'AI Document Workspace | MakePDFRight',
+    description: 'Personal AI document workspace to analyze, summarize, and query PDF documents with conversational intelligence.',
+    robots: 'noindex, nofollow'
+  },
   '/404': {
     title: 'Page Not Found | MakePDFRight',
     description: 'The page you requested could not be found. Explore our PDF tools including Merge PDF, Split PDF, Compress PDF, and PDF Editor.'

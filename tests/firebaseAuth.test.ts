@@ -5,6 +5,8 @@
 
 import assert from 'assert';
 import test from 'node:test';
+import http from 'http';
+import express from 'express';
 import { requireFirebaseAuth, createRequireFirebaseAuth } from '../server/middleware/requireFirebaseAuth';
 import { getOwnerId, signSessionId } from '../server/apiUtils';
 
@@ -176,4 +178,111 @@ test('Firebase Auth Middleware & Isolation Unit Tests', async () => {
     assert.strictEqual(anonReq.authUser, undefined, 'Anonymous session does not touch req.authUser');
   }
   console.log('✅ Test 5 Passed: Anonymous PDF processing operates in complete isolation.');
+
+  // Test 6: Unconfigured Firebase Admin fails closed with 503
+  console.log('Test 6: Unconfigured Firebase Admin fails closed with 503...');
+  {
+    const { FirebaseConfigError } = await import('../server/services/firebaseAdmin');
+    const testMiddleware = createRequireFirebaseAuth(async () => {
+      throw new FirebaseConfigError();
+    });
+
+    const { req, res, next, wasNextCalled } = createMockReqRes({
+      headers: { authorization: 'Bearer some-token' },
+    });
+
+    await testMiddleware(req, res, next);
+    assert.strictEqual(res.statusCode, 503, 'Must return 503 when Firebase Admin is unconfigured');
+    assert.strictEqual(res.body?.code, 'SERVICE_UNAVAILABLE');
+    assert.strictEqual(wasNextCalled(), false);
+  }
+  console.log('✅ Test 6 Passed: Unconfigured Firebase Admin safely yields 503.');
+});
+
+test('Express Integration: Session Cookie Issuance & Middleware Ordering', async () => {
+  console.log('--- Running Express Middleware Ordering Integration Tests ---');
+
+  const app = express();
+
+  // Mirrors standardLimiter in server.ts: passing res to getOwnerId ensures fresh session gets sid cookie
+  async function standardLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const ownerId = (req as any).ownerId || getOwnerId(req as any, res as any);
+    next();
+  }
+
+  app.use('/api/', standardLimiter);
+
+  // Session endpoint
+  app.all('/api/session', (req, res) => {
+    const ownerId = getOwnerId(req, res);
+    res.json({ success: true, sessionId: ownerId });
+  });
+
+  // Protected AI Workspace namespace
+  app.use('/api/ai-workspace', requireFirebaseAuth);
+  app.get('/api/ai-workspace/auth-check', (req, res) => {
+    res.json({ success: true, authenticated: true });
+  });
+
+  // Anonymous PDF tool endpoint
+  app.get('/api/pdf-tools/test-action', (req, res) => {
+    const ownerId = getOwnerId(req, res);
+    res.json({ success: true, ownerId });
+  });
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const port = (server.address() as any).port;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    // 1. Fresh request to /api/session returns Set-Cookie with sid
+    console.log('Integration 1: Fresh /api/session sets sid cookie...');
+    const res1 = await fetch(`${baseUrl}/api/session`);
+    assert.strictEqual(res1.status, 200, 'Fresh request must return 200');
+
+    const setCookie = res1.headers.get('set-cookie');
+    assert.ok(setCookie, 'Set-Cookie header must be present');
+    assert.ok(setCookie.includes('sid='), 'Cookie must be named sid');
+    assert.ok(setCookie.includes('HttpOnly'), 'Cookie must be HttpOnly');
+    assert.ok(setCookie.includes('Secure'), 'Cookie must be Secure');
+    assert.ok(setCookie.includes('SameSite=Strict'), 'Cookie must be SameSite=Strict');
+
+    const data1: any = await res1.json();
+    assert.strictEqual(data1.success, true);
+    assert.ok(data1.sessionId, 'Session ID must be non-empty');
+
+    const match = setCookie.match(/sid=([^;]+)/);
+    assert.ok(match, 'Must match sid cookie value');
+    const sidCookieHeader = match[0];
+
+    // 2. Subsequent request carrying that cookie receives same anonymous session identity
+    console.log('Integration 2: Subsequent request resolves identical session identity...');
+    const res2 = await fetch(`${baseUrl}/api/session`, {
+      headers: { Cookie: sidCookieHeader },
+    });
+    assert.strictEqual(res2.status, 200);
+    const data2: any = await res2.json();
+    assert.strictEqual(data2.sessionId, data1.sessionId, 'Must resolve the identical session identity');
+
+    // 3. Anonymous PDF route accessible without Firebase Auth
+    console.log('Integration 3: Anonymous PDF route accessible without Firebase Auth...');
+    const resAnon = await fetch(`${baseUrl}/api/pdf-tools/test-action`, {
+      headers: { Cookie: sidCookieHeader },
+    });
+    assert.strictEqual(resAnon.status, 200);
+    const dataAnon: any = await resAnon.json();
+    assert.strictEqual(dataAnon.ownerId, data1.sessionId, 'Anonymous PDF tool uses same sid identity');
+
+    // 4. Protected AI Workspace endpoint rejects unauthenticated request with 401
+    console.log('Integration 4: Protected AI Workspace endpoint rejects unauthenticated request...');
+    const resAuth = await fetch(`${baseUrl}/api/ai-workspace/auth-check`, {
+      headers: { Cookie: sidCookieHeader },
+    });
+    assert.strictEqual(resAuth.status, 401, 'Must reject with 401 even when sid cookie is present');
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+
+  console.log('✅ Express Integration Tests Passed.');
 });

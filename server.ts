@@ -36,11 +36,17 @@ import { dispatchAiAction } from "./server/dispatchers/aiDispatcher.js";
 import { dispatchFileAction } from "./server/dispatchers/fileDispatcher.js";
 import { getOwnerId } from "./server/apiUtils.js";
 import { requireFirebaseAuth } from "./server/middleware/requireFirebaseAuth";
+import { workspaceService } from "./server/services/workspaceService";
+import { createAiWorkspaceRouter } from "./server/routes/aiWorkspaceRoutes";
 
 // Load environment variables
 dotenv.config();
 
-const PORT = 3000;
+const rawPort = process.env.PORT || '3000';
+const PORT = Number.parseInt(rawPort, 10);
+if (Number.isNaN(PORT) || PORT <= 0 || PORT > 65535) {
+  throw new Error(`[Server] Invalid PORT configuration: "${rawPort}". PORT must be a valid integer between 1 and 65535.`);
+}
 
 // Validate Environment at Startup
 export function validateEnvironment() {
@@ -71,7 +77,7 @@ import { DistributedRateLimiter } from "./server/services/DistributedRateLimiter
 
 // Distributed General Rate Limiting Middleware
 async function standardLimiter(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const ownerId = (req as any).ownerId || getOwnerId(req as any);
+  const ownerId = (req as any).ownerId || getOwnerId(req as any, res as any);
   const rateCheck = await DistributedRateLimiter.checkRateLimit(ownerId, 'general', 'general-api');
   if (!rateCheck.allowed) {
     return DistributedRateLimiter.sendRateLimitResponse(res, rateCheck);
@@ -139,6 +145,7 @@ async function startServer() {
       }
     },
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     referrerPolicy: { policy: "strict-origin-when-cross-origin" }
   }));
 
@@ -278,13 +285,8 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Authenticated AI Workspace token validation endpoint (Firebase Bearer token protected)
-  app.get("/api/ai-workspace/auth-check", requireFirebaseAuth, (req, res) => {
-    res.json({
-      success: true,
-      user: req.authUser,
-    });
-  });
+  // Protect complete workspace API namespace with Firebase Authentication and mount modular router
+  app.use("/api/ai-workspace", requireFirebaseAuth, createAiWorkspaceRouter(workspaceService));
 
   // Protect processing and AI routes with Auth Middleware
   app.use("/api/files", authMiddleware);
@@ -637,7 +639,7 @@ async function startServer() {
     const descText = routeSeo.description;
     const authorText = routeSeo.author || 'MakePDFRight';
     const keywordsText = routeSeo.keywords || 'PDF tools, merge PDF, split PDF, compress PDF, PDF to Word, PDF to Excel, edit PDF, AI image generator, audio transcribe, free PDF editor';
-    const robotsText = !policy.indexable ? 'noindex, follow' : (routeSeo.robots || policy.robots);
+    const robotsText = routeSeo.robots || policy.robots || (!policy.indexable ? 'noindex, follow' : 'index, follow');
     const ogImageAltText = routeSeo.ogImageAlt || `${titleText.split('–')[0].split('|')[0].trim()} with MakePDFRight`;
     const twitterTitleText = routeSeo.twitterTitle || titleText;
     const twitterDescText = routeSeo.twitterDescription || descText;
@@ -697,11 +699,10 @@ async function startServer() {
     setMetaName('twitter:image', twitterImageUrl);
     setMetaName('twitter:image:alt', twitterImageAltText);
 
-    // 5. Canonical link (404 and non-indexable pages must NOT have a canonical tag)
-    const is404OrUnindexed = cleanPath === '/404' || !policy.indexable || (!SEO_DATA[cleanPath] && cleanPath !== '/');
-    if (is404OrUnindexed) {
+    // 5. Canonical link (404 and unindexed /ai-workspace pages must NOT have a canonical tag)
+    const shouldOmitCanonical = cleanPath === '/404' || cleanPath === '/ai-workspace' || !policy.canonicalPath;
+    if (shouldOmitCanonical) {
       html = html.replace(/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/gi, '');
-      html = html.replace(/<script[^>]*adsbygoogle\.js[^>]*><\/script>/gi, '');
     } else {
       const canonicalTag = `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`;
       if (/<link\s+rel="canonical"\s+href=".*?"\s*\/?>/i.test(html)) {
@@ -709,6 +710,10 @@ async function startServer() {
       } else {
         html = html.replace('</head>', `  ${canonicalTag}\n</head>`);
       }
+    }
+
+    if (!policy.monetizable || cleanPath === '/404' || cleanPath === '/ai-workspace') {
+      html = html.replace(/<script[^>]*adsbygoogle\.js[^>]*><\/script>/gi, '');
     }
 
     // 8. JSON-LD Schema using @graph format
@@ -861,11 +866,30 @@ async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     // Mount Vite dev server middleware
     LoggingService.info("[Server] Mounting Vite dev middleware with custom HTML SEO injection...");
+    const isHmrDisabled = process.env.DISABLE_HMR === "true";
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        ...(isHmrDisabled ? { hmr: false } : {}),
+      },
       appType: "custom",
     });
     app.use(vite.middlewares);
+
+    // Explicit route for AI Workspace page (unindexed, nofollow, private)
+    app.get("/ai-workspace", async (req, res, next) => {
+      try {
+        res.setHeader("X-Robots-Tag", "noindex, nofollow");
+        const url = req.originalUrl;
+        const rawHtml = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf-8");
+        const template = await vite.transformIndexHtml(url, rawHtml);
+        const seoHtml = injectSEOMetadata(template, "/ai-workspace", req);
+        res.status(200).set({ "Content-Type": "text/html" }).end(seoHtml);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
 
     app.get("*", async (req, res, next) => {
       if (req.path.startsWith("/api") || req.path.includes(".")) {
@@ -875,6 +899,9 @@ async function startServer() {
         let cleanPath = req.path.split('?')[0];
         if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
           cleanPath = cleanPath.slice(0, -1);
+        }
+        if (cleanPath === '/ai-workspace') {
+          res.setHeader("X-Robots-Tag", "noindex, nofollow");
         }
         const isKnownRoute = Boolean(SEO_DATA[cleanPath]) || cleanPath === '/';
         const statusCode = isKnownRoute ? 200 : 404;
@@ -890,12 +917,15 @@ async function startServer() {
       }
     });
   } else {
-    // Serve production static assets
+    // Serve production static assets without automatic directory trailing-slash redirects
     LoggingService.info("[Server] Running in production. Serving static files with HTML SEO injection...");
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath, { index: false }));
+    app.use(express.static(distPath, { index: false, redirect: false }));
 
-    let cachedIndexHtml: string | null = null;
+    const notFoundHtmlPath = path.join(distPath, "404.html");
+    const cached404Html = fs.existsSync(notFoundHtmlPath)
+      ? fs.readFileSync(notFoundHtmlPath, "utf-8")
+      : null;
 
     app.get("*", (req, res, next) => {
       if (req.path.startsWith("/api") || req.path.includes(".")) {
@@ -906,14 +936,49 @@ async function startServer() {
         if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
           cleanPath = cleanPath.slice(0, -1);
         }
-        const isKnownRoute = Boolean(SEO_DATA[cleanPath]) || cleanPath === '/';
-        const statusCode = isKnownRoute ? 200 : 404;
-
-        if (!cachedIndexHtml) {
-          cachedIndexHtml = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
+        if (cleanPath === '/ai-workspace') {
+          res.setHeader("X-Robots-Tag", "noindex, nofollow");
         }
-        const seoHtml = injectSEOMetadata(cachedIndexHtml, req.path, req);
-        res.status(statusCode).set({ "Content-Type": "text/html" }).end(seoHtml);
+        const isKnownRoute = Boolean(SEO_DATA[cleanPath]) || cleanPath === '/';
+
+        if (!isKnownRoute) {
+          if (cached404Html) {
+            return res.status(404).set({ "Content-Type": "text/html" }).end(cached404Html);
+          }
+          const baseIndex = fs.readFileSync(path.join(distPath, "index.html"), "utf-8");
+          const seoHtml = injectSEOMetadata(baseIndex, "/404", req);
+          return res.status(404).set({ "Content-Type": "text/html" }).end(seoHtml);
+        }
+
+        // Resolve known routes to their corresponding prerendered files:
+        // / -> dist/index.html
+        // /merge -> dist/merge/index.html
+        // /ai-workspace -> dist/ai-workspace/index.html
+        // other routes -> dist/<slug>/index.html or dist/<slug>.html
+        let targetFilePath = '';
+        if (cleanPath === '/') {
+          targetFilePath = path.join(distPath, 'index.html');
+        } else {
+          const slug = cleanPath.replace(/^\//, '');
+          const dirIndex = path.join(distPath, slug, 'index.html');
+          const flatFile = path.join(distPath, `${slug}.html`);
+          if (fs.existsSync(dirIndex)) {
+            targetFilePath = dirIndex;
+          } else if (fs.existsSync(flatFile)) {
+            targetFilePath = flatFile;
+          } else {
+            targetFilePath = path.join(distPath, 'index.html');
+          }
+        }
+
+        if (fs.existsSync(targetFilePath)) {
+          const fileContent = fs.readFileSync(targetFilePath, 'utf-8');
+          return res.status(200).set({ "Content-Type": "text/html" }).end(fileContent);
+        }
+
+        const fallbackHtml = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+        const seoHtml = injectSEOMetadata(fallbackHtml, cleanPath, req);
+        return res.status(200).set({ "Content-Type": "text/html" }).end(seoHtml);
       } catch (e) {
         next(e);
       }

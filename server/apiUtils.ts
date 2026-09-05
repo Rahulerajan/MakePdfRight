@@ -188,7 +188,9 @@ export function getOwnerId(req: VercelRequest | any, res?: VercelResponse | any)
   const clientIp = (req.headers?.['x-forwarded-for'] as string) || req.socket?.remoteAddress || '127.0.0.1';
   const userAgent = (req.headers?.['user-agent'] as string) || 'unknown-client';
   const anonId = 'anon_' + crypto.createHash('sha256').update(`${clientIp}_${userAgent}`).digest('hex').substring(0, 16);
-  req.ownerId = anonId;
+  if (res) {
+    req.ownerId = anonId;
+  }
   return anonId;
 }
 

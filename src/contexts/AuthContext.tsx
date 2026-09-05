@@ -8,8 +8,6 @@ import {
   getFirebaseAuth,
   googleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   firebaseSignOut,
   onAuthStateChanged,
   type User,
@@ -37,28 +35,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   }, []);
 
-  // Listen for auth state changes & handle any redirect result
+  // Listen for auth state changes
   useEffect(() => {
     let unsubscribe: () => void = () => {};
 
     try {
       const auth = getFirebaseAuth();
-
-      // Check if arriving from a redirect flow
-      getRedirectResult(auth)
-        .then((result) => {
-          if (result?.user) {
-            setUser(result.user);
-            setError(null);
-          }
-        })
-        .catch((err: any) => {
-          // Ignore cancelled or duplicate redirect operations
-          if (err.code !== 'auth/credential-already-in-use') {
-            setError(formatAuthError(err));
-          }
-        });
-
       unsubscribe = onAuthStateChanged(auth, (currentUser) => {
         setUser(currentUser);
         setLoading(false);
@@ -73,39 +55,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Google Sign-In with popup, falling back to redirect if popup is blocked or unsupported
+  // Google Sign-In with popup only
   const signInWithGoogle = useCallback(async () => {
     setError(null);
     setLoading(true);
 
     try {
       const auth = getFirebaseAuth();
-      try {
-        const result = await signInWithPopup(auth, googleAuthProvider);
-        setUser(result.user);
-        setError(null);
-      } catch (popupErr: any) {
-        // If popup was blocked, unsupported in iframe, or closed, fallback to redirect
-        const shouldFallbackToRedirect = 
-          popupErr.code === 'auth/popup-blocked' ||
-          popupErr.code === 'auth/cancelled-popup-request' ||
-          popupErr.code === 'auth/operation-not-supported-in-this-environment';
-
-        if (shouldFallbackToRedirect) {
-          await signInWithRedirect(auth, googleAuthProvider);
-          return;
-        }
-
-        // If user actively closed the popup window, don't show an aggressive error
-        if (popupErr.code === 'auth/popup-closed-by-user') {
-          setLoading(false);
-          return;
-        }
-
-        throw popupErr;
+      const result = await signInWithPopup(auth, googleAuthProvider);
+      setUser(result.user);
+      setError(null);
+    } catch (popupErr: any) {
+      if (popupErr?.code === 'auth/popup-closed-by-user') {
+        // User closed the popup before completing sign-in
+        setLoading(false);
+        return;
       }
-    } catch (err: any) {
-      setError(formatAuthError(err));
+      setError(formatAuthError(popupErr));
     } finally {
       setLoading(false);
     }
@@ -156,17 +122,17 @@ export function useAuth(): AuthContextValue {
 }
 
 function formatAuthError(err: any): string {
-  if (!err) return 'An unexpected authentication error occurred.';
-  switch (err.code) {
+  if (!err) return 'auth/generic-error';
+  const code = err.code || '';
+  switch (code) {
     case 'auth/popup-blocked':
-      return 'Sign-in popup was blocked by your browser. Please allow popups or use redirect sign-in.';
-    case 'auth/unauthorized-domain':
-      return 'This app domain is not yet authorized in the Firebase Console. Please add it to Authorized Domains.';
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
     case 'auth/network-request-failed':
-      return 'Network error connecting to Firebase. Please check your internet connection.';
+    case 'auth/unauthorized-domain':
     case 'auth/user-disabled':
-      return 'This user account has been disabled.';
+      return code;
     default:
-      return err.message || 'Authentication operation failed.';
+      return 'auth/generic-error';
   }
 }

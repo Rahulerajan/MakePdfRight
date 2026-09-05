@@ -4,7 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { getFirebaseAuth } from '../services/firebaseAdmin';
+import { getFirebaseAuth, FirebaseConfigError } from '../services/firebaseAdmin';
 import { LoggingService } from '../services/LoggingService';
 
 export interface AuthenticatedUser {
@@ -15,8 +15,9 @@ export interface AuthenticatedUser {
   picture?: string;
 }
 
-export type TokenVerifier = (idToken: string) => Promise<{
-  uid: string;
+export type TokenVerifier = (idToken: string, checkRevoked?: boolean) => Promise<{
+  uid?: string;
+  sub?: string;
   email?: string;
   email_verified?: boolean;
   name?: string;
@@ -43,10 +44,11 @@ export function createRequireFirebaseAuth(customVerifier?: TokenVerifier) {
   ): Promise<void | Response> {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         status: 'error',
         statusCode: 401,
+        code: 'UNAUTHORIZED',
         error: 'Authentication required. Please provide a valid Bearer token.',
       });
     }
@@ -57,26 +59,31 @@ export function createRequireFirebaseAuth(customVerifier?: TokenVerifier) {
       return res.status(401).json({
         status: 'error',
         statusCode: 401,
+        code: 'UNAUTHORIZED',
         error: 'Authentication required. Bearer token is empty.',
       });
     }
 
     try {
       const decodedToken = customVerifier
-        ? await customVerifier(idToken)
-        : await getFirebaseAuth().verifyIdToken(idToken);
+        ? await customVerifier(idToken, true)
+        : await getFirebaseAuth().verifyIdToken(idToken, true);
 
-      if (!decodedToken || !decodedToken.uid) {
-        return res.status(403).json({
+      const uid = decodedToken?.uid || decodedToken?.sub;
+
+      if (!decodedToken || !uid || typeof uid !== 'string') {
+        return res.status(401).json({
           status: 'error',
-          statusCode: 403,
-          error: 'Forbidden: Invalid token identity.',
+          statusCode: 401,
+          code: 'UNAUTHORIZED',
+          error: 'Unauthorized: Missing or invalid token identity.',
         });
       }
 
       // Attach strictly derived identity from the cryptographically verified token
+      // Never read untrusted user IDs from cookies, request headers, query parameters, or request bodies.
       req.authUser = {
-        uid: decodedToken.uid,
+        uid,
         email: decodedToken.email,
         emailVerified: decodedToken.email_verified,
         name: decodedToken.name,
@@ -85,10 +92,30 @@ export function createRequireFirebaseAuth(customVerifier?: TokenVerifier) {
 
       next();
     } catch (err: any) {
-      LoggingService.warn(`[Firebase Auth] Token verification rejected: ${err.code || err.message}`);
+      // Safe non-disclosing error logging server-side only
+      LoggingService.warn(`[Firebase Auth] Token verification rejected: ${err?.code || 'verification_failed'}`);
+
+      // If Firebase Admin itself is not configured or unavailable, return 503 rather than false 401
+      const isConfigError =
+        err instanceof FirebaseConfigError ||
+        err?.code === 'FIREBASE_ADMIN_UNCONFIGURED' ||
+        err?.code === 'app/no-app';
+
+      if (isConfigError) {
+        return res.status(503).json({
+          status: 'error',
+          statusCode: 503,
+          code: 'SERVICE_UNAVAILABLE',
+          error: 'Authentication service is temporarily unavailable.',
+        });
+      }
+
+      // Return HTTP 401 with a safe, non-disclosing error response
+      // Never return raw Firebase internal errors, stack traces, project IDs, or user IDs
       return res.status(401).json({
         status: 'error',
         statusCode: 401,
+        code: 'UNAUTHORIZED',
         error: 'Unauthorized: Invalid, expired, or revoked authentication token.',
       });
     }
@@ -98,7 +125,5 @@ export function createRequireFirebaseAuth(customVerifier?: TokenVerifier) {
 /**
  * Express middleware requiring a valid Firebase ID Token in the Authorization header.
  * Attaches the verified user UID and profile claims strictly from the cryptographically verified token.
- * Rejects forged, missing, malformed, or expired tokens with non-disclosing 401/403 status.
- * Never accepts a UID from request JSON body, query parameters, X-Owner-Id, the anonymous sid cookie, or other client-controlled inputs.
  */
 export const requireFirebaseAuth = createRequireFirebaseAuth();

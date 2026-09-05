@@ -6,6 +6,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../LanguageContext';
 import { Sparkles, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 
 interface AuthGateProps {
@@ -14,6 +15,28 @@ interface AuthGateProps {
 
 export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const { user, loading, error, signInWithGoogle, clearError } = useAuth();
+  const { t } = useLanguage();
+
+  const getAuthErrorMessage = (code: string | null): string | null => {
+    if (!code) return null;
+    switch (code) {
+      case 'auth/popup-blocked':
+        return t('auth.error_popup_blocked');
+      case 'auth/cancelled-popup-request':
+      case 'auth/popup-closed-by-user':
+        return t('auth.error_cancelled');
+      case 'auth/network-request-failed':
+        return t('auth.error_network');
+      case 'auth/unauthorized-domain':
+        return t('auth.error_unauthorized_domain');
+      case 'auth/user-disabled':
+        return t('auth.error_user_disabled');
+      default:
+        return t('auth.error_generic');
+    }
+  };
+
+  const localizedError = getAuthErrorMessage(error);
 
   if (loading) {
     return (
@@ -21,7 +44,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         <div className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
           <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-            Verifying authentication status...
+            {t('auth.verifying_status')}
           </p>
         </div>
       </div>
@@ -39,21 +62,21 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
           <div className="space-y-3">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              AI Document Workspace
+              {t('auth.workspace_title')}
             </h1>
             <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed">
-              Sign in with your Google account to access your personal AI document assistant, query PDF documents, and retain your research workspace.
+              {t('auth.workspace_desc')}
             </p>
           </div>
 
-          {error && (
+          {localizedError && (
             <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-sm flex items-center justify-between">
-              <span>{error}</span>
+              <span>{localizedError}</span>
               <button
                 onClick={clearError}
                 className="text-xs font-bold text-red-500 hover:text-red-700 dark:hover:text-red-300 ml-2"
               >
-                Dismiss
+                {t('auth.dismiss')}
               </button>
             </div>
           )}
@@ -82,7 +105,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              Sign in with Google
+              {t('auth.sign_in_google')}
             </button>
 
             <Link
@@ -90,7 +113,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
               className="w-full h-11 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Home
+              {t('auth.back_home')}
             </Link>
           </div>
 
@@ -98,7 +121,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex items-start gap-3 text-left">
             <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              <strong>100% Free Core Tools:</strong> Merge, split, compress, convert, and edit remain completely free and anonymous without any login. Authentication is only required to manage your persistent AI Document Workspace.
+              <strong>{t('auth.free_notice_title')}</strong> {t('auth.free_notice_desc')}
             </p>
           </div>
         </div>

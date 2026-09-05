@@ -207,6 +207,37 @@ export function verifyBuildIntegrity(): boolean {
   }
   console.log('✅ All non-monetizable policy and contact routes are completely free of AdSense scripts.');
 
+  // Validate Private Route Isolation (/ai-workspace): noindex, nofollow, no canonical, no AdSense
+  console.log('\n[Integrity Safeguard] Verifying private authenticated routes isolation (/ai-workspace)...');
+  const workspaceHtmlPath = path.join(DIST_DIR, 'ai-workspace', 'index.html');
+  if (!fs.existsSync(workspaceHtmlPath)) {
+    console.error('❌ [Integrity Failure] dist/ai-workspace/index.html is missing!');
+    hasErrors = true;
+  } else {
+    const workspaceHtml = fs.readFileSync(workspaceHtmlPath, 'utf-8');
+    if (workspaceHtml.includes('<link rel="canonical"') || workspaceHtml.includes('rel="canonical"')) {
+      console.error('❌ [Integrity Failure] dist/ai-workspace/index.html must NOT contain a canonical tag!');
+      hasErrors = true;
+    }
+    if (!workspaceHtml.includes('noindex, nofollow')) {
+      console.error('❌ [Integrity Failure] dist/ai-workspace/index.html must contain meta robots noindex, nofollow!');
+      hasErrors = true;
+    }
+    if (workspaceHtml.includes('adsbygoogle.js')) {
+      console.error('❌ [Integrity Failure] dist/ai-workspace/index.html must NOT contain AdSense script!');
+      hasErrors = true;
+    }
+
+    if (fs.existsSync(SITEMAP_PATH)) {
+      const sitemapXml = fs.readFileSync(SITEMAP_PATH, 'utf-8');
+      if (sitemapXml.includes('/ai-workspace')) {
+        console.error('❌ [Integrity Failure] /ai-workspace MUST NOT appear in sitemap.xml!');
+        hasErrors = true;
+      }
+    }
+    console.log('✅ dist/ai-workspace/index.html is strictly isolated (no canonical, noindex, nofollow, no AdSense, excluded from sitemap).');
+  }
+
   // 5. Verify Raw HTML Visible Content (H1, Meaningful content, FAQs) for all primary indexable routes
   console.log('\n[Integrity Safeguard] Verifying raw HTML visible content without running JavaScript...');
   const missingVisibleContent: string[] = [];

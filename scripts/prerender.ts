@@ -167,14 +167,16 @@ function prerenderRoute(route: string): string {
 
   const title = seo.title || 'MakePDFRight – Online PDF & Document Processing Tools';
   const desc = seo.description || '';
-  const canonicalUrl = policy.canonicalPath === '/' ? appUrl : `${appUrl}${policy.canonicalPath}`;
+  const canonicalUrl = policy.canonicalPath ? (policy.canonicalPath === '/' ? appUrl : `${appUrl}${policy.canonicalPath}`) : '';
   const ogImg = seo.ogImage || '/og-image.png';
   const fullOgImg = ogImg.startsWith('http') ? ogImg : `${appUrl}${ogImg.startsWith('/') ? '' : '/'}${ogImg}`;
   const ogImgAlt = seo.ogImageAlt || `${title.split('–')[0].split('|')[0].trim()} with MakePDFRight`;
-  const robotsContent = !policy.indexable || is404 ? 'noindex, follow' : (seo.robots || policy.robots);
+  const robotsContent = seo.robots || policy.robots || (!policy.indexable || is404 ? 'noindex, follow' : 'index, follow');
 
   // Render real React App component at build time
   const renderedApp = renderToString(React.createElement(App, { initialPath: route }));
+
+  const shouldOmitCanonical = is404 || route === '/ai-workspace' || !policy.canonicalPath;
 
   // Generate metadata block
   let metaTags = `
@@ -182,12 +184,12 @@ function prerenderRoute(route: string): string {
     <meta name="description" content="${escapeHtml(desc)}" />
     <meta name="author" content="MakePDFRight" />
     <meta name="robots" content="${escapeHtml(robotsContent)}" />
-    ${!is404 ? `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />` : ''}
+    ${!shouldOmitCanonical ? `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />` : ''}
     <meta property="og:site_name" content="MakePDFRight" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="${escapeHtml(title)}" />
     <meta property="og:description" content="${escapeHtml(desc)}" />
-    <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+    ${!shouldOmitCanonical ? `<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />` : ''}
     <meta property="og:image" content="${escapeHtml(fullOgImg)}" />
     <meta property="og:image:alt" content="${escapeHtml(ogImgAlt)}" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -216,6 +218,10 @@ function prerenderRoute(route: string): string {
     /<div id="root"><\/div>/,
     `<div id="root" data-prerendered="true">${renderedApp}</div>`
   );
+
+  if (!policy.monetizable || route === '/ai-workspace' || is404) {
+    html = html.replace(/<script[^>]*adsbygoogle\.js[^>]*><\/script>/gi, '');
+  }
 
   return html;
 }

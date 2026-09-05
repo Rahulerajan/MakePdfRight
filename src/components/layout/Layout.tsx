@@ -307,7 +307,7 @@ export const Header = () => {
                   </div>
                 )}
                 <span className="max-w-[70px] sm:max-w-[100px] truncate hidden sm:inline-block">
-                  {user.displayName || user.email?.split('@')[0] || 'Account'}
+                  {user.displayName || user.email?.split('@')[0] || t('auth.account')}
                 </span>
                 <ChevronDown className="w-3 h-3 text-slate-500" />
               </button>
@@ -331,7 +331,7 @@ export const Header = () => {
                       className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
                     >
                       <Sparkles className="w-4 h-4 text-primary" />
-                      <span>AI Workspace</span>
+                      <span>{t('auth.workspace_badge')}</span>
                     </Link>
 
                     <button
@@ -342,7 +342,7 @@ export const Header = () => {
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-pointer text-left"
                     >
                       <LogOut className="w-4 h-4 text-slate-500" />
-                      <span>Sign out</span>
+                      <span>{t('auth.sign_out')}</span>
                     </button>
                   </div>
                 </>
@@ -353,10 +353,10 @@ export const Header = () => {
               onClick={signInWithGoogle}
               disabled={authLoading}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm focus:outline-none cursor-pointer shrink-0 disabled:opacity-60"
-              title="Sign in with Google"
+              title={t('auth.sign_in_google')}
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Sign in</span>
+              <span>{t('auth.sign_in')}</span>
             </button>
           )}
 
@@ -472,7 +472,7 @@ export const Header = () => {
                     className="flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold bg-primary text-white hover:bg-primary/90 transition-colors"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>Open AI Workspace</span>
+                    <span>{t('auth.workspace_badge')}</span>
                   </Link>
 
                   <button
@@ -483,7 +483,7 @@ export const Header = () => {
                     className="w-full flex items-center justify-center gap-2 p-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign out</span>
+                    <span>{t('auth.sign_out')}</span>
                   </button>
                 </div>
               ) : (
@@ -496,7 +496,7 @@ export const Header = () => {
                   className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-colors cursor-pointer shadow-sm disabled:opacity-60"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span>Sign in with Google</span>
+                  <span>{t('auth.sign_in_google')}</span>
                 </button>
               )}
             </div>

@@ -137,8 +137,19 @@
       "destination": "/api/ai-tools?action=complex-query"
     },
     {
-      "source": "/:path(pdf-to-word-without-losing-formatting|compress-pdf-without-losing-quality|merge-multiple-pdf-files-into-one|compress-pdf-for-job-application|merge-pdf-and-word-into-one-file|merge-pdf-without-losing-quality|split-pdf-without-losing-quality|extract-tables-from-pdf-to-excel|financial-statement-pdf-to-excel|merge-jpg-and-pdf-into-one-file|extract-specific-pages-from-pdf|pdf-to-word-password-protected|split-pdf-into-multiple-files|extract-single-page-from-pdf|pdf-to-word-without-software|compress-multiple-pdf-files|split-pdf-into-single-pages|pdf-bank-statement-to-excel|merge-pdf-without-software|pdf-to-word-multiple-pages|compress-pdf-for-whatsapp|reduce-pdf-size-for-email|merge-protected-pdf-files|split-pdf-without-acrobat|pdf-to-word-free-no-email|pdf-to-word-for-contracts|convert-pdf-data-to-excel|combine-pdf-files-online|merge-pdf-keep-bookmarks|split-pdf-by-page-number|split-pdf-odd-even-pages|merge-scanned-pdf-pages|split-pdf-every-n-pages|pdf-to-word-with-tables|pdf-to-word-online-free|multi-page-pdf-to-excel|compress-pdf-on-iphone|compress-pdf-under-2mb|how-to-merge-pdf-files|extract-pages-from-pdf|split-pdf-for-whatsapp|pdf-to-word-for-resume|pdf-to-excel-on-iphone|compress-pdf-to-100kb|compress-pdf-to-500kb|delete-pages-from-pdf|split-pdf-online-free|pdf-to-word-on-iphone|merge-pdf-files-free|split-large-pdf-file|split-pdf-for-upload|pdf-to-word-editable|invoice-pdf-to-excel|compress-pdf-to-1mb|merge-pdf-on-iphone|split-pdf-on-iphone|split-pdf-for-email|scanned-pdf-to-word|merge-pdf-in-order|how-to-split-a-pdf|split-pdf-by-range|separate-pdf-pages|pdf-to-xlsx-online|split-pdf-in-half|generate-image|cookie-policy|image-to-pdf|pdf-to-excel|pdf-to-word|pdf-to-jpg|transcribe|disclaimer|resources|compress|organise|contact|privacy|rotate|merge|split|about|terms|edit|ocr)",
+      "source": "/:path(ai-workspace|pdf-to-word-without-losing-formatting|compress-pdf-without-losing-quality|merge-multiple-pdf-files-into-one|compress-pdf-for-job-application|merge-pdf-and-word-into-one-file|merge-pdf-without-losing-quality|split-pdf-without-losing-quality|extract-tables-from-pdf-to-excel|financial-statement-pdf-to-excel|merge-jpg-and-pdf-into-one-file|extract-specific-pages-from-pdf|pdf-to-word-password-protected|split-pdf-into-multiple-files|extract-single-page-from-pdf|pdf-to-word-without-software|compress-multiple-pdf-files|split-pdf-into-single-pages|pdf-bank-statement-to-excel|merge-pdf-without-software|pdf-to-word-multiple-pages|compress-pdf-for-whatsapp|reduce-pdf-size-for-email|merge-protected-pdf-files|split-pdf-without-acrobat|pdf-to-word-free-no-email|pdf-to-word-for-contracts|convert-pdf-data-to-excel|combine-pdf-files-online|merge-pdf-keep-bookmarks|split-pdf-by-page-number|split-pdf-odd-even-pages|merge-scanned-pdf-pages|split-pdf-every-n-pages|pdf-to-word-with-tables|pdf-to-word-online-free|multi-page-pdf-to-excel|compress-pdf-on-iphone|compress-pdf-under-2mb|how-to-merge-pdf-files|extract-pages-from-pdf|split-pdf-for-whatsapp|pdf-to-word-for-resume|pdf-to-excel-on-iphone|compress-pdf-to-100kb|compress-pdf-to-500kb|delete-pages-from-pdf|split-pdf-online-free|pdf-to-word-on-iphone|merge-pdf-files-free|split-large-pdf-file|split-pdf-for-upload|pdf-to-word-editable|invoice-pdf-to-excel|compress-pdf-to-1mb|merge-pdf-on-iphone|split-pdf-on-iphone|split-pdf-for-email|scanned-pdf-to-word|merge-pdf-in-order|how-to-split-a-pdf|split-pdf-by-range|separate-pdf-pages|pdf-to-xlsx-online|split-pdf-in-half|generate-image|cookie-policy|image-to-pdf|pdf-to-excel|pdf-to-word|pdf-to-jpg|transcribe|disclaimer|resources|compress|organise|contact|privacy|rotate|merge|split|about|terms|edit|ocr)",
       "destination": "/:path/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/ai-workspace",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ]
 }
