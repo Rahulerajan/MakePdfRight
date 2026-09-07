@@ -23,14 +23,23 @@ export class FirebaseConfigError extends Error {
 }
 
 /**
- * Resolves the Firebase Admin project ID strictly:
- * - In production, requires an explicit FIREBASE_PROJECT_ID, failing closed if absent.
- * - Does NOT silently select GCP_PROJECT or GCLOUD_PROJECT.
- * - In development/test only, falls back to the canonical project in firebase-applet-config.json or canonical online-flag-zfs6l.
+ * Resolves the Firebase Admin project ID:
+ * - Checks explicit FIREBASE_PROJECT_ID, then Cloud Run standard variables (GOOGLE_CLOUD_PROJECT, GCLOUD_PROJECT, GCP_PROJECT).
+ * - In production, requires an explicit project ID from environment variables, failing closed if absent.
+ * - In development/test only, falls back to the canonical project in firebase-applet-config.json or makepdfright-1989c.
  */
-function resolveFirebaseAdminProjectId(): string {
+export function resolveFirebaseAdminProjectId(): string {
   if (process.env.FIREBASE_PROJECT_ID) {
     return process.env.FIREBASE_PROJECT_ID;
+  }
+  if (process.env.GOOGLE_CLOUD_PROJECT) {
+    return process.env.GOOGLE_CLOUD_PROJECT;
+  }
+  if (process.env.GCLOUD_PROJECT) {
+    return process.env.GCLOUD_PROJECT;
+  }
+  if (process.env.GCP_PROJECT) {
+    return process.env.GCP_PROJECT;
   }
 
   const isProduction = process.env.NODE_ENV === 'production';
@@ -58,17 +67,12 @@ function resolveFirebaseAdminProjectId(): string {
 /**
  * Initializes Firebase Admin SDK using Application Default Credentials (ADC).
  * Never uses, requires, or creates a service-account JSON file.
- * Fails closed in production if FIREBASE_PROJECT_ID is missing.
+ * Fails closed in production if no project ID is resolved.
  */
 export function getFirebaseAdminApp(): App {
   const existingApps = getApps();
   if (existingApps.length > 0 && existingApps[0]) {
     return existingApps[0];
-  }
-
-  const isProduction = process.env.NODE_ENV === 'production';
-  if (isProduction && !process.env.FIREBASE_PROJECT_ID) {
-    throw new FirebaseConfigError();
   }
 
   const projectId = resolveFirebaseAdminProjectId();

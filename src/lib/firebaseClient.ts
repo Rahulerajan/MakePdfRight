@@ -9,6 +9,7 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User,
@@ -156,9 +157,28 @@ if (typeof window !== 'undefined') {
   getFirebaseAnalytics().catch(() => {});
 }
 
+/**
+ * Signs in with Google credentials:
+ * - If a GIS credential (JWT ID token) is provided, uses signInWithCredential.
+ * - Otherwise, initiates standard Google Sign-In popup with Firebase Auth.
+ */
+export async function signInWithGoogleCredential(credentialOrIdToken?: string): Promise<User> {
+  const authInstance = getFirebaseAuth();
+
+  if (credentialOrIdToken) {
+    const credential = GoogleAuthProvider.credential(credentialOrIdToken);
+    const result = await signInWithCredential(authInstance, credential);
+    return result.user;
+  }
+
+  const result = await signInWithPopup(authInstance, googleAuthProvider);
+  return result.user;
+}
+
 export {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   firebaseSignOut,
   onAuthStateChanged,
   getAnalytics,
