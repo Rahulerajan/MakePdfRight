@@ -97,7 +97,6 @@ export const Header = () => {
     { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
     { code: 'fr', name: 'Français', flag: '🇫🇷' },
     { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
   ];
 
   const currentLang = languagesList.find(l => l.code === language) || languagesList[0];
