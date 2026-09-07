@@ -6,8 +6,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import {
   getFirebaseAuth,
-  googleAuthProvider,
-  signInWithPopup,
+  signInWithGoogleCredential,
   firebaseSignOut,
   onAuthStateChanged,
   type User,
@@ -55,15 +54,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Google Sign-In with popup only
+  // Google Sign-In through GIS with Firebase popup compatibility fallback
   const signInWithGoogle = useCallback(async () => {
     setError(null);
     setLoading(true);
 
     try {
-      const auth = getFirebaseAuth();
-      const result = await signInWithPopup(auth, googleAuthProvider);
-      setUser(result.user);
+      const signedInUser = await signInWithGoogleCredential();
+      setUser(signedInUser);
       setError(null);
     } catch (popupErr: any) {
       if (popupErr?.code === 'auth/popup-closed-by-user') {
@@ -131,6 +129,9 @@ function formatAuthError(err: any): string {
     case 'auth/network-request-failed':
     case 'auth/unauthorized-domain':
     case 'auth/user-disabled':
+    case 'auth/operation-not-allowed':
+    case 'auth/invalid-api-key':
+    case 'auth/configuration-not-found':
       return code;
     default:
       return 'auth/generic-error';

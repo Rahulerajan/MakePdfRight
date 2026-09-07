@@ -8,7 +8,28 @@ import test from 'node:test';
 import http from 'http';
 import express from 'express';
 import { requireFirebaseAuth, createRequireFirebaseAuth } from '../server/middleware/requireFirebaseAuth';
+import { resolveFirebaseAdminProjectId } from '../server/services/firebaseAdmin';
 import { getOwnerId, signSessionId } from '../server/apiUtils';
+
+test('Firebase Admin resolves Cloud Run project configuration', () => {
+  const keys = ['FIREBASE_PROJECT_ID', 'GOOGLE_CLOUD_PROJECT', 'GCLOUD_PROJECT', 'GCP_PROJECT'] as const;
+  const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+
+  try {
+    for (const key of keys) delete process.env[key];
+    process.env.GOOGLE_CLOUD_PROJECT = 'cloud-run-project';
+    assert.strictEqual(resolveFirebaseAdminProjectId(), 'cloud-run-project');
+
+    process.env.FIREBASE_PROJECT_ID = 'explicit-firebase-project';
+    assert.strictEqual(resolveFirebaseAdminProjectId(), 'explicit-firebase-project');
+  } finally {
+    for (const key of keys) {
+      const value = original[key];
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
 
 function createMockReqRes(overrides: {
   headers?: Record<string, string>;
