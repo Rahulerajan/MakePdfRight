@@ -123,7 +123,7 @@ async function startServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:", "https:", "https://lh3.googleusercontent.com"],
@@ -133,6 +133,7 @@ async function startServer() {
           "https://generativelanguage.googleapis.com",
           "https://identitytoolkit.googleapis.com",
           "https://securetoken.googleapis.com",
+          "https://accounts.google.com",
           "https://*.firebaseio.com",
           "https://*.googleapis.com",
           "wss:",

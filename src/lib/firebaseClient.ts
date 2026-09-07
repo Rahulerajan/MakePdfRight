@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  signInWithCredential,
   signInWithPopup,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -14,6 +15,28 @@ import {
   type Auth,
 } from 'firebase/auth';
 import fallbackAppletConfig from '../../firebase-applet-config.json';
+
+interface GoogleTokenResponse {
+  access_token?: string;
+  error?: string;
+}
+
+interface GoogleTokenClient {
+  requestAccessToken(options?: { prompt?: string }): void;
+}
+
+interface GoogleIdentityServices {
+  accounts?: {
+    oauth2?: {
+      initTokenClient(options: {
+        client_id: string;
+        scope: string;
+        callback(response: GoogleTokenResponse): void;
+        error_callback?(error: { type?: string }): void;
+      }): GoogleTokenClient;
+    };
+  };
+}
 
 function getEnv(key: string): string {
   try {
@@ -95,6 +118,10 @@ export function resolveFirebaseClientConfig(): FirebaseOptions {
   };
 }
 
+export function resolveGoogleOAuthClientId(): string {
+  return getEnv('VITE_GOOGLE_CLIENT_ID') || fallbackAppletConfig.oAuthClientId || '';
+}
+
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
@@ -116,6 +143,61 @@ export function getFirebaseAuth(): Auth {
     auth = getAuth(getFirebaseApp());
   }
   return auth;
+}
+
+/**
+ * Uses Google Identity Services to obtain an OAuth token and exchanges it for
+ * a Firebase credential. This avoids depending on Firebase's cross-origin
+ * popup helper when the app is hosted outside Firebase Hosting.
+ *
+ * The OAuth client must list the deployed app origin in Google Cloud Console.
+ * If GIS has not loaded, the standard Firebase popup remains available as a
+ * compatibility fallback.
+ */
+export async function signInWithGoogleCredential(): Promise<User> {
+  const auth = getFirebaseAuth();
+  const clientId = resolveGoogleOAuthClientId();
+  const googleIdentity = typeof window !== 'undefined'
+    ? (window as Window & { google?: GoogleIdentityServices }).google
+    : undefined;
+  const oauth2 = googleIdentity?.accounts?.oauth2;
+
+  if (!clientId || !oauth2) {
+    const result = await signInWithPopup(auth, googleAuthProvider);
+    return result.user;
+  }
+
+  const accessToken = await new Promise<string>((resolve, reject) => {
+    const tokenClient = oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'openid email profile',
+      callback(response) {
+        if (response.error || !response.access_token) {
+          reject(createAuthError('auth/generic-error'));
+          return;
+        }
+        resolve(response.access_token);
+      },
+      error_callback(error) {
+        const code = error?.type === 'popup_failed_to_open'
+          ? 'auth/popup-blocked'
+          : error?.type === 'popup_closed'
+            ? 'auth/popup-closed-by-user'
+            : 'auth/generic-error';
+        reject(createAuthError(code));
+      },
+    });
+
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
+  });
+
+  const credential = GoogleAuthProvider.credential(null, accessToken);
+  const result = await signInWithCredential(auth, credential);
+  return result.user;
+}
+
+function createAuthError(code: string): Error & { code: string } {
+  return Object.assign(new Error(code), { code });
 }
 
 export const googleAuthProvider = new GoogleAuthProvider();
