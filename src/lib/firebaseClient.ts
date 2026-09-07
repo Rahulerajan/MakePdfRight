@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithCredential,
   signInWithPopup,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -16,27 +16,15 @@ import {
 } from 'firebase/auth';
 import fallbackAppletConfig from '../../firebase-applet-config.json';
 
-interface GoogleTokenResponse {
-  access_token?: string;
-  error?: string;
-}
-
-interface GoogleTokenClient {
-  requestAccessToken(options?: { prompt?: string }): void;
-}
-
-interface GoogleIdentityServices {
-  accounts?: {
-    oauth2?: {
-      initTokenClient(options: {
-        client_id: string;
-        scope: string;
-        callback(response: GoogleTokenResponse): void;
-        error_callback?(error: { type?: string }): void;
-      }): GoogleTokenClient;
-    };
-  };
-}
+export const firebaseConfig = {
+  apiKey: "AIzaSyCSoLXqKoUocr3NzfRZXuU_nx5CiEGKmtM",
+  authDomain: "makepdfright-1989c.firebaseapp.com",
+  projectId: "makepdfright-1989c",
+  storageBucket: "makepdfright-1989c.firebasestorage.app",
+  messagingSenderId: "805809837229",
+  appId: "1:805809837229:web:ef11edd2296c8b5e4b2224",
+  measurementId: "G-V5ERWMZVK7"
+};
 
 function getEnv(key: string): string {
   try {
@@ -118,10 +106,6 @@ export function resolveFirebaseClientConfig(): FirebaseOptions {
   };
 }
 
-export function resolveGoogleOAuthClientId(): string {
-  return getEnv('VITE_GOOGLE_CLIENT_ID') || fallbackAppletConfig.oAuthClientId || '';
-}
-
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 
@@ -145,70 +129,38 @@ export function getFirebaseAuth(): Auth {
   return auth;
 }
 
-/**
- * Uses Google Identity Services to obtain an OAuth token and exchanges it for
- * a Firebase credential. This avoids depending on Firebase's cross-origin
- * popup helper when the app is hosted outside Firebase Hosting.
- *
- * The OAuth client must list the deployed app origin in Google Cloud Console.
- * If GIS has not loaded, the standard Firebase popup remains available as a
- * compatibility fallback.
- */
-export async function signInWithGoogleCredential(): Promise<User> {
-  const auth = getFirebaseAuth();
-  const clientId = resolveGoogleOAuthClientId();
-  const googleIdentity = typeof window !== 'undefined'
-    ? (window as Window & { google?: GoogleIdentityServices }).google
-    : undefined;
-  const oauth2 = googleIdentity?.accounts?.oauth2;
-
-  if (!clientId || !oauth2) {
-    const result = await signInWithPopup(auth, googleAuthProvider);
-    return result.user;
-  }
-
-  const accessToken = await new Promise<string>((resolve, reject) => {
-    const tokenClient = oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'openid email profile',
-      callback(response) {
-        if (response.error || !response.access_token) {
-          reject(createAuthError('auth/generic-error'));
-          return;
-        }
-        resolve(response.access_token);
-      },
-      error_callback(error) {
-        const code = error?.type === 'popup_failed_to_open'
-          ? 'auth/popup-blocked'
-          : error?.type === 'popup_closed'
-            ? 'auth/popup-closed-by-user'
-            : 'auth/generic-error';
-        reject(createAuthError(code));
-      },
-    });
-
-    tokenClient.requestAccessToken({ prompt: 'select_account' });
-  });
-
-  const credential = GoogleAuthProvider.credential(null, accessToken);
-  const result = await signInWithCredential(auth, credential);
-  return result.user;
-}
-
-function createAuthError(code: string): Error & { code: string } {
-  return Object.assign(new Error(code), { code });
-}
-
 export const googleAuthProvider = new GoogleAuthProvider();
 googleAuthProvider.setCustomParameters({
   prompt: 'select_account',
 });
+
+let analyticsInstance: Analytics | null = null;
+
+export async function getFirebaseAnalytics(): Promise<Analytics | null> {
+  if (typeof window === 'undefined') return null;
+  if (!analyticsInstance) {
+    try {
+      const supported = await isSupported();
+      if (supported) {
+        analyticsInstance = getAnalytics(getFirebaseApp());
+      }
+    } catch (err) {
+      console.warn('[Firebase Analytics] Initialization failed:', err);
+    }
+  }
+  return analyticsInstance;
+}
+
+// Automatically initialize analytics when in browser
+if (typeof window !== 'undefined') {
+  getFirebaseAnalytics().catch(() => {});
+}
 
 export {
   GoogleAuthProvider,
   signInWithPopup,
   firebaseSignOut,
   onAuthStateChanged,
+  getAnalytics,
 };
-export type { User, Auth };
+export type { User, Auth, Analytics };

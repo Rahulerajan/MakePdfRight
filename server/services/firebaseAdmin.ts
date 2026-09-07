@@ -6,15 +6,16 @@
 import { initializeApp, getApps, applicationDefault, type App, type AppOptions } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import fs from 'fs';
+import path from 'path';
 import { LoggingService } from './LoggingService';
-import fallbackAppletConfig from '../../firebase-applet-config.json';
 
 let app: App | null = null;
 
 export class FirebaseConfigError extends Error {
   readonly code: string = 'FIREBASE_ADMIN_UNCONFIGURED';
 
-  constructor(message: string = 'A Firebase or Google Cloud project ID is required.') {
+  constructor(message: string = 'FIREBASE_PROJECT_ID environment variable is required in production.') {
     super(message);
     this.name = 'FirebaseConfigError';
     Object.setPrototypeOf(this, FirebaseConfigError.prototype);
@@ -22,30 +23,52 @@ export class FirebaseConfigError extends Error {
 }
 
 /**
- * Uses the explicit Firebase override first, then the standard project
- * variables supplied by Google Cloud Run, and finally the bundled web config.
+ * Resolves the Firebase Admin project ID strictly:
+ * - In production, requires an explicit FIREBASE_PROJECT_ID, failing closed if absent.
+ * - Does NOT silently select GCP_PROJECT or GCLOUD_PROJECT.
+ * - In development/test only, falls back to the canonical project in firebase-applet-config.json or canonical online-flag-zfs6l.
  */
-export function resolveFirebaseAdminProjectId(): string {
-  const projectId =
-    process.env.FIREBASE_PROJECT_ID ||
-    process.env.GOOGLE_CLOUD_PROJECT ||
-    process.env.GCLOUD_PROJECT ||
-    process.env.GCP_PROJECT ||
-    fallbackAppletConfig.projectId;
+function resolveFirebaseAdminProjectId(): string {
+  if (process.env.FIREBASE_PROJECT_ID) {
+    return process.env.FIREBASE_PROJECT_ID;
+  }
 
-  if (!projectId) throw new FirebaseConfigError();
-  return projectId;
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction) {
+    throw new FirebaseConfigError();
+  }
+
+  // Non-production fallback only
+  try {
+    const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed.projectId) {
+        return parsed.projectId;
+      }
+    }
+  } catch {
+    // ignore read error
+  }
+
+  return 'makepdfright-1989c';
 }
 
 /**
  * Initializes Firebase Admin SDK using Application Default Credentials (ADC).
  * Never uses, requires, or creates a service-account JSON file.
- * Cloud Run supplies ADC and a standard Google Cloud project variable.
+ * Fails closed in production if FIREBASE_PROJECT_ID is missing.
  */
 export function getFirebaseAdminApp(): App {
   const existingApps = getApps();
   if (existingApps.length > 0 && existingApps[0]) {
     return existingApps[0];
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction && !process.env.FIREBASE_PROJECT_ID) {
+    throw new FirebaseConfigError();
   }
 
   const projectId = resolveFirebaseAdminProjectId();
@@ -78,3 +101,4 @@ export function getFirebaseAuth(): Auth {
 export function getFirebaseFirestore(): Firestore {
   return getFirestore(getFirebaseAdminApp());
 }
+

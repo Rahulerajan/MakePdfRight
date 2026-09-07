@@ -13,7 +13,7 @@ declare global {
 
 class AnalyticsService {
   private initialized = false;
-  private measurementId = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GA_MEASUREMENT_ID) || (typeof process !== 'undefined' ? process.env?.VITE_GA_MEASUREMENT_ID : '') || '';
+  private measurementId = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GA_MEASUREMENT_ID) || (typeof process !== 'undefined' ? process.env?.VITE_GA_MEASUREMENT_ID : '') || 'G-V5ERWMZVK7';
 
   constructor() {
     this.initGA();
