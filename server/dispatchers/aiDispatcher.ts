@@ -76,7 +76,7 @@ async function handleGenerateImage(req: any, res: any) {
   let imageBase64DataUrl: string | null = null;
   const validRatio = (aspectRatio === '16:9' || aspectRatio === '4:3' || aspectRatio === '3:4' || aspectRatio === '9:16') ? aspectRatio : '1:1';
 
-  if (process.env.GEMINI_API_KEY) {
+  if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
     try {
       const client = getAI();
       const geminiResponse = await client.models.generateContent({
@@ -139,9 +139,7 @@ async function handleGenerateImage(req: any, res: any) {
             LoggingService.info('[Server] Image generated successfully via Pollinations AI.');
           }
         }
-      } catch (pollinationsErr: any) {
-        // Fast timeout fallback
-      }
+      } catch {}
     }
   }
 
@@ -176,30 +174,11 @@ async function handleGenerateImage(req: any, res: any) {
   if (!imageBase64DataUrl) {
     const cleanPromptEscaped = prompt.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      <defs>
-        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#1E293B" />
-          <stop offset="50%" stop-color="#0F172A" />
-          <stop offset="100%" stop-color="#020617" />
-        </linearGradient>
-        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#E5322D" />
-          <stop offset="100%" stop-color="#FF6B6B" />
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#grad)" />
-      <circle cx="${width / 2}" cy="${height / 2 - 40}" r="${Math.min(width, height) / 4}" fill="url(#accent)" opacity="0.15" />
-      <path d="M${width / 2 - 40} ${height / 2 - 60} L${width / 2 + 40} ${height / 2 - 60} L${width / 2} ${height / 2 + 20} Z" fill="url(#accent)" opacity="0.8" />
-      <text x="50%" y="${height / 2 + 70}" font-family="sans-serif" font-size="20" font-weight="600" fill="#F8FAFC" text-anchor="middle">
-        AI Generated Image
-      </text>
-      <text x="50%" y="${height / 2 + 105}" font-family="sans-serif" font-size="14" fill="#94A3B8" text-anchor="middle">
-        "${cleanPromptEscaped.slice(0, 60)}${cleanPromptEscaped.length > 60 ? '...' : ''}"
-      </text>
+      <rect width="100%" height="100%" fill="#0F172A" />
+      <text x="50%" y="50%" font-family="sans-serif" font-size="20" font-weight="600" fill="#F8FAFC" text-anchor="middle">AI Generated Image</text>
+      <text x="50%" y="55%" font-family="sans-serif" font-size="14" fill="#94A3B8" text-anchor="middle">${cleanPromptEscaped.slice(0, 60)}</text>
     </svg>`;
-
-    const base64Svg = Buffer.from(svg).toString('base64');
-    imageBase64DataUrl = `data:image/svg+xml;base64,${base64Svg}`;
+    imageBase64DataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
   }
 
   return res.status(200).json({ success: true, imageBase64: imageBase64DataUrl });
@@ -208,103 +187,44 @@ async function handleGenerateImage(req: any, res: any) {
 async function handleChatPdf(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
   const { pdfBase64, message, enableThinking } = req.body || {};
-  if (!pdfBase64 || !message) {
-    return res.status(400).json({ success: false, error: 'Both pdfBase64 and message are required.' });
-  }
-
+  if (!pdfBase64 || !message) return res.status(400).json({ success: false, error: 'Both pdfBase64 and message are required.' });
   const cleanPdfBase64 = ValidationService.validateStrictBase64(pdfBase64);
   ValidationService.validateTextPrompt(message, 5000);
-
   const client = getAI();
   const isThinking = !!enableThinking;
-  const model = isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.7-flash';
-  const config: any = {};
-  if (isThinking) {
-    config.thinkingConfig = {
-      thinkingLevel: ThinkingLevel.HIGH,
-    };
-  }
-
   const response = await client.models.generateContent({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          {
-            inlineData: {
-              mimeType: 'application/pdf',
-              data: cleanPdfBase64,
-            },
-          },
-          {
-            text: message,
-          },
-        ],
-      },
-    ],
-    config: Object.keys(config).length > 0 ? config : undefined,
+    model: isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.7-flash',
+    contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'application/pdf', data: cleanPdfBase64 } }, { text: message }] }],
+    config: isThinking ? { thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH } } : undefined,
   });
-
   return res.status(200).json({ success: true, text: response.text || '' });
 }
 
 async function handleAnalyzeImage(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
   const { imageBase64, mimeType, prompt, enableThinking } = req.body || {};
-  if (!imageBase64 || !mimeType || !prompt) {
-    return res.status(400).json({ success: false, error: 'imageBase64, mimeType, and prompt are required.' });
-  }
-
+  if (!imageBase64 || !mimeType || !prompt) return res.status(400).json({ success: false, error: 'imageBase64, mimeType, and prompt are required.' });
   ValidationService.validateImageUpload(imageBase64, mimeType);
   const cleanImageBase64 = ValidationService.validateStrictBase64(imageBase64);
   ValidationService.validateTextPrompt(prompt, 5000);
-
   const client = getAI();
   const isThinking = !!enableThinking;
-  const model = isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.7-flash';
-  const config: any = {};
-  if (isThinking) {
-    config.thinkingConfig = {
-      thinkingLevel: ThinkingLevel.HIGH,
-    };
-  }
-
   const response = await client.models.generateContent({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          {
-            inlineData: {
-              mimeType,
-              data: cleanImageBase64,
-            },
-          },
-          {
-            text: prompt,
-          },
-        ],
-      },
-    ],
-    config: Object.keys(config).length > 0 ? config : undefined,
+    model: isThinking ? 'gemini-3.1-pro-preview' : 'gemini-3.7-flash',
+    contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: cleanImageBase64 } }, { text: prompt }] }],
+    config: isThinking ? { thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH } } : undefined,
   });
-
   return res.status(200).json({ success: true, text: response.text || '' });
 }
 
 async function handleTranscribeAudio(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
   const { audioBase64, mimeType, language } = req.body || {};
-  if (!audioBase64 || !mimeType) {
-    return res.status(400).json({ success: false, error: 'audioBase64 and mimeType are required.' });
-  }
+  if (!audioBase64 || !mimeType) return res.status(400).json({ success: false, error: 'audioBase64 and mimeType are required.' });
 
   ValidationService.validateAudioUpload(audioBase64, mimeType);
   const cleanAudioBase64 = ValidationService.validateStrictBase64(audioBase64);
 
-  // Extract base MIME type without parameters (e.g. "audio/webm;codecs=opus" -> "audio/webm")
   let targetMimeType = mimeType.toLowerCase().split(';')[0].trim();
   if (targetMimeType === 'audio/x-wav') targetMimeType = 'audio/wav';
   if (targetMimeType === 'audio/x-m4a') targetMimeType = 'audio/m4a';
@@ -314,145 +234,101 @@ async function handleTranscribeAudio(req: any, res: any) {
   if (targetMimeType === 'video/webm') targetMimeType = 'audio/webm';
 
   const client = getAI();
-  const languageText = language && language !== 'auto'
-    ? `The spoken language is ${language}.`
-    : 'Automatically detect the spoken language.';
-
-  const promptText = `Please transcribe the provided audio accurately.
-- ${languageText}
-- Capture the spoken words verbatim.
-- Maintain proper punctuation, capitalization, sentence boundaries, and paragraphing where logical.
-- Ignore long silent periods or ambient background noise.
-- If the audio is silent or contains no clear speech, return empty text and a low confidence score (e.g. 0).`;
-
-  const audioPart = {
-    inlineData: {
-      mimeType: targetMimeType,
-      data: cleanAudioBase64,
-    },
-  };
+  const languageInstruction = language && language !== 'auto'
+    ? `The spoken language is ${language}. Transcribe in that language without translating.`
+    : 'Automatically detect the spoken language and transcribe without translating.';
 
   let lastError: any = null;
 
-  // 1. Try dedicated gemini-3.5-transcribe model first
+  // Gemini 3.5 Transcribe is exposed through the Interactions API.
   try {
-    const response = await client.models.generateContent({
+    const interaction = await (client as any).interactions.create({
       model: 'gemini-3.5-transcribe',
-      contents: {
-        parts: [
-          audioPart,
-          { text: language && language !== 'auto' ? `Transcribe this audio in ${language}.` : 'Transcribe this audio verbatim.' }
-        ]
-      }
-    });
-
-    if (response && response.text) {
-      const rawText = response.text.trim();
-      LoggingService.info('[Server] Audio transcribed successfully using gemini-3.5-transcribe.');
-      return res.status(200).json({
-        success: true,
-        text: rawText,
-        confidence: rawText.length > 0 ? 95 : 0,
-        detectedLanguage: language && language !== 'auto' ? language : 'Auto-detected'
-      });
-    }
-  } catch (transcribeErr: any) {
-    LoggingService.warn('[Server] gemini-3.5-transcribe failed, falling back to gemini-3.7-flash:', transcribeErr?.message || transcribeErr);
-    lastError = transcribeErr;
-  }
-
-  // 2. Fallback to gemini-3.7-flash with structured JSON response
-  try {
-    const response = await client.models.generateContent({
-      model: 'gemini-3.7-flash',
-      contents: [
+      input: [
         {
-          role: 'user',
-          parts: [
-            audioPart,
-            {
-              text: promptText,
-            },
-          ],
+          type: 'audio',
+          data: cleanAudioBase64,
+          mime_type: targetMimeType,
+        },
+        {
+          type: 'text',
+          text: `${languageInstruction} Return only the transcript text.`,
         },
       ],
+    });
+
+    const text = String(interaction?.outputText || interaction?.output_text || '').trim();
+    if (text) {
+      LoggingService.info('[Server] Audio transcribed successfully using Gemini 3.5 Transcribe via Interactions API.');
+      return res.status(200).json({
+        success: true,
+        text,
+        confidence: 95,
+        detectedLanguage: language && language !== 'auto' ? language : 'Auto-detected',
+      });
+    }
+  } catch (err: any) {
+    lastError = err;
+    LoggingService.warn('[Server] Gemini 3.5 Transcribe interaction failed; trying Gemini 3.8 Flash audio understanding:', err?.message || err);
+  }
+
+  // Reliable multimodal fallback for inline audio.
+  try {
+    const promptText = `Transcribe the provided audio accurately. ${languageInstruction}
+Preserve punctuation and paragraphing. Ignore non-speech noise. Return JSON only.`;
+    const response = await client.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: [{
+        role: 'user',
+        parts: [
+          { inlineData: { mimeType: targetMimeType, data: cleanAudioBase64 } },
+          { text: promptText },
+        ],
+      }],
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            text: {
-              type: Type.STRING,
-              description: 'The verbatim transcript of the audio with correct punctuation, capitalization, and paragraphing.'
-            },
-            confidence: {
-              type: Type.INTEGER,
-              description: 'The estimated confidence of the transcription, as an integer between 0 and 100.'
-            },
-            detectedLanguage: {
-              type: Type.STRING,
-              description: 'The name of the language detected (e.g., English, Hindi, French, German, Spanish).'
-            }
+            text: { type: Type.STRING },
+            confidence: { type: Type.INTEGER },
+            detectedLanguage: { type: Type.STRING },
           },
-          required: ['text', 'confidence']
-        }
-      }
+          required: ['text', 'confidence'],
+        },
+      },
     });
 
-    if (response && response.text) {
-      LoggingService.info('[Server] Audio transcribed successfully using gemini-3.7-flash fallback.');
-      let jsonText = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
-      let result: any = {};
+    if (response.text) {
+      const cleaned = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      let result: any;
       try {
-        result = JSON.parse(jsonText);
-      } catch (parseErr) {
-        const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            result = JSON.parse(jsonMatch[0]);
-          } catch (e) {
-            result = { text: jsonText, confidence: 90 };
-          }
-        } else {
-          result = { text: jsonText, confidence: 90 };
-        }
+        result = JSON.parse(cleaned);
+      } catch {
+        result = { text: cleaned, confidence: cleaned ? 90 : 0, detectedLanguage: language && language !== 'auto' ? language : 'Auto-detected' };
       }
-
       return res.status(200).json({ success: true, ...result });
     }
-  } catch (flashErr: any) {
-    LoggingService.warn('[Server] gemini-3.7-flash fallback also failed:', flashErr?.message || flashErr);
-    lastError = flashErr;
+  } catch (err: any) {
+    lastError = err;
+    LoggingService.error('[Server] Gemini 3.8 Flash transcription fallback failed:', err?.message || err);
   }
 
-  // If both failed, throw descriptive error
-  const errMsg = lastError?.message || 'Failed to transcribe audio with Gemini AI.';
-  LoggingService.error('[Server] All audio transcription attempts failed:', errMsg);
-  throw new Error(errMsg);
+  const message = lastError?.message || 'Audio transcription failed. Please try a shorter audio file or try again later.';
+  throw new Error(message);
 }
 
 async function handleGenerateSpeech(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
   const { text } = req.body || {};
-  if (!text) {
-    return res.status(400).json({ success: false, error: 'text is required.' });
-  }
-
+  if (!text) return res.status(400).json({ success: false, error: 'text is required.' });
   ValidationService.validateTextPrompt(text, 1000);
   const client = getAI();
   const response = await client.models.generateContent({
     model: 'gemini-3.1-flash-tts-preview',
     contents: [{ parts: [{ text }] }],
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: 'Kore' },
-        },
-      },
-    },
+    config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } },
   });
-
   const audioBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
   return res.status(200).json({ success: true, audioBase64 });
 }
@@ -460,21 +336,13 @@ async function handleGenerateSpeech(req: any, res: any) {
 async function handleComplexQuery(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
   const { prompt } = req.body || {};
-  if (!prompt) {
-    return res.status(400).json({ success: false, error: 'prompt is required.' });
-  }
-
+  if (!prompt) return res.status(400).json({ success: false, error: 'prompt is required.' });
   ValidationService.validateTextPrompt(prompt, 5000);
   const client = getAI();
   const response = await client.models.generateContent({
     model: 'gemini-3.1-pro-preview',
     contents: prompt,
-    config: {
-      thinkingConfig: {
-        thinkingLevel: ThinkingLevel.HIGH,
-      },
-    },
+    config: { thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH } },
   });
-
   return res.status(200).json({ success: true, text: response.text || '' });
 }
