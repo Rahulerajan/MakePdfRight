@@ -4,7 +4,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { getFirebaseAuth, FirebaseConfigError } from '../services/firebaseAdmin';
+import { getFirebaseAppCheck, getFirebaseAuth, FirebaseConfigError } from '../services/firebaseAdmin';
 import { LoggingService } from '../services/LoggingService';
 
 export interface AuthenticatedUser {
@@ -23,6 +23,15 @@ export type TokenVerifier = (idToken: string, checkRevoked?: boolean) => Promise
   name?: string;
   picture?: string;
 }>;
+
+export function resolveAllowedAuthEmails(raw = process.env.AUTH_ALLOWED_EMAILS || ''): Set<string> {
+  return new Set(
+    raw
+      .split(',')
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
 
 declare global {
   namespace Express {
@@ -65,6 +74,19 @@ export function createRequireFirebaseAuth(customVerifier?: TokenVerifier) {
     }
 
     try {
+      if (process.env.REQUIRE_FIREBASE_APP_CHECK === 'true') {
+        const appCheckToken = req.get('X-Firebase-AppCheck');
+        if (!appCheckToken) {
+          return res.status(401).json({
+            status: 'error',
+            statusCode: 401,
+            code: 'APP_CHECK_REQUIRED',
+            error: 'A valid application attestation token is required.',
+          });
+        }
+        await getFirebaseAppCheck().verifyToken(appCheckToken);
+      }
+
       const decodedToken = customVerifier
         ? await customVerifier(idToken, true)
         : await getFirebaseAuth().verifyIdToken(idToken, true);
@@ -77,6 +99,17 @@ export function createRequireFirebaseAuth(customVerifier?: TokenVerifier) {
           statusCode: 401,
           code: 'UNAUTHORIZED',
           error: 'Unauthorized: Missing or invalid token identity.',
+        });
+      }
+
+      const allowedEmails = resolveAllowedAuthEmails();
+      const normalizedEmail = decodedToken.email?.trim().toLowerCase();
+      if (allowedEmails.size > 0 && (!normalizedEmail || !allowedEmails.has(normalizedEmail))) {
+        return res.status(403).json({
+          status: 'error',
+          statusCode: 403,
+          code: 'FORBIDDEN',
+          error: 'This account is not permitted to access the AI Workspace.',
         });
       }
 

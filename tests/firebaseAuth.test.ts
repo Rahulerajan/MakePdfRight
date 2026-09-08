@@ -7,7 +7,11 @@ import assert from 'assert';
 import test from 'node:test';
 import http from 'http';
 import express from 'express';
-import { requireFirebaseAuth, createRequireFirebaseAuth } from '../server/middleware/requireFirebaseAuth';
+import {
+  requireFirebaseAuth,
+  createRequireFirebaseAuth,
+  resolveAllowedAuthEmails,
+} from '../server/middleware/requireFirebaseAuth';
 import { resolveFirebaseAdminProjectId } from '../server/services/firebaseAdmin';
 import { getOwnerId, signSessionId } from '../server/apiUtils';
 
@@ -29,6 +33,14 @@ test('Firebase Admin resolves Cloud Run project configuration', () => {
       else process.env[key] = value;
     }
   }
+});
+
+test('Authentication email allowlist is normalized and optional', () => {
+  assert.deepStrictEqual([...resolveAllowedAuthEmails('')], []);
+  assert.deepStrictEqual(
+    [...resolveAllowedAuthEmails(' Owner@Example.com, editor@example.com, owner@example.com ')],
+    ['owner@example.com', 'editor@example.com']
+  );
 });
 
 function createMockReqRes(overrides: {
@@ -218,6 +230,31 @@ test('Firebase Auth Middleware & Isolation Unit Tests', async () => {
     assert.strictEqual(wasNextCalled(), false);
   }
   console.log('✅ Test 6 Passed: Unconfigured Firebase Admin safely yields 503.');
+
+  // Test 7: Optional email allowlist is enforced after token verification
+  console.log('Test 7: Authenticated email allowlist enforcement...');
+  {
+    const originalAllowlist = process.env.AUTH_ALLOWED_EMAILS;
+    process.env.AUTH_ALLOWED_EMAILS = 'approved@example.com';
+    try {
+      const testMiddleware = createRequireFirebaseAuth(async () => ({
+        uid: 'verified-but-not-approved',
+        email: 'other@example.com',
+        email_verified: true,
+      }));
+      const { req, res, next, wasNextCalled } = createMockReqRes({
+        headers: { authorization: 'Bearer valid-token' },
+      });
+      await testMiddleware(req, res, next);
+      assert.strictEqual(res.statusCode, 403);
+      assert.strictEqual(res.body?.code, 'FORBIDDEN');
+      assert.strictEqual(wasNextCalled(), false);
+    } finally {
+      if (originalAllowlist === undefined) delete process.env.AUTH_ALLOWED_EMAILS;
+      else process.env.AUTH_ALLOWED_EMAILS = originalAllowlist;
+    }
+  }
+  console.log('✅ Test 7 Passed: Optional email allowlist enforced.');
 });
 
 test('Express Integration: Session Cookie Issuance & Middleware Ordering', async () => {
