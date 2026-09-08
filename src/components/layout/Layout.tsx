@@ -18,7 +18,6 @@ import {
   Mic,
   Sun,
   Moon,
-  LogIn,
   LogOut
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -29,6 +28,15 @@ import { useAuth } from '../../contexts/AuthContext';
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+const GoogleLogo = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 18 18" aria-hidden="true">
+    <path fill="#4285F4" d="M17.64 9.205c0-.638-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.909c1.702-1.567 2.683-3.877 2.683-6.614z" />
+    <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.181l-2.909-2.258c-.806.54-1.835.859-3.047.859-2.344 0-4.328-1.584-5.037-3.71H.956v2.332A9 9 0 009 18z" />
+    <path fill="#FBBC05" d="M3.963 10.71A5.42 5.42 0 013.682 9c0-.593.102-1.17.281-1.71V4.958H.956A9 9 0 000 9c0 1.452.347 2.827.956 4.042l3.007-2.332z" />
+    <path fill="#EA4335" d="M9 3.58c1.322 0 2.509.455 3.442 1.346l2.581-2.581C13.463.891 11.426 0 9 0A9 9 0 00.956 4.958L3.963 7.29C4.672 5.164 6.656 3.58 9 3.58z" />
+  </svg>
+);
 
 export const Header = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -351,10 +359,10 @@ export const Header = () => {
             <button
               onClick={signInWithGoogle}
               disabled={authLoading}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors shadow-sm focus:outline-none cursor-pointer shrink-0 disabled:opacity-60"
+              className="group flex h-9 sm:h-10 items-center gap-2 px-2.5 sm:px-3 rounded-xl border border-slate-200/80 dark:border-slate-700/70 bg-slate-100 dark:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 dark:focus:ring-offset-slate-900 cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-wait"
               title={t('auth.sign_in_google')}
             >
-              <LogIn className="w-3.5 h-3.5" />
+              <GoogleLogo className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
               <span>{t('auth.sign_in')}</span>
             </button>
           )}
@@ -492,9 +500,9 @@ export const Header = () => {
                     signInWithGoogle();
                   }}
                   disabled={authLoading}
-                  className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-colors cursor-pointer shadow-sm disabled:opacity-60"
+                  className="flex items-center justify-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <GoogleLogo className="w-[18px] h-[18px]" />
                   <span>{t('auth.sign_in_google')}</span>
                 </button>
               )}
