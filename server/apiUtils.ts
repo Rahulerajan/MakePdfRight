@@ -28,30 +28,40 @@ let fallbackSessionSecret: string | null = null;
 
 export function validateEnvironment(): void {
   const isProd = process.env.NODE_ENV === 'production';
-  if (isProd) {
-    if (!process.env.WORKER_SECRET) {
-      LoggingService.warn('[Security Notice] WORKER_SECRET environment variable is not set in production. Remote worker triggers will be rejected.');
-    }
-    if (!process.env.APP_SECRET && !process.env.SESSION_SECRET) {
-      LoggingService.warn('[Security Notice] APP_SECRET / SESSION_SECRET is not set in production. Using secure internal cryptographic key for sessions.');
-    }
+  if (!isProd) return;
+
+  if (!process.env.WORKER_SECRET) {
+    LoggingService.warn('[Security Notice] WORKER_SECRET environment variable is not set in production. Remote worker triggers will be rejected.');
+  }
+
+  const sessionSecret = process.env.SESSION_SECRET || process.env.APP_SECRET;
+  if (!sessionSecret) {
+    throw new Error('[Security Configuration Error] SESSION_SECRET or APP_SECRET is required in production. Refusing to start with an instance-local session signing key.');
+  }
+
+  if (sessionSecret.length < 32) {
+    LoggingService.warn('[Security Notice] SESSION_SECRET / APP_SECRET should contain at least 32 characters of high-entropy random data.');
   }
 }
 
-// Automatically invoke environment validation at module load in production (serverless entrypoints)
+// Automatically invoke environment validation at module load in production (serverless and Cloud Run entrypoints).
 if (process.env.NODE_ENV === 'production') {
   validateEnvironment();
 }
 
 export function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET || process.env.APP_SECRET;
-  if (!secret) {
-    if (!fallbackSessionSecret) {
-      fallbackSessionSecret = crypto.randomBytes(32).toString('hex');
-    }
-    return fallbackSessionSecret;
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('[Security Configuration Error] SESSION_SECRET or APP_SECRET is required in production.');
   }
-  return secret;
+
+  // Development/test-only convenience. Production is explicitly fail-closed above.
+  if (!fallbackSessionSecret) {
+    fallbackSessionSecret = crypto.randomBytes(32).toString('hex');
+  }
+  return fallbackSessionSecret;
 }
 
 export function signSessionId(sessionId: string): string {
@@ -97,6 +107,29 @@ export function setSessionCookie(res: any, signedToken: string): void {
   }
 }
 
+function firstHeaderValue(value: unknown): string {
+  if (Array.isArray(value)) return String(value[0] || '');
+  return typeof value === 'string' ? value : '';
+}
+
+/**
+ * Stable low-trust network fingerprint used only as an abuse-control bucket.
+ * It is deliberately NOT used as the file/job owner identity, because multiple
+ * users can share an IP address and user-agent behind NAT/proxies.
+ */
+export function getNetworkFingerprint(req: VercelRequest | any): string {
+  const forwarded = firstHeaderValue(req.headers?.['x-forwarded-for'] || req.headers?.['X-Forwarded-For']);
+  const clientIp = (forwarded.split(',')[0] || '').trim() || req.socket?.remoteAddress || 'unknown-ip';
+  const userAgent = firstHeaderValue(req.headers?.['user-agent'] || req.headers?.['User-Agent']).slice(0, 512) || 'unknown-client';
+  return crypto.createHash('sha256').update(`${clientIp}\n${userAgent}`).digest('hex').substring(0, 16);
+}
+
+function createAnonymousSessionId(req: VercelRequest | any): string {
+  // The network prefix lets rate limiting collapse cookie-rotation attempts into
+  // one abuse bucket, while the UUID suffix keeps storage/job ownership unique.
+  return `anon_${getNetworkFingerprint(req)}_${crypto.randomUUID()}`;
+}
+
 export function applyCors(req: VercelRequest, res: VercelResponse): boolean {
   const rawAllowed = process.env.ALLOWED_ORIGINS;
   const allowedOrigins = rawAllowed
@@ -135,31 +168,34 @@ export function applyCors(req: VercelRequest, res: VercelResponse): boolean {
 }
 
 export function getOwnerId(req: VercelRequest | any, res?: VercelResponse | any): string {
-  // If already derived and attached to req in this request lifecycle, reuse it
+  // If already derived and attached to req in this request lifecycle, reuse it.
   if (req.ownerId && typeof req.ownerId === 'string') {
     return req.ownerId;
   }
 
-  let hasProvidedCookie = false;
-
-  // 1. Check signed session cookie (sid or session_id)
+  // 1. Check signed session cookie (sid or session_id).
   const cookieHeader = req.headers?.cookie || req.headers?.Cookie;
   if (cookieHeader && typeof cookieHeader === 'string') {
     const cookies = cookieHeader.split(';').map((c: string) => c.trim());
     for (const c of cookies) {
-      const [name, val] = c.split('=');
+      const separator = c.indexOf('=');
+      const name = separator >= 0 ? c.slice(0, separator) : c;
+      const val = separator >= 0 ? c.slice(separator + 1) : '';
       if ((name === 'sid' || name === 'session_id') && val) {
-        hasProvidedCookie = true;
-        const verifiedId = verifySignedSessionToken(decodeURIComponent(val));
-        if (verifiedId) {
-          req.ownerId = verifiedId;
-          return verifiedId;
+        try {
+          const verifiedId = verifySignedSessionToken(decodeURIComponent(val));
+          if (verifiedId) {
+            req.ownerId = verifiedId;
+            return verifiedId;
+          }
+        } catch {
+          // Invalid percent encoding or invalid token: rotate to a fresh unique anonymous session below.
         }
       }
     }
   }
 
-  // 2. Check signed session header (x-session-token, x-owner-id, x-session-id)
+  // 2. Check signed session header (x-session-token, x-owner-id, x-session-id).
   const candidateHeaders = [
     req.headers?.['x-session-token'],
     req.headers?.['x-owner-id'],
@@ -175,23 +211,19 @@ export function getOwnerId(req: VercelRequest | any, res?: VercelResponse | any)
     }
   }
 
-  // 3. If no cookie was provided (fresh request) and response object is available, issue a new signed session cookie
-  if (res && !hasProvidedCookie) {
-    const newSessionId = crypto.randomUUID();
+  // 3. No valid signed identity: always create a UNIQUE owner identity. A stable
+  // IP+UA-only identity must never own files because separate users can share it.
+  const newSessionId = createAnonymousSessionId(req);
+  req.ownerId = newSessionId;
+
+  // Persist the unique owner identity whenever a response is available. This also
+  // replaces tampered/expired session cookies instead of collapsing to a shared ID.
+  if (res) {
     const signedToken = signSessionId(newSessionId);
     setSessionCookie(res, signedToken);
-    req.ownerId = newSessionId;
-    return newSessionId;
   }
 
-  // 4. Fallback to low-trust anonymous IP+UA hash (for tampered/forged cookies or when res is not provided)
-  const clientIp = (req.headers?.['x-forwarded-for'] as string) || req.socket?.remoteAddress || '127.0.0.1';
-  const userAgent = (req.headers?.['user-agent'] as string) || 'unknown-client';
-  const anonId = 'anon_' + crypto.createHash('sha256').update(`${clientIp}_${userAgent}`).digest('hex').substring(0, 16);
-  if (res) {
-    req.ownerId = anonId;
-  }
-  return anonId;
+  return newSessionId;
 }
 
 export function ensureSession(req: VercelRequest | any, res?: VercelResponse | any): string {
