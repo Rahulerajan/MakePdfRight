@@ -1,7 +1,7 @@
 # Multi-stage build for MakePDFRight on Google Cloud Run
 
 # Stage 1: Build application assets and server bundle
-FROM node:22-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # Stage 2: Production runner image
-FROM node:22-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 
 WORKDIR /app
 
@@ -47,7 +47,6 @@ COPY --from=builder /app/package.json ./package.json
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Cloud Run defaults to port 8080 or 3000 via PORT environment variable
 EXPOSE 3000
 
 # Run as non-root user for security
