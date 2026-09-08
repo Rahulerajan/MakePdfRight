@@ -9,7 +9,7 @@ import { getAppCheck, type AppCheck } from 'firebase-admin/app-check';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import fs from 'fs';
 import path from 'path';
-import { LoggingService } from './LoggingService';
+import { LoggingService } from './LoggingService.js';
 
 let app: App | null = null;
 
