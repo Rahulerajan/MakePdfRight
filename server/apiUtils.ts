@@ -6,10 +6,17 @@ import { AppError } from './services/ErrorHandler.js';
 
 let aiClient: GoogleGenAI | null = null;
 
+function resolveGeminiApiKey(): string {
+  return (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
+}
+
 export function getAI(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = resolveGeminiApiKey();
   if (!apiKey) {
-    throw new AppError("GEMINI_API_KEY environment variable is missing on the server.", 500);
+    throw new AppError(
+      'AI transcription is temporarily unavailable because the server Gemini API key is not configured. Set GEMINI_API_KEY (or GOOGLE_API_KEY) in the production environment and redeploy.',
+      503
+    );
   }
   if (!aiClient) {
     aiClient = new GoogleGenAI({
@@ -32,6 +39,10 @@ export function validateEnvironment(): void {
 
   if (!process.env.WORKER_SECRET) {
     LoggingService.warn('[Security Notice] WORKER_SECRET environment variable is not set in production. Remote worker triggers will be rejected.');
+  }
+
+  if (!resolveGeminiApiKey()) {
+    LoggingService.warn('[AI Configuration] GEMINI_API_KEY / GOOGLE_API_KEY is not configured. Gemini-backed features, including audio transcription, will return 503 until a server-side key is added.');
   }
 
   const sessionSecret = process.env.SESSION_SECRET || process.env.APP_SECRET;
