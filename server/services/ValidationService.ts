@@ -91,11 +91,11 @@ export class ValidationService {
         throw new AppError('Invalid image content. File signature does not match allowed image formats (PNG, JPEG, GIF, BMP, WEBP).', 400);
       }
     } else if (expectedType === 'audio') {
-      const isMp3 = (buffer.length >= 3 && buffer.toString('ascii', 0, 3) === 'ID3') || (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0);
+      const isMp3 = (buffer.length >= 3 && buffer.toString('ascii', 0, 3) === 'ID3') || (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) || buffer.subarray(0, 128).toString('ascii').includes('ID3');
       const isWav = buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WAVE';
       const isOgg = buffer.length >= 4 && buffer.toString('ascii', 0, 4) === 'OggS';
       const isFlac = buffer.length >= 4 && buffer.toString('ascii', 0, 4) === 'fLaC';
-      const isM4a = buffer.length >= 8 && buffer.toString('ascii', 4, 8) === 'ftyp';
+      const isM4a = buffer.subarray(0, 64).toString('ascii').includes('ftyp');
       const isWebm = buffer.length >= 4 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
       const isAac = buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xf6) === 0xf0;
 

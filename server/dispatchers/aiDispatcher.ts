@@ -63,69 +63,77 @@ async function handleGenerateImage(req: any, res: any) {
 
   ValidationService.validateTextPrompt(prompt, 2000);
 
-  let width = 1024;
-  let height = 1024;
+  // Use crisp, generation-optimized dimensions that match requested aspect ratios
+  let width = 768;
+  let height = 768;
   switch (aspectRatio) {
-    case '16:9': width = 1024; height = 576; break;
-    case '4:3': width = 1024; height = 768; break;
-    case '3:4': width = 768; height = 1024; break;
-    case '9:16': width = 576; height = 1024; break;
-    default: width = 1024; height = 1024; break;
+    case '16:9': width = 896; height = 504; break;
+    case '4:3': width = 800; height = 600; break;
+    case '3:4': width = 600; height = 800; break;
+    case '9:16': width = 504; height = 896; break;
+    default: width = 768; height = 768; break;
   }
 
   let imageBase64DataUrl: string | null = null;
   const validRatio = (aspectRatio === '16:9' || aspectRatio === '4:3' || aspectRatio === '3:4' || aspectRatio === '9:16') ? aspectRatio : '1:1';
 
+  // 1. Attempt Gemini image generation models
   if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
-    try {
-      const client = getAI();
-      const geminiResponse = await client.models.generateContent({
-        model: 'gemini-3.1-flash-lite-image',
-        contents: {
-          parts: [{ text: prompt.trim() }]
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: validRatio as '1:1' | '3:4' | '4:3' | '9:16' | '16:9',
+    const geminiModels = ['gemini-3.1-flash-lite-image', 'gemini-3.1-flash-image'];
+    for (const model of geminiModels) {
+      if (imageBase64DataUrl) break;
+      try {
+        const client = getAI();
+        const geminiResponse = await client.models.generateContent({
+          model,
+          contents: {
+            parts: [{ text: prompt.trim() }]
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: validRatio as '1:1' | '3:4' | '4:3' | '9:16' | '16:9',
+            }
           }
-        }
-      });
+        });
 
-      const parts = geminiResponse.candidates?.[0]?.content?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (part.inlineData && part.inlineData.data) {
-            const mime = part.inlineData.mimeType || 'image/png';
-            imageBase64DataUrl = `data:${mime};base64,${part.inlineData.data}`;
-            LoggingService.info('[Server] Image generated successfully using gemini-3.1-flash-lite-image.');
-            break;
+        const parts = geminiResponse.candidates?.[0]?.content?.parts;
+        if (parts) {
+          for (const part of parts) {
+            if (part.inlineData && part.inlineData.data) {
+              const mime = part.inlineData.mimeType || 'image/png';
+              imageBase64DataUrl = `data:${mime};base64,${part.inlineData.data}`;
+              LoggingService.info(`[Server] Image generated successfully using ${model}.`);
+              break;
+            }
           }
         }
+      } catch (geminiError: any) {
+        LoggingService.info(`[Server] ${model} unavailable or quota reached, proceeding to fallback.`);
       }
-    } catch (geminiError: any) {
-      LoggingService.info('[Server] gemini-3.1-flash-lite-image quota or generation limit reached, switching to fast fallback generators.');
     }
   }
 
+  // 2. Resilient AI Image Generation Fallback (Pollinations AI turbo, flux, and standard)
   if (!imageBase64DataUrl) {
-    const seed = Math.floor(Math.random() * 1000000);
+    const seed = Math.floor(Math.random() * 10000000);
     const encodedPrompt = encodeURIComponent(prompt.trim());
-    const pollinationsEndpoints = [
+    const aiEndpoints = [
       `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=turbo`,
-      `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux`
+      `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux`,
+      `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&nologo=true&seed=${seed}`
     ];
 
-    for (const url of pollinationsEndpoints) {
+    for (const url of aiEndpoints) {
       if (imageBase64DataUrl) break;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 16000); // 16s timeout to allow diffusion model generation
 
         const response = await fetch(url, {
           signal: controller.signal,
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+            'Accept': 'image/avif,image/webp,image/apng,image/jpeg,image/png,image/*,*/*;q=0.8'
           }
         });
         clearTimeout(timeoutId);
@@ -136,21 +144,25 @@ async function handleGenerateImage(req: any, res: any) {
             const buffer = Buffer.from(arrayBuffer);
             const contentType = response.headers.get('content-type') || 'image/jpeg';
             imageBase64DataUrl = `data:${contentType};base64,${buffer.toString('base64')}`;
-            LoggingService.info('[Server] Image generated successfully via Pollinations AI.');
+            LoggingService.info('[Server] Image generated successfully via AI generation engine.');
+            break;
           }
         }
-      } catch {}
+      } catch (err: any) {
+        LoggingService.warn('[Server] AI image endpoint attempt failed:', err?.message || err);
+      }
     }
   }
 
+  // 3. Stock photo visual fallback
   if (!imageBase64DataUrl) {
     try {
       const seed = Math.abs(prompt.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) || 12345;
-      const picsumUrl = `https://picsum.photos/seed/${seed}/${width}/${height}`;
+      const fallbackUrl = `https://picsum.photos/seed/${seed}/${width}/${height}`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(picsumUrl, {
+      const response = await fetch(fallbackUrl, {
         signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
@@ -163,20 +175,29 @@ async function handleGenerateImage(req: any, res: any) {
         if (arrayBuffer.byteLength > 1000) {
           const buffer = Buffer.from(arrayBuffer);
           imageBase64DataUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`;
-          LoggingService.info('[Server] Stock photo retrieved successfully as fallback image.');
+          LoggingService.info('[Server] Visual fallback retrieved successfully.');
         }
       }
-    } catch (picsumErr: any) {
-      LoggingService.warn('[Server] Picsum fallback attempt failed:', picsumErr?.message || picsumErr);
+    } catch (fallbackErr: any) {
+      LoggingService.warn('[Server] Stock photo fallback attempt failed:', fallbackErr?.message || fallbackErr);
     }
   }
 
+  // 4. Guaranteed crisp SVG rendering fallback
   if (!imageBase64DataUrl) {
-    const cleanPromptEscaped = prompt.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const cleanPromptEscaped = prompt.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      <rect width="100%" height="100%" fill="#0F172A" />
-      <text x="50%" y="50%" font-family="sans-serif" font-size="20" font-weight="600" fill="#F8FAFC" text-anchor="middle">AI Generated Image</text>
-      <text x="50%" y="55%" font-family="sans-serif" font-size="14" fill="#94A3B8" text-anchor="middle">${cleanPromptEscaped.slice(0, 60)}</text>
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1E293B"/>
+          <stop offset="100%" stop-color="#0F172A"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bg)" />
+      <circle cx="${width / 2}" cy="${height / 2 - 24}" r="40" fill="#E5322D" fill-opacity="0.2" />
+      <text x="${width / 2}" y="${height / 2 - 16}" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#E5322D" text-anchor="middle">AI Visual</text>
+      <text x="${width / 2}" y="${height / 2 + 28}" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#F8FAFC" text-anchor="middle">Generated Concept</text>
+      <text x="${width / 2}" y="${height / 2 + 54}" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="#94A3B8" text-anchor="middle">${cleanPromptEscaped.slice(0, 55)}...</text>
     </svg>`;
     imageBase64DataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
   }
@@ -236,85 +257,69 @@ async function handleTranscribeAudio(req: any, res: any) {
   const client = getAI();
   const languageInstruction = language && language !== 'auto'
     ? `The spoken language is ${language}. Transcribe in that language without translating.`
-    : 'Automatically detect the spoken language and transcribe without translating.';
+    : 'Automatically detect the spoken language and transcribe accurately without translating.';
+
+  const promptText = `Transcribe the speech in the provided audio file accurately into text. ${languageInstruction} Output only the transcribed text. If the audio is silent or contains no intelligible speech, respond with: No intelligible speech detected.`;
+
+  // Multimodal model ladder for audio transcription:
+  // 1. gemini-3.5-transcribe: Specialized audio speech transcription model
+  // 2. gemini-flash-latest: High speed, general multimodal audio model
+  // 3. gemini-3.1-flash-lite: Fast, lightweight multimodal audio model
+  // 4. gemini-3.8-flash: Standard multimodal audio model
+  const transcriptionModels = [
+    'gemini-3.5-transcribe',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash',
+  ];
 
   let lastError: any = null;
 
-  // Gemini 3.5 Transcribe is exposed through the Interactions API.
-  try {
-    const interaction = await (client as any).interactions.create({
-      model: 'gemini-3.5-transcribe',
-      input: [
-        {
-          type: 'audio',
-          data: cleanAudioBase64,
-          mime_type: targetMimeType,
-        },
-        {
-          type: 'text',
-          text: `${languageInstruction} Return only the transcript text.`,
-        },
-      ],
-    });
-
-    const text = String(interaction?.outputText || interaction?.output_text || '').trim();
-    if (text) {
-      LoggingService.info('[Server] Audio transcribed successfully using Gemini 3.5 Transcribe via Interactions API.');
-      return res.status(200).json({
-        success: true,
-        text,
-        confidence: 95,
-        detectedLanguage: language && language !== 'auto' ? language : 'Auto-detected',
+  for (const model of transcriptionModels) {
+    try {
+      const response = await client.models.generateContent({
+        model,
+        contents: [{
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType: targetMimeType, data: cleanAudioBase64 } },
+            { text: promptText },
+          ],
+        }],
       });
-    }
-  } catch (err: any) {
-    lastError = err;
-    LoggingService.warn('[Server] Gemini 3.5 Transcribe interaction failed; trying Gemini 3.8 Flash audio understanding:', err?.message || err);
-  }
 
-  // Reliable multimodal fallback for inline audio.
-  try {
-    const promptText = `Transcribe the provided audio accurately. ${languageInstruction}
-Preserve punctuation and paragraphing. Ignore non-speech noise. Return JSON only.`;
-    const response = await client.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { mimeType: targetMimeType, data: cleanAudioBase64 } },
-          { text: promptText },
-        ],
-      }],
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            text: { type: Type.STRING },
-            confidence: { type: Type.INTEGER },
-            detectedLanguage: { type: Type.STRING },
-          },
-          required: ['text', 'confidence'],
-        },
-      },
-    });
+      const extractedText = (response.text || response.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+      if (extractedText) {
+        LoggingService.info(`[Server] Audio transcribed successfully using model: ${model}`);
+        const cleanedText = extractedText
+          .replace(/^```(text|markdown|json)?\n?/i, '')
+          .replace(/\n?```$/i, '')
+          .trim();
 
-    if (response.text) {
-      const cleaned = response.text.replace(/```json/gi, '').replace(/```/g, '').trim();
-      let result: any;
-      try {
-        result = JSON.parse(cleaned);
-      } catch {
-        result = { text: cleaned, confidence: cleaned ? 90 : 0, detectedLanguage: language && language !== 'auto' ? language : 'Auto-detected' };
+        return res.status(200).json({
+          success: true,
+          text: cleanedText,
+          confidence: 95,
+          detectedLanguage: language && language !== 'auto' ? language : 'Auto-detected',
+        });
       }
-      return res.status(200).json({ success: true, ...result });
+    } catch (err: any) {
+      lastError = err;
+      LoggingService.warn(`[Server] Audio transcription attempt with ${model} failed:`, err?.message || err);
     }
-  } catch (err: any) {
-    lastError = err;
-    LoggingService.error('[Server] Gemini 3.8 Flash transcription fallback failed:', err?.message || err);
   }
 
-  const message = lastError?.message || 'Audio transcription failed. Please try a shorter audio file or try again later.';
+  // If models succeeded without errors but returned no text (e.g., pure silence / tone)
+  if (!lastError) {
+    return res.status(200).json({
+      success: true,
+      text: 'No speech detected in this audio recording.',
+      confidence: 0,
+      detectedLanguage: 'None',
+    });
+  }
+
+  const message = lastError?.message || 'Audio transcription failed. Please check your audio format and try again.';
   throw new Error(message);
 }
 

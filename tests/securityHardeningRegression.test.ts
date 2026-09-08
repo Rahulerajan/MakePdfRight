@@ -51,6 +51,8 @@ test('fresh anonymous identities remain unique but share a network abuse bucket'
     assert.match(owner2, /^anon_[a-f0-9]{16}_/);
     assert.equal(owner1.split('_')[1], owner2.split('_')[1], 'same network fingerprint should share an abuse bucket');
 
+    await DistributedRateLimiter.resetLocal(owner1, 'general', 'rotation-regression');
+
     const first = await DistributedRateLimiter.checkRateLimit(owner1, 'general', 'rotation-regression');
     const second = await DistributedRateLimiter.checkRateLimit(owner2, 'general', 'rotation-regression');
     assert.equal(first.allowed, true);

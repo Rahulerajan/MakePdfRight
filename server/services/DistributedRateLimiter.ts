@@ -177,6 +177,26 @@ export class DistributedRateLimiter {
     }
   }
 
+  static async resetLocal(identifier?: string, category: RateLimitCategory = 'general', action: string = 'default'): Promise<void> {
+    try {
+      const dataDir = path.resolve(os.tmpdir(), 'make-pdf-right', 'ratelimits');
+      if (!fs.existsSync(dataDir)) return;
+      if (identifier) {
+        const principal = normalizeIdentifier(identifier);
+        const rateKey = `rate_${category}_${principal}_${action}`;
+        const dataPath = path.join(dataDir, `${rateKey.replace(/[^a-zA-Z0-9_-]/g, '_')}.json`);
+        if (fs.existsSync(dataPath)) fs.unlinkSync(dataPath);
+      } else {
+        const files = fs.readdirSync(dataDir);
+        for (const file of files) {
+          if (file.endsWith('.json') || file.endsWith('.lock')) {
+            try { fs.unlinkSync(path.join(dataDir, file)); } catch {}
+          }
+        }
+      }
+    } catch {}
+  }
+
   static async checkActiveJobLimit(ownerId: string): Promise<{ allowed: boolean; max: number; activeJobs: number; retryAfter: number; message?: string }> {
     const maxActive = this.getMaxActiveJobsPerOwner();
     try {
