@@ -5,6 +5,7 @@
 
 import { initializeApp, getApps, applicationDefault, type App, type AppOptions } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
+import { getAppCheck, type AppCheck } from 'firebase-admin/app-check';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import fs from 'fs';
 import path from 'path';
@@ -102,7 +103,10 @@ export function getFirebaseAuth(): Auth {
   return getAuth(getFirebaseAdminApp());
 }
 
+export function getFirebaseAppCheck(): AppCheck {
+  return getAppCheck(getFirebaseAdminApp());
+}
+
 export function getFirebaseFirestore(): Firestore {
   return getFirestore(getFirebaseAdminApp());
 }
-

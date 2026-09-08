@@ -6,26 +6,26 @@
 import { initializeApp, getApps, getApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+  getToken as getAppCheckToken,
+  type AppCheck,
+} from 'firebase/app-check';
+import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithCredential,
+  setPersistence,
+  browserLocalPersistence,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   type User,
   type Auth,
 } from 'firebase/auth';
 import fallbackAppletConfig from '../../firebase-applet-config.json';
-
-export const firebaseConfig = {
-  apiKey: "AIzaSyCSoLXqKoUocr3NzfRZXuU_nx5CiEGKmtM",
-  authDomain: "makepdfright-1989c.firebaseapp.com",
-  projectId: "makepdfright-1989c",
-  storageBucket: "makepdfright-1989c.firebasestorage.app",
-  messagingSenderId: "805809837229",
-  appId: "1:805809837229:web:ef11edd2296c8b5e4b2224",
-  measurementId: "G-V5ERWMZVK7"
-};
 
 function getEnv(key: string): string {
   try {
@@ -109,6 +109,8 @@ export function resolveFirebaseClientConfig(): FirebaseOptions {
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let authPersistencePromise: Promise<void> | null = null;
+let appCheck: AppCheck | null = null;
 
 export function getFirebaseApp(): FirebaseApp {
   if (!app) {
@@ -130,12 +132,45 @@ export function getFirebaseAuth(): Auth {
   return auth;
 }
 
+async function ensureAuthPersistence(): Promise<void> {
+  if (!authPersistencePromise) {
+    authPersistencePromise = setPersistence(getFirebaseAuth(), browserLocalPersistence);
+  }
+  await authPersistencePromise;
+}
+
 export const googleAuthProvider = new GoogleAuthProvider();
 googleAuthProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
 let analyticsInstance: Analytics | null = null;
+
+/**
+ * Enables App Check only when a site key is configured. This lets deployments
+ * collect metrics before enforcement without breaking local development.
+ */
+export function initializeFirebaseAppCheck(): AppCheck | null {
+  if (typeof window === 'undefined') return null;
+  const siteKey = getEnv('VITE_FIREBASE_APPCHECK_SITE_KEY').trim();
+  if (!siteKey) return null;
+
+  if (!appCheck) {
+    appCheck = initializeAppCheck(getFirebaseApp(), {
+      provider: new ReCaptchaV3Provider(siteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  }
+
+  return appCheck;
+}
+
+export async function getFirebaseAppCheckToken(forceRefresh = false): Promise<string | null> {
+  const instance = initializeFirebaseAppCheck();
+  if (!instance) return null;
+  const result = await getAppCheckToken(instance, forceRefresh);
+  return result.token;
+}
 
 export async function getFirebaseAnalytics(): Promise<Analytics | null> {
   if (typeof window === 'undefined') return null;
@@ -154,6 +189,7 @@ export async function getFirebaseAnalytics(): Promise<Analytics | null> {
 
 // Automatically initialize analytics when in browser
 if (typeof window !== 'undefined') {
+  initializeFirebaseAppCheck();
   getFirebaseAnalytics().catch(() => {});
 }
 
@@ -162,8 +198,9 @@ if (typeof window !== 'undefined') {
  * - If a GIS credential (JWT ID token) is provided, uses signInWithCredential.
  * - Otherwise, initiates standard Google Sign-In popup with Firebase Auth.
  */
-export async function signInWithGoogleCredential(credentialOrIdToken?: string): Promise<User> {
+export async function signInWithGoogleCredential(credentialOrIdToken?: string): Promise<User | null> {
   const authInstance = getFirebaseAuth();
+  await ensureAuthPersistence();
 
   if (credentialOrIdToken) {
     const credential = GoogleAuthProvider.credential(credentialOrIdToken);
@@ -171,13 +208,33 @@ export async function signInWithGoogleCredential(credentialOrIdToken?: string): 
     return result.user;
   }
 
-  const result = await signInWithPopup(authInstance, googleAuthProvider);
-  return result.user;
+  try {
+    const result = await signInWithPopup(authInstance, googleAuthProvider);
+    return result.user;
+  } catch (err: any) {
+    const shouldUseRedirect =
+      err?.code === 'auth/popup-blocked' ||
+      err?.code === 'auth/operation-not-supported-in-this-environment';
+
+    if (!shouldUseRedirect) throw err;
+
+    await signInWithRedirect(authInstance, googleAuthProvider);
+    return null;
+  }
+}
+
+/** Completes a Google redirect flow after the browser returns to the app. */
+export async function completeGoogleRedirectSignIn(): Promise<User | null> {
+  await ensureAuthPersistence();
+  const result = await getRedirectResult(getFirebaseAuth());
+  return result?.user ?? null;
 }
 
 export {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithCredential,
   firebaseSignOut,
   onAuthStateChanged,

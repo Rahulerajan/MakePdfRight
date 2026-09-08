@@ -7,6 +7,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import {
   getFirebaseAuth,
   signInWithGoogleCredential,
+  completeGoogleRedirectSignIn,
   firebaseSignOut,
   onAuthStateChanged,
   type User,
@@ -44,6 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentUser);
         setLoading(false);
       });
+
+      completeGoogleRedirectSignIn()
+        .then((redirectUser) => {
+          if (redirectUser) setUser(redirectUser);
+        })
+        .catch((redirectErr) => {
+          setError(formatAuthError(redirectErr));
+          setLoading(false);
+        });
     } catch (err: any) {
       setError(formatAuthError(err));
       setLoading(false);
@@ -61,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const signedInUser = await signInWithGoogleCredential();
-      setUser(signedInUser);
+      if (signedInUser) setUser(signedInUser);
       setError(null);
     } catch (popupErr: any) {
       if (popupErr?.code === 'auth/popup-closed-by-user') {

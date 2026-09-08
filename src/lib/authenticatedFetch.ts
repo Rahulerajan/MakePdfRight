@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getFirebaseAuth } from './firebaseClient';
+import { getFirebaseAppCheckToken, getFirebaseAuth } from './firebaseClient';
 
 /**
  * Frontend authenticated fetch helper that:
@@ -25,9 +25,12 @@ export async function authenticatedFetch(
   // 1. Get current token (without forced refresh first)
   let idToken = await currentUser.getIdToken(false);
 
+  const appCheckToken = await getFirebaseAppCheckToken().catch(() => null);
+
   const buildHeaders = (token: string): Headers => {
     const headers = new Headers(init?.headers || {});
     headers.set('Authorization', `Bearer ${token}`);
+    if (appCheckToken) headers.set('X-Firebase-AppCheck', appCheckToken);
     return headers;
   };
 
