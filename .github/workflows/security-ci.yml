@@ -1,0 +1,40 @@
+name: Security CI
+
+on:
+  push:
+    branches:
+      - security-hardening-audit-fixes
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        env:
+          NODE_ENV: development
+        run: npm run build
