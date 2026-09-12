@@ -1,3 +1,5 @@
+import { GUIDES, guidePath } from '../src/constants/guides';
+
 export interface RouteSEO {
   title: string;
   description: string;
@@ -14,6 +16,10 @@ export interface RouteSEO {
 }
 
 export const SEO_DATA: Record<string, RouteSEO> = {
+  ...Object.fromEntries(GUIDES.map(guide => [guidePath(guide.id), {
+    title: `${guide.title} | MakePDFRight`,
+    description: guide.summary,
+  }])),
   '/': {
     title: 'MakePDFRight – Online PDF & Document Processing Tools',
     description: 'MakePDFRight provides online PDF and document utilities. Merge, split, compress, edit, convert PDFs, and process documents with browser-first and ephemeral workflows.',
