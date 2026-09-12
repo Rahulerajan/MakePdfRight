@@ -171,6 +171,21 @@ export function verifyBuildIntegrity(): boolean {
 
   // 4. Validate 404 page & Non-Monetizable Page AdSense Isolation
   console.log('\n[Integrity Safeguard] Verifying 404 page and AdSense isolation rules...');
+  const homeHtmlPath = path.join(DIST_DIR, 'index.html');
+  if (!fs.existsSync(homeHtmlPath)) {
+    console.error('❌ [Integrity Failure] dist/index.html is missing!');
+    hasErrors = true;
+  } else {
+    const homeHtml = fs.readFileSync(homeHtmlPath, 'utf-8');
+    const adsenseLoaderCount = (homeHtml.match(/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js\?client=ca-pub-3285688046173201/g) || []).length;
+    if (adsenseLoaderCount !== 1) {
+      console.error(`❌ [Integrity Failure] Homepage must contain exactly one AdSense loader; found ${adsenseLoaderCount}.`);
+      hasErrors = true;
+    } else {
+      console.log('✅ Homepage contains exactly one AdSense site-verification loader.');
+    }
+  }
+
   const notFoundHtmlPath = path.join(DIST_DIR, '404.html');
   if (!fs.existsSync(notFoundHtmlPath)) {
     console.error('❌ [Integrity Failure] dist/404.html is missing!');
