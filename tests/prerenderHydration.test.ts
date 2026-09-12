@@ -22,6 +22,11 @@ describe('Prerender and Hydration Consistency Tests', () => {
       assert.ok(indexHtml.includes('data-prerendered="true"'), 'dist/index.html should have data-prerendered attribute');
       assert.ok(indexHtml.includes('Make Your') && indexHtml.includes('PDFs'), 'dist/index.html should contain exact React H1');
       assert.ok(!indexHtml.includes('Free, Fast & Private Online PDF Tools'), 'dist/index.html must not contain old alternative SEO template H1');
+      assert.strictEqual(
+        (indexHtml.match(/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js\?client=ca-pub-3285688046173201/g) || []).length,
+        1,
+        'dist/index.html should contain exactly one AdSense site-verification loader'
+      );
     }
   });
 
