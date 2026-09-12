@@ -160,11 +160,11 @@ export function verifyBuildIntegrity(): boolean {
     if (fs.existsSync(distSitemapPath)) {
       const distSitemapXml = fs.readFileSync(distSitemapPath, 'utf-8');
       const urlCount = (distSitemapXml.match(/<url>/g) || []).length;
-      if (urlCount !== 21) {
-        console.error(`❌ [Integrity Failure] dist/sitemap.xml contains ${urlCount} URLs, expected exactly 21!`);
+      if (urlCount !== PRIMARY_INDEXABLE_ROUTES.length) {
+        console.error(`❌ [Integrity Failure] dist/sitemap.xml contains ${urlCount} URLs, expected ${PRIMARY_INDEXABLE_ROUTES.length}!`);
         hasErrors = true;
       } else {
-        console.log(`✅ dist/sitemap.xml contains exactly 21 URLs.`);
+        console.log(`✅ dist/sitemap.xml contains exactly ${PRIMARY_INDEXABLE_ROUTES.length} URLs.`);
       }
     }
   }

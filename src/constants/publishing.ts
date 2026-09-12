@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { GUIDE_ROUTES } from './guides';
+
 export interface PublishingPolicy {
   indexable: boolean;
   canonicalPath: string;
@@ -27,6 +29,7 @@ export const PRIMARY_INDEXABLE_ROUTES = [
   '/generate-image',
   '/transcribe',
   '/resources',
+  ...GUIDE_ROUTES,
   '/about',
   '/contact',
   '/privacy',

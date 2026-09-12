@@ -21,6 +21,8 @@ import { ImageGenPage } from './pages/ImageGenPage';
 import { AudioTranscribePage } from './pages/AudioTranscribePage';
 import { About } from './pages/About';
 import { Resources } from './pages/Resources';
+import { Guide } from './pages/Guide';
+import { GUIDES, guidePath } from './constants/guides';
 import { Contact } from './pages/Contact';
 import { Privacy } from './pages/Privacy';
 import { Terms } from './pages/Terms';
@@ -742,6 +744,9 @@ export function App({ initialPath }: AppProps = {}) {
 
               {/* Informational & Legal Pages */}
               <Route path="/resources" element={<Resources />} />
+              {GUIDES.map(guide => (
+                <Route key={guide.id} path={guidePath(guide.id)} element={<Guide guide={guide} />} />
+              ))}
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy" element={<Privacy />} />

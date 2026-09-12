@@ -34,12 +34,12 @@ describe('Prerender and Hydration Consistency Tests', () => {
     assert.ok(compressHtml.includes('Compress PDF'), 'Compress route must render Compress PDF title');
   });
 
-  test('Sitemap contains exactly 21 primary indexable URLs', () => {
+  test('Sitemap contains every primary indexable URL exactly once', () => {
     const sitemapPath = path.join(process.cwd(), 'public', 'sitemap.xml');
     assert.ok(fs.existsSync(sitemapPath), 'public/sitemap.xml should exist');
     const sitemapContent = fs.readFileSync(sitemapPath, 'utf-8');
     const count = (sitemapContent.match(/<url>/g) || []).length;
-    assert.strictEqual(count, 21, `Expected exactly 21 URLs in sitemap, found ${count}`);
+    assert.strictEqual(count, PRIMARY_INDEXABLE_ROUTES.length, `Expected ${PRIMARY_INDEXABLE_ROUTES.length} URLs in sitemap, found ${count}`);
 
     for (const route of PRIMARY_INDEXABLE_ROUTES) {
       const expectedUrl = `https://www.makepdfright.com${route === '/' ? '' : route}`;
@@ -48,7 +48,7 @@ describe('Prerender and Hydration Consistency Tests', () => {
   });
 
   test('All primary routes have strict publishing policies', () => {
-    assert.strictEqual(PRIMARY_INDEXABLE_ROUTES.length, 21, 'There must be exactly 21 primary indexable routes');
+    assert.strictEqual(new Set(PRIMARY_INDEXABLE_ROUTES).size, PRIMARY_INDEXABLE_ROUTES.length, 'Primary routes must be unique');
     for (const route of PRIMARY_INDEXABLE_ROUTES) {
       const policy = publishingPolicyFor(route);
       assert.strictEqual(policy.indexable, true, `Route ${route} should be indexable`);

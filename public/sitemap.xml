@@ -76,6 +76,36 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://www.makepdfright.com/guides/pdf-vs-editable-formats</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.makepdfright.com/guides/how-pdf-compression-works</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.makepdfright.com/guides/scanned-vs-digital-pdf</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.makepdfright.com/guides/extracting-pdf-tables-to-excel</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.makepdfright.com/guides/document-privacy-client-side</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.makepdfright.com/guides/post-conversion-validation-checklist</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.makepdfright.com/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
