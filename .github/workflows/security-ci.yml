@@ -3,13 +3,17 @@ name: Security CI
 on:
   push:
     branches:
-      - security-hardening-audit-fixes
+      - main
   pull_request:
     branches:
       - main
 
 permissions:
   contents: read
+
+concurrency:
+  group: security-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:

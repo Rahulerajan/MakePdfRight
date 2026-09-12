@@ -1,64 +1,68 @@
-const CACHE_NAME = 'makepdfright-v1.0.0';
+const CACHE_NAME = 'makepdfright-v1.1.0';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.ico',
   '/favicon.svg',
   '/favicon.png',
   '/apple-touch-icon.png',
-  '/robots.txt',
-  '/sitemap.xml'
+  '/robots.txt'
 ];
 
-// Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activate Event
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then((cacheNames) => Promise.all(
+        cacheNames.map((cache) => cache !== CACHE_NAME ? caches.delete(cache) : Promise.resolve(false))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch Event - Stale-while-revalidate for static assets, Network-first for API requests
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
 
-  // Skip API requests and external scripts
-  if (url.pathname.startsWith('/api/') || event.request.method !== 'GET') {
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Always prefer the network for document navigations so releases, SEO metadata,
+  // auth state and tool pages do not get pinned to stale cached HTML.
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    event.respondWith(
+      fetch(request).catch(() => caches.match('/index.html').then((response) => response || Response.error()))
+    );
+    return;
+  }
+
+  // Cache immutable/static assets only. Query-stringed build assets are safe because
+  // the full Request is used as the cache key.
+  const isStaticAsset =
+    STATIC_ASSETS.includes(url.pathname) ||
+    ['style', 'script', 'font', 'image'].includes(request.destination) ||
+    url.pathname.startsWith('/assets/');
+
+  if (!isStaticAsset) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+    caches.match(request).then((cachedResponse) => {
+      const networkResponse = fetch(request).then((response) => {
+        if (response && response.ok && response.type === 'basic') {
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
         }
-        return networkResponse;
-      }).catch(() => {
-        return cachedResponse || caches.match('/index.html');
+        return response;
       });
-
-      return cachedResponse || fetchPromise;
+      return cachedResponse || networkResponse;
     })
   );
 });

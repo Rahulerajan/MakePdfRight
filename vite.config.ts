@@ -13,7 +13,7 @@ export default defineConfig(() => {
     },
     build: {
       sourcemap: true,
-      chunkSizeWarningLimit: 1200,
+      chunkSizeWarningLimit: 700,
       modulePreload: {
         polyfill: true,
       },
