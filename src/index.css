@@ -1,3 +1,4 @@
+@import "@fontsource-variable/geist/wght.css";
 @import "tailwindcss";
 
 /* Enable class-based manual dark mode variant in Tailwind CSS v4 */
@@ -6,7 +7,7 @@
 @theme {
   --color-primary: #e5322d;
   --color-primary-hover: #c42b27;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
 
   /* Dynamically remapped tailwind colors for premium, zero-duplication light/dark theme switching */
   --color-slate-50: var(--slate-50);
